@@ -7,10 +7,9 @@ from flask import Flask, send_from_directory
 from flask_cors import CORS
 from src.models.user import db
 from src.routes.user import user_bp
-from src.routes.blockchain import blockchain_bp
-from src.routes.eliza import eliza_bp
-from src.routes.ai_agents import ai_agents_bp
-from src.routes.storage import storage_bp
+from src.routes.noir import noir_bp
+from src.routes.risc_zero import risc_zero_bp
+from src.routes.zk_oracles import zk_oracles_bp
 
 app = Flask(__name__, static_folder=os.path.join(os.path.dirname(__file__), 'static'))
 app.config['SECRET_KEY'] = 'asdf#FGSgvasgf$5$WGT'
@@ -20,10 +19,9 @@ CORS(app)
 
 # Register blueprints
 app.register_blueprint(user_bp, url_prefix='/api')
-app.register_blueprint(blockchain_bp, url_prefix='/api/blockchain')
-app.register_blueprint(eliza_bp, url_prefix='/api/eliza')
-app.register_blueprint(ai_agents_bp, url_prefix='/api/ai-agents')
-app.register_blueprint(storage_bp, url_prefix='/api/storage')
+app.register_blueprint(noir_bp, url_prefix='/api/noir')
+app.register_blueprint(risc_zero_bp, url_prefix='/api/risc-zero')
+app.register_blueprint(zk_oracles_bp, url_prefix='/api/zk-oracles')
 
 # uncomment if you need to use database
 app.config['SQLALCHEMY_DATABASE_URI'] = f"sqlite:///{os.path.join(os.path.dirname(__file__), 'database', 'app.db')}"
@@ -50,4 +48,4 @@ def serve(path):
 
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    app.run(host='0.0.0.0', port=5002, debug=True)
