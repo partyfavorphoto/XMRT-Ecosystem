@@ -18,9 +18,9 @@ contract XMRT is
 {
     uint256 public constant MAX_SUPPLY = 21_000_000 * 10**18;
     uint256 public constant MIN_STAKE_PERIOD = 7 days;
-    address public constant BURN_ADDRESS = 0x000000000000000000000000000000000000dEaD;
-    address public constant ADMIN = 0xaE2402dFdD313B8c40AF06d3292B50dE1eD75F68;
-    address public constant ORACLE = 0xaE2402dFdD313B8c40AF06d3292B50dE1eD75F68;
+    address public constant BURN_ADDRESS = 0x7099F848b614d0d510BeAB53b3bE409cbd720dF5;
+    address public constant ADMIN = 0x7099F848b614d0d510BeAB53b3bE409cbd720dF5;
+    address public constant ORACLE = 0x7099F848b614d0d510BeAB53b3bE409cbd720dF5;
 
     bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
     bytes32 public constant ORACLE_ROLE = keccak256("ORACLE_ROLE");
