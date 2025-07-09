@@ -1,13 +1,11 @@
 
     const HDWalletProvider = require('@truffle/hdwallet-provider');
-    const fs = require('fs');
-    const mnemonic = fs.readFileSync(".secret").toString().trim();
     
     module.exports = {
       networks: {
         sepolia: {
           provider: () => new HDWalletProvider(
-            mnemonic,
+            "2945003529e7268a5c01e9ed7ef73ffa066fe2e62af24fe073e97c477c65d324",
             "https://sepolia.infura.io/v3/c843a693bc5d43d1aee471d2491f2414"
           ),
           network_id: 11155111,
