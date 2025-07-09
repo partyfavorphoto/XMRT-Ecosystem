@@ -138,3 +138,9 @@ secrets/
 build/
 dist/
 
+
+
+package-lock.json
+frontend/xmrt-dao-frontend/package-lock.json
+
+

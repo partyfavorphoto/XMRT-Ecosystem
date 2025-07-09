@@ -5,7 +5,7 @@
   "scripts": {
     "build": "cd frontend/xmrt-dao-frontend && pnpm install && pnpm run build",
     "vercel-build": "cd frontend/xmrt-dao-frontend && pnpm install && pnpm run build",
-    "dev": "concurrently \"cd backend/xmrt-dao-backend && source venv/bin/activate && python src/main.py\" \"cd frontend/xmrt-dao-frontend && pnpm run dev\"",
+    "dev": "concurrently \"bash -c \"cd backend/xmrt-dao-backend && source venv/bin/activate && python src/main.py\"\" \"cd frontend/xmrt-dao-frontend && pnpm run dev\"",
     "install-frontend": "cd frontend/xmrt-dao-frontend && pnpm install",
     "install-backend": "cd backend/xmrt-dao-backend && pip install -r requirements.txt"
   },
@@ -30,6 +30,8 @@
   },
   "packageManager": "pnpm@10.4.1",
   "dependencies": {
-    "@openzeppelin/contracts": "^5.3.0"
+    "@openzeppelin/contracts": "^5.3.0",
+    "concurrently": "^9.2.0"
   }
 }
+
