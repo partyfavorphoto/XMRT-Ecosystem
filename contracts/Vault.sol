@@ -1,8 +1,19 @@
-// SPDX-License-Identifier: MIT
-pragma solidity ^0.8.0;
 
-contract Vault {
-    address public constant TREASURY = 0x7099F848b614d0d510BeAB53b3bE409cbd720dF5;
+    // SPDX-License-Identifier: MIT
+    pragma solidity ^0.8.0;
     
-    // Vault functions here
-}
+    import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+    
+    contract Vault is ReentrancyGuard {
+        address public TREASURY;
+        
+        constructor(address treasury) {
+            TREASURY = treasury;
+        }
+        
+        function withdraw(uint amount) public nonReentrant {
+            require(msg.sender == TREASURY, "Unauthorized");
+            payable(TREASURY).transfer(amount);
+        }
+    }
+    
