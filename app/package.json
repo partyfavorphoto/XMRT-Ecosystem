@@ -7,7 +7,8 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "preinstall": "npm install -g npm@latest"
   },
   "dependencies": {
     "react": "^19.1.0",
