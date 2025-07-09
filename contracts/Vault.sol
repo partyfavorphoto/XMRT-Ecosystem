@@ -10,3 +10,9 @@
             }
         }
         
+
+// Security enhancements
+import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
+
+// Add to contract definition: is ReentrancyGuard, Ownable
