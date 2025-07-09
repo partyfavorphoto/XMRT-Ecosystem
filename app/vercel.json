@@ -1,20 +1,5 @@
 {
-  "build": {
-    "env": {
-      "NODE_ENV": "production"
-    }
-  },
-  "routes": [
-    {
-      "src": "/api/.*",
-      "dest": "https://api.mobilemonero.com"
-    },
-    {
-      "handle": "filesystem"
-    },
-    {
-      "src": ".*",
-      "dest": "/index.html"
-    }
-  ]
+  "buildCommand": "pnpm run vercel-build",
+  "installCommand": "pnpm install --store=node_modules/.pnpm-store",
+  "outputDirectory": "dist"
 }
