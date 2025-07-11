@@ -1,0 +1,35 @@
+
+name: Node.js CI Build
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: [18.x]
+
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+
+    - name: Use Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ matrix.node-version }}
+        cache: 'npm'
+        cache-dependency-path: frontend/xmrt-dao-frontend/package-lock.json
+
+    - name: Install Dependencies
+      working-directory: ./frontend/xmrt-dao-frontend
+      run: npm install
+
+    - name: Build Project
+      working-directory: ./frontend/xmrt-dao-frontend
+      run: npm run build
