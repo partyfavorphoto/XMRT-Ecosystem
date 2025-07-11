@@ -1,0 +1,55 @@
+
+name: XMRT CI Pipeline
+on: [push, pull_request]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: Install Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: 18
+
+    - name: Install Backend Dependencies
+      run: |
+        cd backend/xmrt-dao-backend
+        npm install
+
+    - name: Install Frontend Dependencies
+      run: |
+        cd frontend/xmrt-dao-frontend
+        npm install
+
+    - name: Run Backend Tests
+      run: |
+        cd backend/xmrt-dao-backend
+        echo "No specific backend tests configured yet."
+
+    - name: Run Frontend Tests
+      run: |
+        cd frontend/xmrt-dao-frontend
+        npm test --if-present
+
+    - name: Build Frontend
+      run: |
+        cd frontend/xmrt-dao-frontend
+        npm run build
+
+    - name: Run Contract Tests
+      run: |
+        cd backend/xmrt-dao-backend
+        npm install
+        npx hardhat test
+
+    - name: Run Security Audit (Contracts)
+      run: |
+        pip install slither-analyzer
+        slither contracts --checklist
+
+    - name: Deploy to Testnet
+      if: github.ref == 'refs/heads/main'
+      run: |
+        cd backend/xmrt-dao-backend
+        npx hardhat run scripts/deploy.js --network sepolia
