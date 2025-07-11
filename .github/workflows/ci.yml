@@ -50,8 +50,9 @@ jobs:
     #     pip install slither-analyzer
     #     slither contracts --checklist
 
-    - name: Deploy to Testnet
-      if: github.ref == 'refs/heads/main'
-      run: |
-        cd backend/xmrt-dao-backend
-        npx hardhat run scripts/deploy.js --network sepolia
+    # --- Temporarily disabled until contracts are fully implemented ---
+    # - name: Deploy to Testnet
+    #   if: github.ref == 'refs/heads/main'
+    #   run: |
+    #     cd backend/xmrt-dao-backend
+    #     npx hardhat run scripts/deploy.js --network sepolia
