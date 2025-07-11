@@ -23,8 +23,6 @@ jobs:
       uses: actions/setup-node@v4
       with:
         node-version: ${{ matrix.node-version }}
-        cache: 'npm'
-        cache-dependency-path: frontend/xmrt-dao-frontend/package-lock.json
 
     - name: Install Dependencies
       working-directory: ./frontend/xmrt-dao-frontend
