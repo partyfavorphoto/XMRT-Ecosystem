@@ -1,3 +1,4 @@
+
 name: XMRT CI Pipeline
 on: [push, pull_request]
 
@@ -39,7 +40,7 @@ jobs:
 
     - name: Run Contract Tests
       run: |
-        cd contracts
+        cd backend/xmrt-dao-backend
         npm install
         npx hardhat test
 
@@ -51,7 +52,5 @@ jobs:
     - name: Deploy to Testnet
       if: github.ref == 'refs/heads/main'
       run: |
-        cd contracts
+        cd backend/xmrt-dao-backend
         npx hardhat run scripts/deploy.js --network sepolia
-
-
