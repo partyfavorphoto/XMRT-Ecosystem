@@ -8,13 +8,13 @@ import { Textarea } from '@/components/ui/textarea.jsx'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select.jsx'
 import { Switch } from '@/components/ui/switch.jsx'
 import { Label } from '@/components/ui/label.jsx'
-import { 
-  Brain, 
-  Coins, 
-  Users, 
-  MessageSquare, 
-  TrendingUp, 
-  Shield, 
+import {
+  Brain,
+  Coins,
+  Users,
+  MessageSquare,
+  TrendingUp,
+  Shield,
   Network,
   Lock,
   Zap,
@@ -24,6 +24,7 @@ import {
   AlertCircle,
   Loader2
 } from 'lucide-react'
+import { Routes, Route, Link, useLocation } from 'react-router-dom'
 import './App.css'
 
 function App() {
@@ -37,6 +38,8 @@ function App() {
   const [selectedChain, setSelectedChain] = useState('ethereum')
   const [bridgeAmount, setBridgeAmount] = useState('')
   const [targetChain, setTargetChain] = useState('polygon')
+
+  const location = useLocation();
 
   // Enhanced capabilities state
   const [capabilities, setCapabilities] = useState({
@@ -223,421 +226,509 @@ function App() {
         </Card>
 
         {/* Main Interface */}
-        <Tabs defaultValue="dashboard" className="w-full">
+        <Tabs value={location.pathname.substring(1) || 'dashboard'} className="w-full">
           <TabsList className="grid w-full grid-cols-6">
-            <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
-            <TabsTrigger value="governance">Governance</TabsTrigger>
-            <TabsTrigger value="eliza">Enhanced Eliza</TabsTrigger>
-            <TabsTrigger value="cross-chain">Cross-Chain</TabsTrigger>
-            <TabsTrigger value="zk-privacy">ZK Privacy</TabsTrigger>
-            <TabsTrigger value="agents">AI Agents</TabsTrigger>
+            <TabsTrigger value="dashboard" asChild><Link to="/dashboard">Dashboard</Link></TabsTrigger>
+            <TabsTrigger value="governance" asChild><Link to="/governance">Governance</Link></TabsTrigger>
+            <TabsTrigger value="eliza" asChild><Link to="/eliza">Enhanced Eliza</Link></TabsTrigger>
+            <TabsTrigger value="cross-chain" asChild><Link to="/cross-chain">Cross-Chain</Link></TabsTrigger>
+            <TabsTrigger value="zk-privacy" asChild><Link to="/zk-privacy">ZK Privacy</Link></TabsTrigger>
+            <TabsTrigger value="agents" asChild><Link to="/agents">AI Agents</Link></TabsTrigger>
           </TabsList>
 
-          <TabsContent value="dashboard" className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center">
-                    <Coins className="h-5 w-5 mr-2" />
-                    Total Balance
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-2xl font-bold">0 XMRT</p>
-                  <p className="text-sm text-gray-600">Across all chains</p>
-                </CardContent>
-              </Card>
+          <Routes>
+            <Route path="/" element={
+              <TabsContent value="dashboard" className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center">
+                        <Coins className="h-5 w-5 mr-2" />
+                        Total Balance
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-2xl font-bold">0 XMRT</p>
+                      <p className="text-sm text-gray-600">Across all chains</p>
+                    </CardContent>
+                  </Card>
 
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center">
-                    <TrendingUp className="h-5 w-5 mr-2" />
-                    Staked Amount
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-2xl font-bold">0 XMRT</p>
-                  <p className="text-sm text-gray-600">Multi-chain staking</p>
-                </CardContent>
-              </Card>
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center">
+                        <TrendingUp className="h-5 w-5 mr-2" />
+                        Staked Amount
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-2xl font-bold">0 XMRT</p>
+                      <p className="text-sm text-gray-600">Multi-chain staking</p>
+                    </CardContent>
+                  </Card>
 
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center">
-                    <Brain className="h-5 w-5 mr-2" />
-                    Eliza Status
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <Badge variant="default" className="bg-green-600">Enhanced Active</Badge>
-                  <p className="text-sm text-gray-600 mt-2">All capabilities online</p>
-                </CardContent>
-              </Card>
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center">
+                        <Brain className="h-5 w-5 mr-2" />
+                        Eliza Status
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <Badge variant="default" className="bg-green-600">Enhanced Active</Badge>
+                      <p className="text-sm text-gray-600 mt-2">All capabilities online</p>
+                    </CardContent>
+                  </Card>
 
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center">
-                    <Database className="h-5 w-5 mr-2" />
-                    Treasury Value
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-2xl font-bold">$1.5M</p>
-                  <p className="text-sm text-gray-600">Optimized by AI</p>
-                </CardContent>
-              </Card>
-            </div>
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center">
+                        <Database className="h-5 w-5 mr-2" />
+                        Treasury Value
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-2xl font-bold">$1.5M</p>
+                      <p className="text-sm text-gray-600">Optimized by AI</p>
+                    </CardContent>
+                  </Card>
+                </div>
 
-            {/* Capabilities Overview */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Enhanced Capabilities</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                  {Object.entries(capabilities).map(([key, enabled]) => (
-                    <div key={key} className="flex items-center space-x-2">
-                      <CheckCircle className={`h-4 w-4 ${enabled ? 'text-green-600' : 'text-gray-400'}`} />
-                      <span className="capitalize">{key.replace('_', ' ')}</span>
+                {/* Capabilities Overview */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Enhanced Capabilities</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                      {Object.entries(capabilities).map(([key, enabled]) => (
+                        <div key={key} className="flex items-center space-x-2">
+                          <CheckCircle className={`h-4 w-4 ${enabled ? 'text-green-600' : 'text-gray-400'}`} />
+                          <span className="capitalize">{key.replace('_', ' ')}</span>
+                        </div>
+                      ))}
                     </div>
-                  ))}
+                  </CardContent>
+                </Card>
+              </TabsContent>
+            } />
+            <Route path="/dashboard" element={
+              <TabsContent value="dashboard" className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center">
+                        <Coins className="h-5 w-5 mr-2" />
+                        Total Balance
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-2xl font-bold">0 XMRT</p>
+                      <p className="text-sm text-gray-600">Across all chains</p>
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center">
+                        <TrendingUp className="h-5 w-5 mr-2" />
+                        Staked Amount
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-2xl font-bold">0 XMRT</p>
+                      <p className="text-sm text-gray-600">Multi-chain staking</p>
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center">
+                        <Brain className="h-5 w-5 mr-2" />
+                        Eliza Status
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <Badge variant="default" className="bg-green-600">Enhanced Active</Badge>
+                      <p className="text-sm text-gray-600 mt-2">All capabilities online</p>
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center">
+                        <Database className="h-5 w-5 mr-2" />
+                        Treasury Value
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-2xl font-bold">$1.5M</p>
+                      <p className="text-sm text-gray-600">Optimized by AI</p>
+                    </CardContent>
+                  </Card>
                 </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
 
-          <TabsContent value="governance" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Enhanced Proposal Submission</CardTitle>
-                <CardDescription>
-                  Submit proposals with optional ZK privacy and verifiable analysis
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <Textarea
-                  placeholder="Describe your proposal here..."
-                  value={proposal}
-                  onChange={(e) => setProposal(e.target.value)}
-                  className="min-h-32"
-                />
-                <div className="flex items-center space-x-2">
-                  <Switch
-                    id="zk-analysis"
-                    checked={useZkAnalysis}
-                    onCheckedChange={setUseZkAnalysis}
-                  />
-                  <Label htmlFor="zk-analysis">Use ZK-verified analysis (RISC Zero)</Label>
-                </div>
-                <Button 
-                  className="w-full" 
-                  onClick={analyzeProposal}
-                  disabled={isLoading}
-                >
-                  {isLoading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
-                  Submit for {useZkAnalysis ? 'ZK-Verified' : 'Standard'} Analysis
-                </Button>
-              </CardContent>
-            </Card>
+                {/* Capabilities Overview */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Enhanced Capabilities</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                      {Object.entries(capabilities).map(([key, enabled]) => (
+                        <div key={key} className="flex items-center space-x-2">
+                          <CheckCircle className={`h-4 w-4 ${enabled ? 'text-green-600' : 'text-gray-400'}`} />
+                          <span className="capitalize">{key.replace('_', ' ')}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+            } />
 
-            <Card>
-              <CardHeader>
-                <CardTitle>Active Proposals</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-gray-600">No active proposals. Submit the first one above!</p>
-              </CardContent>
-            </Card>
-          </TabsContent>
+            <Route path="/governance" element={
+              <TabsContent value="governance" className="space-y-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Enhanced Proposal Submission</CardTitle>
+                    <CardDescription>
+                      Submit proposals with optional ZK privacy and verifiable analysis
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <Textarea
+                      placeholder="Describe your proposal here..."
+                      value={proposal}
+                      onChange={(e) => setProposal(e.target.value)}
+                      className="min-h-32"
+                    />
+                    <div className="flex items-center space-x-2">
+                      <Switch
+                        id="zk-analysis"
+                        checked={useZkAnalysis}
+                        onCheckedChange={setUseZkAnalysis}
+                      />
+                      <Label htmlFor="zk-analysis">Use ZK-verified analysis (RISC Zero)</Label>
+                    </div>
+                    <Button 
+                      className="w-full" 
+                      onClick={analyzeProposal}
+                      disabled={isLoading}
+                    >
+                      {isLoading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
+                      Submit for {useZkAnalysis ? 'ZK-Verified' : 'Standard'} Analysis
+                    </Button>
+                  </CardContent>
+                </Card>
 
-          <TabsContent value="eliza" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center">
-                  <MessageSquare className="h-5 w-5 mr-2" />
-                  Enhanced Eliza AI
-                </CardTitle>
-                <CardDescription>
-                  Advanced AI with cross-chain, ZK, and verifiable computation capabilities
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="h-96 border rounded-lg p-4 bg-gray-50 dark:bg-gray-800 overflow-y-auto">
-                  {chatHistory.map((msg, index) => (
-                    <div key={index} className={`mb-4 ${msg.role === 'user' ? 'text-right' : 'text-left'}`}>
-                      <div className={`inline-block p-3 rounded-lg max-w-[80%] ${
-                        msg.role === 'user' 
-                          ? 'bg-blue-600 text-white' 
-                          : 'bg-white dark:bg-gray-700 border'
-                      }`}>
-                        <p className="text-sm">{msg.content}</p>
-                        {msg.autonomous_actions && msg.autonomous_actions.length > 0 && (
-                          <div className="mt-2 pt-2 border-t border-gray-200">
-                            <p className="text-xs text-gray-500">Autonomous actions triggered</p>
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Active Proposals</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-gray-600">No active proposals. Submit the first one above!</p>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+            } />
+
+            <Route path="/eliza" element={
+              <TabsContent value="eliza" className="space-y-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center">
+                      <MessageSquare className="h-5 w-5 mr-2" />
+                      Enhanced Eliza AI
+                    </CardTitle>
+                    <CardDescription>
+                      Advanced AI with cross-chain, ZK, and verifiable computation capabilities
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="h-96 border rounded-lg p-4 bg-gray-50 dark:bg-gray-800 overflow-y-auto">
+                      {chatHistory.map((msg, index) => (
+                        <div key={index} className={`mb-4 ${msg.role === 'user' ? 'text-right' : 'text-left'}`}>
+                          <div className={`inline-block p-3 rounded-lg max-w-[80%] ${
+                            msg.role === 'user' 
+                              ? 'bg-blue-600 text-white' 
+                              : 'bg-white dark:bg-gray-700 border'
+                          }`}>
+                            <p className="text-sm">{msg.content}</p>
+                            {msg.autonomous_actions && msg.autonomous_actions.length > 0 && (
+                              <div className="mt-2 pt-2 border-t border-gray-200">
+                                <p className="text-xs text-gray-500">Autonomous actions triggered</p>
+                              </div>
+                            )}
                           </div>
-                        )}
+                        </div>
+                      ))}
+                      {isLoading && (
+                        <div className="text-left">
+                          <div className="inline-block p-3 rounded-lg bg-white dark:bg-gray-700 border">
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex space-x-2">
+                      <Input
+                        placeholder="Ask about cross-chain ops, ZK proofs, treasury optimization..."
+                        value={message}
+                        onChange={(e) => setMessage(e.target.value)}
+                        onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
+                        className="flex-1"
+                      />
+                      <Button onClick={sendMessage} disabled={isLoading}>
+                        {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Send'}
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+            } />
+
+            <Route path="/cross-chain" element={
+              <TabsContent value="cross-chain" className="space-y-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center">
+                      <Network className="h-5 w-5 mr-2" />
+                      Cross-Chain Bridge
+                    </CardTitle>
+                    <CardDescription>
+                      Bridge XMRT tokens across supported networks using Wormhole and LayerZero
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label>From Chain</Label>
+                        <Select value={selectedChain} onValueChange={setSelectedChain}>
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="ethereum">Ethereum</SelectItem>
+                            <SelectItem value="polygon">Polygon</SelectItem>
+                            <SelectItem value="bsc">BSC</SelectItem>
+                            <SelectItem value="avalanche">Avalanche</SelectItem>
+                            <SelectItem value="arbitrum">Arbitrum</SelectItem>
+                            <SelectItem value="optimism">Optimism</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <Label>To Chain</Label>
+                        <Select value={targetChain} onValueChange={setTargetChain}>
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="ethereum">Ethereum</SelectItem>
+                            <SelectItem value="polygon">Polygon</SelectItem>
+                            <SelectItem value="bsc">BSC</SelectItem>
+                            <SelectItem value="avalanche">Avalanche</SelectItem>
+                            <SelectItem value="arbitrum">Arbitrum</SelectItem>
+                            <SelectItem value="optimism">Optimism</SelectItem>
+                          </SelectContent>
+                        </Select>
                       </div>
                     </div>
-                  ))}
-                  {isLoading && (
-                    <div className="text-left">
-                      <div className="inline-block p-3 rounded-lg bg-white dark:bg-gray-700 border">
-                        <Loader2 className="h-4 w-4 animate-spin" />
+                    <div>
+                      <Label>Amount (XMRT)</Label>
+                      <Input
+                        type="number"
+                        placeholder="0.0"
+                        value={bridgeAmount}
+                        onChange={(e) => setBridgeAmount(e.target.value)}
+                      />
+                    </div>
+                    <Button 
+                      className="w-full" 
+                      onClick={executeCrossChainBridge}
+                      disabled={isLoading}
+                    >
+                      {isLoading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
+                      Bridge Tokens
+                    </Button>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Cross-Chain Status</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-2">
+                      <div className="flex justify-between">
+                        <span>Wormhole Bridge</span>
+                        <Badge variant="default">Active</Badge>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>LayerZero OFT</span>
+                        <Badge variant="default">Active</Badge>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Supported Chains</span>
+                        <Badge variant="outline">6 Networks</Badge>
                       </div>
                     </div>
-                  )}
-                </div>
-                <div className="flex space-x-2">
-                  <Input
-                    placeholder="Ask about cross-chain ops, ZK proofs, treasury optimization..."
-                    value={message}
-                    onChange={(e) => setMessage(e.target.value)}
-                    onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
-                    className="flex-1"
-                  />
-                  <Button onClick={sendMessage} disabled={isLoading}>
-                    {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Send'}
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+            } />
 
-          <TabsContent value="cross-chain" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center">
-                  <Network className="h-5 w-5 mr-2" />
-                  Cross-Chain Bridge
-                </CardTitle>
-                <CardDescription>
-                  Bridge XMRT tokens across supported networks using Wormhole and LayerZero
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label>From Chain</Label>
-                    <Select value={selectedChain} onValueChange={setSelectedChain}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="ethereum">Ethereum</SelectItem>
-                        <SelectItem value="polygon">Polygon</SelectItem>
-                        <SelectItem value="bsc">BSC</SelectItem>
-                        <SelectItem value="avalanche">Avalanche</SelectItem>
-                        <SelectItem value="arbitrum">Arbitrum</SelectItem>
-                        <SelectItem value="optimism">Optimism</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <Label>To Chain</Label>
-                    <Select value={targetChain} onValueChange={setTargetChain}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="ethereum">Ethereum</SelectItem>
-                        <SelectItem value="polygon">Polygon</SelectItem>
-                        <SelectItem value="bsc">BSC</SelectItem>
-                        <SelectItem value="avalanche">Avalanche</SelectItem>
-                        <SelectItem value="arbitrum">Arbitrum</SelectItem>
-                        <SelectItem value="optimism">Optimism</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-                <div>
-                  <Label>Amount (XMRT)</Label>
-                  <Input
-                    type="number"
-                    placeholder="0.0"
-                    value={bridgeAmount}
-                    onChange={(e) => setBridgeAmount(e.target.value)}
-                  />
-                </div>
-                <Button 
-                  className="w-full" 
-                  onClick={executeCrossChainBridge}
-                  disabled={isLoading}
-                >
-                  {isLoading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
-                  Bridge Tokens
-                </Button>
-              </CardContent>
-            </Card>
+            <Route path="/zk-privacy" element={
+              <TabsContent value="zk-privacy" className="space-y-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center">
+                      <Lock className="h-5 w-5 mr-2" />
+                      Zero-Knowledge Privacy
+                    </CardTitle>
+                    <CardDescription>
+                      Private voting, verifiable computation, and oracle verification
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <Card>
+                        <CardHeader>
+                          <CardTitle className="text-lg">Noir Circuits</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <Badge variant="default" className="mb-2">Active</Badge>
+                          <p className="text-sm text-gray-600">Private voting and governance</p>
+                        </CardContent>
+                      </Card>
+                      
+                      <Card>
+                        <CardHeader>
+                          <CardTitle className="text-lg">RISC Zero</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <Badge variant="default" className="mb-2">Active</Badge>
+                          <p className="text-sm text-gray-600">Verifiable computation</p>
+                        </CardContent>
+                      </Card>
+                      
+                      <Card>
+                        <CardHeader>
+                          <CardTitle className="text-lg">ZK Oracles</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <Badge variant="default" className="mb-2">Active</Badge>
+                          <p className="text-sm text-gray-600">TLSNotary verification</p>
+                        </CardContent>
+                      </Card>
+                    </div>
+                  </CardContent>
+                </Card>
 
-            <Card>
-              <CardHeader>
-                <CardTitle>Cross-Chain Status</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  <div className="flex justify-between">
-                    <span>Wormhole Bridge</span>
-                    <Badge variant="default">Active</Badge>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>LayerZero OFT</span>
-                    <Badge variant="default">Active</Badge>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Supported Chains</span>
-                    <Badge variant="outline">6 Networks</Badge>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Generate ZK Proof</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <Button className="w-full" disabled>
+                      Generate Private Vote Proof (Demo)
+                    </Button>
+                    <p className="text-sm text-gray-600 mt-2">
+                      In production, this would generate a zero-knowledge proof for private voting
+                    </p>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+            } />
 
-          <TabsContent value="zk-privacy" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center">
-                  <Lock className="h-5 w-5 mr-2" />
-                  Zero-Knowledge Privacy
-                </CardTitle>
-                <CardDescription>
-                  Private voting, verifiable computation, and oracle verification
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <Route path="/agents" element={
+              <TabsContent value="agents" className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   <Card>
                     <CardHeader>
-                      <CardTitle className="text-lg">Noir Circuits</CardTitle>
+                      <CardTitle>Governance Agent</CardTitle>
+                      <CardDescription>Enhanced with ZK privacy and cross-chain capabilities</CardDescription>
                     </CardHeader>
                     <CardContent>
-                      <Badge variant="default" className="mb-2">Active</Badge>
-                      <p className="text-sm text-gray-600">Private voting and governance</p>
+                      <Badge variant="default" className="bg-blue-600 mb-2">Enhanced Active</Badge>
+                      <div className="space-y-1 text-sm text-gray-600">
+                        <p>• Private proposal analysis</p>
+                        <p>• Cross-chain governance</p>
+                        <p>• Verifiable voting</p>
+                      </div>
                     </CardContent>
                   </Card>
-                  
+
                   <Card>
                     <CardHeader>
-                      <CardTitle className="text-lg">RISC Zero</CardTitle>
+                      <CardTitle>Treasury Agent</CardTitle>
+                      <CardDescription>AI-powered multi-chain treasury optimization</CardDescription>
                     </CardHeader>
                     <CardContent>
-                      <Badge variant="default" className="mb-2">Active</Badge>
-                      <p className="text-sm text-gray-600">Verifiable computation</p>
+                      <Badge variant="default" className="bg-green-600 mb-2">Enhanced Active</Badge>
+                      <div className="space-y-1 text-sm text-gray-600">
+                        <p>• RISC Zero optimization</p>
+                        <p>• Cross-chain rebalancing</p>
+                        <p>• Yield farming automation</p>
+                      </div>
                     </CardContent>
                   </Card>
-                  
+
                   <Card>
                     <CardHeader>
-                      <CardTitle className="text-lg">ZK Oracles</CardTitle>
+                      <CardTitle>Community Agent</CardTitle>
+                      <CardDescription>24/7 support with advanced AI capabilities</CardDescription>
                     </CardHeader>
                     <CardContent>
-                      <Badge variant="default" className="mb-2">Active</Badge>
-                      <p className="text-sm text-gray-600">TLSNotary verification</p>
+                      <Badge variant="default" className="bg-purple-600 mb-2">Enhanced Active</Badge>
+                      <div className="space-y-1 text-sm text-gray-600">
+                        <p>• Multi-language support</p>
+                        <p>• Technical assistance</p>
+                        <p>• Educational content</p>
+                      </div>
                     </CardContent>
                   </Card>
                 </div>
-              </CardContent>
-            </Card>
 
-            <Card>
-              <CardHeader>
-                <CardTitle>Generate ZK Proof</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <Button className="w-full" disabled>
-                  Generate Private Vote Proof (Demo)
-                </Button>
-                <p className="text-sm text-gray-600 mt-2">
-                  In production, this would generate a zero-knowledge proof for private voting
-                </p>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="agents" className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Governance Agent</CardTitle>
-                  <CardDescription>Enhanced with ZK privacy and cross-chain capabilities</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <Badge variant="default" className="bg-blue-600 mb-2">Enhanced Active</Badge>
-                  <div className="space-y-1 text-sm text-gray-600">
-                    <p>• Private proposal analysis</p>
-                    <p>• Cross-chain governance</p>
-                    <p>• Verifiable voting</p>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle>Treasury Agent</CardTitle>
-                  <CardDescription>AI-powered multi-chain treasury optimization</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <Badge variant="default" className="bg-green-600 mb-2">Enhanced Active</Badge>
-                  <div className="space-y-1 text-sm text-gray-600">
-                    <p>• RISC Zero optimization</p>
-                    <p>• Cross-chain rebalancing</p>
-                    <p>• Yield farming automation</p>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle>Community Agent</CardTitle>
-                  <CardDescription>24/7 support with advanced AI capabilities</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <Badge variant="default" className="bg-purple-600 mb-2">Enhanced Active</Badge>
-                  <div className="space-y-1 text-sm text-gray-600">
-                    <p>• Multi-language support</p>
-                    <p>• Technical assistance</p>
-                    <p>• Educational content</p>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Agent Performance</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div>
-                    <div className="flex justify-between mb-1">
-                      <span className="text-sm">Governance Efficiency</span>
-                      <span className="text-sm">95%</span>
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Agent Performance</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      <div>
+                        <div className="flex justify-between mb-1">
+                          <span className="text-sm">Governance Efficiency</span>
+                          <span className="text-sm">95%</span>
+                        </div>
+                        <div className="w-full bg-gray-200 rounded-full h-2">
+                          <div className="bg-blue-600 h-2 rounded-full" style={{width: '95%'}}></div>
+                        </div>
+                      </div>
+                      <div>
+                        <div className="flex justify-between mb-1">
+                          <span className="text-sm">Treasury Performance</span>
+                          <span className="text-sm">87%</span>
+                        </div>
+                        <div className="w-full bg-gray-200 rounded-full h-2">
+                          <div className="bg-green-600 h-2 rounded-full" style={{width: '87%'}}></div>
+                        </div>
+                      </div>
+                      <div>
+                        <div className="flex justify-between mb-1">
+                          <span className="text-sm">Community Satisfaction</span>
+                          <span className="text-sm">92%</span>
+                        </div>
+                        <div className="w-full bg-gray-200 rounded-full h-2">
+                          <div className="bg-purple-600 h-2 rounded-full" style={{width: '92%'}}></div>
+                        </div>
+                      </div>
                     </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2">
-                      <div className="bg-blue-600 h-2 rounded-full" style={{width: '95%'}}></div>
-                    </div>
-                  </div>
-                  <div>
-                    <div className="flex justify-between mb-1">
-                      <span className="text-sm">Treasury Performance</span>
-                      <span className="text-sm">87%</span>
-                    </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2">
-                      <div className="bg-green-600 h-2 rounded-full" style={{width: '87%'}}></div>
-                    </div>
-                  </div>
-                  <div>
-                    <div className="flex justify-between mb-1">
-                      <span className="text-sm">Community Satisfaction</span>
-                      <span className="text-sm">92%</span>
-                    </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2">
-                      <div className="bg-purple-600 h-2 rounded-full" style={{width: '92%'}}></div>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+            } />
+          </Routes>
         </Tabs>
       </main>
 
@@ -662,3 +753,5 @@ function App() {
 
 export default App
 // Trigger CI
+
+
