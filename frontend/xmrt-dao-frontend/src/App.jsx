@@ -43,6 +43,7 @@ function App() {
 
   const location = useLocation();
   const isMobile = useIsMobile();
+  const activeTab = location.pathname.substring(1) || 'dashboard';
 
   // Enhanced capabilities state
   const [capabilities, setCapabilities] = useState({
@@ -241,7 +242,7 @@ function App() {
         </Card>
 
         {/* Main Interface */}
-        <Tabs value={location.pathname.substring(1) || 'dashboard'} className="w-full">
+        <Tabs value={activeTab} className="w-full">
           <TabsList className={`grid w-full ${isMobile ? 'grid-cols-2' : 'grid-cols-6'}`}>
             <TabsTrigger value="dashboard" asChild><Link to="/dashboard">Dashboard</Link></TabsTrigger>
             <TabsTrigger value="governance" asChild><Link to="/governance">Governance</Link></TabsTrigger>
@@ -252,7 +253,7 @@ function App() {
           </TabsList>
 
           <Routes>
-            <Route path="/" element={
+            <Route path="/" element={activeTab === 'dashboard' &&
               <TabsContent value="dashboard" className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                   <Card>
@@ -326,7 +327,7 @@ function App() {
                 </Card>
               </TabsContent>
             } />
-            <Route path="/dashboard" element={
+            <Route path="/dashboard" element={activeTab === 'dashboard' &&
               <TabsContent value="dashboard" className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                   <Card>
@@ -401,7 +402,7 @@ function App() {
               </TabsContent>
             } />
 
-            <Route path="/governance" element={
+            <Route path="/governance" element={activeTab === 'governance' &&
               <TabsContent value="governance" className="space-y-6">
                 <Card>
                   <CardHeader>
@@ -447,7 +448,7 @@ function App() {
               </TabsContent>
             } />
 
-            <Route path="/eliza" element={
+            <Route path="/eliza" element={activeTab === 'eliza' &&
               <TabsContent value="eliza" className="space-y-6">
                 <Card>
                   <CardHeader>
@@ -502,7 +503,7 @@ function App() {
               </TabsContent>
             } />
 
-            <Route path="/cross-chain" element={
+            <Route path="/cross-chain" element={activeTab === 'cross-chain' &&
               <TabsContent value="cross-chain" className="space-y-6">
                 <Card>
                   <CardHeader>
@@ -593,7 +594,7 @@ function App() {
               </TabsContent>
             } />
 
-            <Route path="/zk-privacy" element={
+            <Route path="/zk-privacy" element={activeTab === 'zk-privacy' &&
               <TabsContent value="zk-privacy" className="space-y-6">
                 <Card>
                   <CardHeader>
@@ -656,7 +657,7 @@ function App() {
               </TabsContent>
             } />
 
-            <Route path="/agents" element={
+            <Route path="/agents" element={activeTab === 'agents' &&
               <TabsContent value="agents" className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   <Card>
