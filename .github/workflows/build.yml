@@ -1,9 +1,8 @@
-
-name: Node.js CI Build
+name: XMRT Build Pipeline
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "main", "develop" ]
   pull_request:
     branches: [ "main" ]
 
@@ -11,23 +10,63 @@ jobs:
   build:
     runs-on: ubuntu-latest
 
-    strategy:
-      matrix:
-        node-version: [18.x]
-
     steps:
     - name: Checkout Repository
       uses: actions/checkout@v4
 
-    - name: Use Node.js ${{ matrix.node-version }}
+    - name: Setup Node.js 18
       uses: actions/setup-node@v4
       with:
-        node-version: ${{ matrix.node-version }}
+        node-version: 18
+        cache: 'npm'
+        cache-dependency-path: app/package-lock.json
 
-    - name: Install Dependencies
-      working-directory: ./frontend/xmrt-dao-frontend
-      run: npm install
+    - name: Setup Python 3.9
+      uses: actions/setup-python@v4
+      with:
+        python-version: 3.9
 
-    - name: Build Project
-      working-directory: ./frontend/xmrt-dao-frontend
-      run: npm run build
+    - name: Install Frontend Dependencies
+      run: |
+        cd app
+        npm ci
+
+    - name: Build Frontend
+      run: |
+        cd app
+        npm run build
+
+    - name: Install Backend Dependencies
+      run: |
+        # Main DAO Backend
+        cd backend/xmrt-dao-backend
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        cd ../..
+
+        # AI Automation Service
+        cd backend/ai-automation-service
+        pip install -r requirements.txt
+        cd ../..
+
+        # Cross-Chain Service
+        cd backend/cross-chain-service/xmrt-cross-chain-service
+        pip install -r requirements.txt
+        cd ../../..
+
+        # ZK Service
+        cd backend/zk-service/xmrt-zk-service
+        pip install -r requirements.txt
+
+    - name: Compile Smart Contracts
+      run: |
+        npm install
+        npx truffle compile
+
+    - name: Upload Build Artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: xmrt-build-artifacts
+        path: |
+          app/dist/
+          build/contracts/
