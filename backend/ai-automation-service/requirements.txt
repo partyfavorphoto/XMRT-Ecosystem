@@ -1,4 +1,5 @@
-asyncio-mqtt==0.16.1
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
 web3==6.15.1
 eth-account==0.10.0
 openai==1.12.0
@@ -12,3 +13,7 @@ websockets==12.0
 numpy==1.26.3
 pandas==2.1.4
 scikit-learn==1.4.0
+asyncio-mqtt==0.16.1
+pydantic==2.5.0
+httpx==0.25.2
+tenacity==8.2.3
