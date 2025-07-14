@@ -9,12 +9,25 @@ import hashlib
 import time
 from typing import Dict, Any, List, Optional
 
+# Import memory manager
+from src.utils.memory_manager import memory_manager
+from src.models.memory import MemoryType, AssociationType
+
 load_dotenv()
 
 eliza_bp = Blueprint('eliza', __name__)
 
 # OpenAI configuration
 openai.api_key = os.getenv('OPENAI_API_KEY')
+
+# Memory configuration
+MEMORY_CONFIG = {
+    'max_memories_per_user': 10000,
+    'memory_retention_days': 365,
+    'auto_prune_enabled': True,
+    'embedding_model': 'text-embedding-ada-002',
+    'similarity_threshold': 0.7
+}
 
 # Enhanced Eliza system prompt with cross-chain and ZK capabilities
 ELIZA_SYSTEM_PROMPT = """
