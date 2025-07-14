@@ -62,7 +62,7 @@ jobs:
         npx truffle compile
 
     - name: Upload Build Artifacts
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: xmrt-build-artifacts
         path: |
