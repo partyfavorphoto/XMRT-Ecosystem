@@ -25,6 +25,7 @@ import {
   Loader2
 } from 'lucide-react'
 import { Routes, Route, Link, useLocation } from 'react-router-dom'
+import { useIsMobile } from './hooks/use-mobile'
 import './App.css'
 
 function App() {
@@ -41,6 +42,7 @@ function App() {
   const [walletConnected, setWalletConnected] = useState(false)
 
   const location = useLocation();
+  const isMobile = useIsMobile();
 
   // Enhanced capabilities state
   const [capabilities, setCapabilities] = useState({
@@ -178,7 +180,7 @@ function App() {
           <p className="text-xl text-gray-600 dark:text-gray-300 mb-6">
             Powered by Enhanced Eliza AI with Cross-Chain, ZK Proofs, and Verifiable Computation
           </p>
-          <div className="flex justify-center space-x-4">
+          <div className={`flex justify-center space-x-4 ${isMobile ? 'flex-col space-x-0 space-y-4' : ''}`}>
             <Card className="w-48">
               <CardContent className="p-4 text-center">
                 <Coins className="h-8 w-8 mx-auto mb-2 text-yellow-600" />
@@ -240,7 +242,7 @@ function App() {
 
         {/* Main Interface */}
         <Tabs value={location.pathname.substring(1) || 'dashboard'} className="w-full">
-          <TabsList className="grid w-full grid-cols-6">
+          <TabsList className={`grid w-full ${isMobile ? 'grid-cols-2' : 'grid-cols-6'}`}>
             <TabsTrigger value="dashboard" asChild><Link to="/dashboard">Dashboard</Link></TabsTrigger>
             <TabsTrigger value="governance" asChild><Link to="/governance">Governance</Link></TabsTrigger>
             <TabsTrigger value="eliza" asChild><Link to="/eliza">Enhanced Eliza</Link></TabsTrigger>
