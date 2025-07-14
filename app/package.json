@@ -7,8 +7,7 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",
-    "preview": "vite preview",
-    "preinstall": "npm install -g npm@latest"
+    "preview": "vite preview"
   },
   "dependencies": {
     "cors": "^2.8.5",

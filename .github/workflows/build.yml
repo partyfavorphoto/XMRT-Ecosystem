@@ -19,6 +19,11 @@ jobs:
       with:
         node-version: 18
 
+    - name: Setup pnpm
+      uses: pnpm/action-setup@v4
+      with:
+        version: 8
+
     - name: Setup Python 3.9
       uses: actions/setup-python@v4
       with:
@@ -27,12 +32,12 @@ jobs:
     - name: Install Frontend Dependencies
       run: |
         cd app
-        npm ci
+        pnpm install --frozen-lockfile
 
     - name: Build Frontend
       run: |
         cd app
-        npm run build
+        pnpm run build
 
     - name: Install Backend Dependencies
       run: |
@@ -58,7 +63,7 @@ jobs:
 
     - name: Compile Smart Contracts
       run: |
-        npm install
+        pnpm install
         npx truffle compile
 
     - name: Upload Build Artifacts
