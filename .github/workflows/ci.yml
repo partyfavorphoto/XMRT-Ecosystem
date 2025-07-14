@@ -1,58 +1,238 @@
+name: XMRT-Ecosystem CI Pipeline
 
-name: XMRT CI Pipeline
-on: [push, pull_request]
+on:
+  push:
+    branches: [ "main", "develop" ]
+  pull_request:
+    branches: [ "main", "develop" ]
 
 jobs:
-  build-and-test:
+  test-backend:
     runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v4
-    - name: Install Node.js
-      uses: actions/setup-node@v3
-      with:
-        node-version: 18
+    strategy:
+      matrix:
+        python-version: [3.9, 3.10, 3.11]
 
-    - name: Install Backend Dependencies
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: Cache pip dependencies
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+
+    - name: Install Main DAO Backend Dependencies
       run: |
         cd backend/xmrt-dao-backend
-        npm install
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
 
-    - name: Install Frontend Dependencies
+    - name: Install AI Automation Service Dependencies
       run: |
-        cd frontend/xmrt-dao-frontend
-        npm install
+        cd backend/ai-automation-service
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+
+    - name: Install Cross-Chain Service Dependencies
+      run: |
+        cd backend/cross-chain-service/xmrt-cross-chain-service
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+
+    - name: Install ZK Service Dependencies
+      run: |
+        cd backend/zk-service/xmrt-zk-service
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+
+    - name: Run Backend Linting
+      run: |
+        pip install flake8 black
+        # Main DAO Backend
+        cd backend/xmrt-dao-backend
+        flake8 src/ --count --select=E9,F63,F7,F82 --show-source --statistics
+        black --check src/
+        cd ../..
+
+        # AI Automation Service
+        cd backend/ai-automation-service
+        flake8 src/ --count --select=E9,F63,F7,F82 --show-source --statistics
+        black --check src/
+        cd ../..
+
+        # Cross-Chain Service
+        cd backend/cross-chain-service/xmrt-cross-chain-service
+        flake8 src/ --count --select=E9,F63,F7,F82 --show-source --statistics
+        black --check src/
+        cd ../../..
+
+        # ZK Service
+        cd backend/zk-service/xmrt-zk-service
+        flake8 src/ --count --select=E9,F63,F7,F82 --show-source --statistics
+        black --check src/
 
     - name: Run Backend Tests
       run: |
-        cd backend/xmrt-dao-backend
-        echo "No specific backend tests configured yet."
+        pip install pytest pytest-cov
+        # Add backend tests when available
+        echo "Backend tests will be added here"
+        # pytest backend/xmrt-dao-backend/tests/ --cov=backend/xmrt-dao-backend/src
+        # pytest backend/ai-automation-service/tests/ --cov=backend/ai-automation-service/src
+        # pytest backend/cross-chain-service/xmrt-cross-chain-service/tests/
+        # pytest backend/zk-service/xmrt-zk-service/tests/
+
+  test-frontend:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+
+    - name: Set up Node.js 18
+      uses: actions/setup-node@v4
+      with:
+        node-version: 18
+        cache: 'npm'
+        cache-dependency-path: app/package-lock.json
+
+    - name: Install Frontend Dependencies
+      run: |
+        cd app
+        npm ci
+
+    - name: Run Frontend Linting
+      run: |
+        cd app
+        npm run lint
 
     - name: Run Frontend Tests
       run: |
-        cd frontend/xmrt-dao-frontend
-        npm test --if-present
+        cd app
+        npm test -- --coverage --watchAll=false
 
     - name: Build Frontend
       run: |
-        cd frontend/xmrt-dao-frontend
+        cd app
         npm run build
 
-    # --- Temporarily disabled until contracts are fully implemented ---
-    # - name: Run Contract Tests
-    #   run: |
-    #     cd backend/xmrt-dao-backend
-    #     npm install
-    #     npx hardhat test
+    - name: Upload Frontend Build Artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: frontend-build
+        path: app/dist/
 
-    # --- Temporarily disabled until contracts are fully implemented ---
-    # - name: Run Security Audit (Contracts)
-    #   run: |
-    #     pip install slither-analyzer
-    #     slither contracts --checklist
+  test-contracts:
+    runs-on: ubuntu-latest
 
-    # --- Temporarily disabled until contracts are fully implemented ---
-    # - name: Deploy to Testnet
-    #   if: github.ref == 'refs/heads/main'
-    #   run: |
-    #     cd backend/xmrt-dao-backend
-    #     npx hardhat run scripts/deploy.js --network sepolia
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+
+    - name: Set up Node.js 18
+      uses: actions/setup-node@v4
+      with:
+        node-version: 18
+        cache: 'npm'
+
+    - name: Install Contract Dependencies
+      run: |
+        npm install
+
+    - name: Compile Smart Contracts
+      run: |
+        npx truffle compile
+
+    - name: Run Contract Tests
+      run: |
+        # Add when tests are ready
+        echo "Smart contract tests will be added here"
+        # npx truffle test
+
+    - name: Run Security Analysis
+      run: |
+        # Install Slither for security analysis
+        pip install slither-analyzer
+        # Run security analysis on contracts
+        echo "Security analysis will be added here"
+        # slither contracts/ --checklist
+
+  integration-test:
+    needs: [test-backend, test-frontend, test-contracts]
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+
+    - name: Set up Python 3.9
+      uses: actions/setup-python@v4
+      with:
+        python-version: 3.9
+
+    - name: Set up Node.js 18
+      uses: actions/setup-node@v4
+      with:
+        node-version: 18
+
+    - name: Start Backend Services
+      run: |
+        # Install all backend dependencies
+        cd backend/xmrt-dao-backend && pip install -r requirements.txt && cd ../..
+        cd backend/ai-automation-service && pip install -r requirements.txt && cd ../..
+        cd backend/cross-chain-service/xmrt-cross-chain-service && pip install -r requirements.txt && cd ../../..
+        cd backend/zk-service/xmrt-zk-service && pip install -r requirements.txt && cd ../../..
+
+        # Start services in background
+        cd backend/xmrt-dao-backend && python main.py &
+        cd backend/ai-automation-service && python main.py &
+        cd backend/cross-chain-service/xmrt-cross-chain-service/src && python main.py &
+        cd backend/zk-service/xmrt-zk-service/src && python main.py &
+
+        # Wait for services to start
+        sleep 30
+
+    - name: Run Integration Tests
+      run: |
+        echo "Integration tests will be added here"
+        # Test API endpoints
+        # curl -f http://localhost:8000/health || exit 1
+        # curl -f http://localhost:8001/health || exit 1
+        # curl -f http://localhost:8002/health || exit 1
+        # curl -f http://localhost:8003/health || exit 1
+
+  deploy-staging:
+    if: github.ref == 'refs/heads/develop'
+    needs: [integration-test]
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+
+    - name: Deploy to Staging
+      run: |
+        echo "Staging deployment will be configured here"
+        # Add staging deployment steps
+
+  deploy-production:
+    if: github.ref == 'refs/heads/main'
+    needs: [integration-test]
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+
+    - name: Deploy to Production
+      run: |
+        echo "Production deployment will be configured here"
+        # Add production deployment steps
