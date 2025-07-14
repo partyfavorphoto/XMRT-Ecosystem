@@ -38,6 +38,7 @@ function App() {
   const [selectedChain, setSelectedChain] = useState('ethereum')
   const [bridgeAmount, setBridgeAmount] = useState('')
   const [targetChain, setTargetChain] = useState('polygon')
+  const [walletConnected, setWalletConnected] = useState(false)
 
   const location = useLocation();
 
@@ -129,6 +130,16 @@ function App() {
     setIsLoading(false)
   }
 
+  const connectWallet = () => {
+    // Simulate wallet connection
+    setIsLoading(true);
+    setTimeout(() => {
+      setWalletConnected(true);
+      setIsLoading(false);
+      alert('Wallet connected successfully!');
+    }, 1000);
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800">
       {/* Header */}
@@ -149,7 +160,9 @@ function App() {
                 <Lock className="h-3 w-3" />
                 <span>ZK-Enabled</span>
               </Badge>
-              <Button variant="outline">Connect Wallet</Button>
+              <Button variant="outline" onClick={connectWallet} disabled={walletConnected || isLoading}>
+                {walletConnected ? 'Wallet Connected' : (isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Connect Wallet')}
+              </Button>
             </div>
           </div>
         </div>
