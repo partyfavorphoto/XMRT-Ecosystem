@@ -11,7 +11,7 @@ from src.routes.wormhole import wormhole_bp
 from src.routes.layerzero import layerzero_bp
 
 app = Flask(__name__, static_folder=os.path.join(os.path.dirname(__file__), 'static'))
-app.config['SECRET_KEY'] = 'asdf#FGSgvasgf$5$WGT'
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'your_fallback_secret_key')
 
 # Enable CORS for all routes
 CORS(app)
