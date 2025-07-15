@@ -71,7 +71,7 @@ XMRT-Ecosystem/
 │   ├── 🎯 Staking.sol              # Token staking mechanisms
 │   └── 🏪 Marketplace.sol          # NFT and asset marketplace
 │
-├── 📂 app/                         # React Frontend Application
+├── 📂 frontend/xmrt-dao-frontend/     # React Frontend Application
 │   ├── 📦 package.json             # Frontend dependencies
 │   ├── ⚡ vite.config.js           # Build configuration
 │   ├── 🎨 index.html               # Main HTML template
