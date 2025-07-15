@@ -1,6 +1,19 @@
-# XMRT-Ecosystem
+# XMRT-Ecosystem - Fully Autonomous DAO
 
-Welcome to the XMRT-Ecosystem repository! This repository houses the various decentralized applications (dApps) and core components that form the XMRTNET ecosystem.
+Welcome to the XMRT-Ecosystem repository! This repository houses the various decentralized applications (dApps) and core components that form the XMRTNET ecosystem, powered by **Autonomous ElizaOS** - a fully autonomous AI agent system.
+
+## 🤖 Autonomous ElizaOS
+
+The XMRT DAO is managed by **Autonomous ElizaOS**, a production-ready AI agent system that:
+
+- **Fully Manages DAO Operations**: Governance, treasury, community, security, and analytics
+- **GPT-5 Ready**: Seamless integration when GPT-5 becomes available
+- **Production Deployed**: High-availability, fault-tolerant autonomous operations
+- **Multi-Chain Support**: Operates across Ethereum, Polygon, BSC, Avalanche, Arbitrum, and Optimism
+- **Emergency Response**: Automatic threat detection and response
+- **Human Oversight**: Optional human approval for high-risk decisions
+
+📖 **[Full Autonomous ElizaOS Documentation](AUTONOMOUS_ELIZA_README.md)**
 
 ## 📚 Organizational Structure
 
