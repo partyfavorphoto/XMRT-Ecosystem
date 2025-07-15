@@ -7,6 +7,10 @@
 [![Docker](https://img.shields.io/badge/Docker-Ready-blue.svg)](https://docker.com/)
 [![Vercel](https://img.shields.io/badge/Vercel-Deployed-black.svg)](https://vercel.com/)
 
+## ✨ **Starknet & Cairo Migration Notice**
+
+For those interested in our cutting-edge Starknet integration and Cairo smart contract development, please refer to our dedicated branch: [`starknet-cairo-migration`](https://github.com/DevGruGold/XMRT-Ecosystem/tree/starknet-cairo-migration). This branch contains the latest advancements and experimental features related to our Starknet migration efforts.
+
 ## 🌟 **Production-Ready Autonomous DAO Platform**
 
 The XMRT-Ecosystem is a **fully autonomous, production-ready DAO** that combines cutting-edge blockchain technology with advanced AI capabilities. This comprehensive platform integrates cross-chain functionality, zero-knowledge privacy, and intelligent automation to create the next generation of decentralized governance.
@@ -457,7 +461,7 @@ We welcome contributions from the community! Please follow these guidelines:
 3. Make your changes
 4. Add tests for new functionality
 5. Ensure all tests pass
-6. Commit your changes (`git commit -m 'Add amazing feature'`)
+6. Commit your changes (`git commit -m \'Add amazing feature\' `)
 7. Push to the branch (`git push origin feature/amazing-feature`)
 8. Open a Pull Request
 
@@ -528,3 +532,5 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 **Built with ❤️ by the XMRT Community**
 
 *Empowering the future of decentralized governance through AI and blockchain technology.*
+
+
