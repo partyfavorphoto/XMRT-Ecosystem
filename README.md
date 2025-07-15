@@ -9,7 +9,7 @@
 
 ## ✨ **Starknet & Cairo Migration Notice**
 
-For those interested in our cutting-edge Starknet integration and Cairo smart contract development, please refer to our dedicated branch: [`starknet-cairo-migration`](https://github.com/DevGruGold/XMRT-Ecosystem/tree/starknet-cairo-migration). This branch contains the latest advancements and experimental features related to our Starknet migration efforts.
+For those interested in our cutting-edge Starknet integration and Cairo smart contract development, please refer to our dedicated branch: [`XMRTNET`](https://github.com/DevGruGold/XMRT-Ecosystem/tree/XMRTNET). This branch contains the latest advancements and experimental features related to our Starknet migration efforts.
 
 ## 🌟 **Production-Ready Autonomous DAO Platform**
 
