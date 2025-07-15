@@ -3,20 +3,17 @@ pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
-import "@openzeppelin/contracts/utils/Counters.sol";
 
 /**
  * @title AutonomousAgentRegistry
  * @dev Registry for managing autonomous agents with execution authority
  */
 contract AutonomousAgentRegistry is AccessControl, ReentrancyGuard {
-    using Counters for Counters.Counter;
-
     bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
     bytes32 public constant AGENT_ROLE = keccak256("AGENT_ROLE");
     bytes32 public constant EXECUTOR_ROLE = keccak256("EXECUTOR_ROLE");
 
-    Counters.Counter private _agentIds;
+    uint256 private _agentIdCounter;
 
     struct Agent {
         uint256 id;
@@ -96,8 +93,8 @@ contract AutonomousAgentRegistry is AccessControl, ReentrancyGuard {
         require(agentAddressToId[agentAddress] == 0, "Agent already registered");
         require(msg.value >= minimumStaking, "Insufficient staking amount");
 
-        _agentIds.increment();
-        uint256 newAgentId = _agentIds.current();
+        _agentIdCounter++;
+        uint256 newAgentId = _agentIdCounter;
 
         agents[newAgentId] = Agent({
             id: newAgentId,
@@ -242,7 +239,7 @@ contract AutonomousAgentRegistry is AccessControl, ReentrancyGuard {
      * @dev Get total number of registered agents
      */
     function getTotalAgents() external view returns (uint256) {
-        return _agentIds.current();
+        return _agentIdCounter;
     }
 
     /**
@@ -314,3 +311,4 @@ contract AutonomousAgentRegistry is AccessControl, ReentrancyGuard {
         emit ReputationUpdated(agentId, agents[agentId].reputation);
     }
 }
+
