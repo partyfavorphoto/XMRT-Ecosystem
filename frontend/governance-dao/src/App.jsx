@@ -1,4 +1,87 @@
 import React, { useState } from 'react';
+import './App.css';
+import AutonomousGovernance from './components/AutonomousGovernance';
+
+function App() {
+  const [activeTab, setActiveTab] = useState('autonomous');
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <header className="bg-white shadow-sm border-b">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center py-4">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg"></div>
+              <h1 className="text-2xl font-bold text-gray-900">XMRT Governance</h1>
+              <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full font-medium">
+                Autonomous DAO
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
+              <span className="text-sm text-gray-600">ElizaOS Active</span>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <nav className="bg-white border-b">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex space-x-8">
+            <button
+              onClick={() => setActiveTab('autonomous')}
+              className={`py-4 px-1 border-b-2 font-medium text-sm ${
+                activeTab === 'autonomous'
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              🤖 Autonomous Operations
+            </button>
+            <button
+              onClick={() => setActiveTab('proposals')}
+              className={`py-4 px-1 border-b-2 font-medium text-sm ${
+                activeTab === 'proposals'
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              📋 Proposals
+            </button>
+            <button
+              onClick={() => setActiveTab('voting')}
+              className={`py-4 px-1 border-b-2 font-medium text-sm ${
+                activeTab === 'voting'
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              🗳️ Voting
+            </button>
+          </div>
+        </div>
+      </nav>
+
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {activeTab === 'autonomous' && <AutonomousGovernance />}
+        {activeTab === 'proposals' && (
+          <div className="text-center py-12">
+            <h2 className="text-xl font-semibold text-gray-900 mb-4">Proposals</h2>
+            <p className="text-gray-600">Traditional proposal interface - Enhanced with ElizaOS analysis</p>
+          </div>
+        )}
+        {activeTab === 'voting' && (
+          <div className="text-center py-12">
+            <h2 className="text-xl font-semibold text-gray-900 mb-4">Voting</h2>
+            <p className="text-gray-600">Voting interface - ElizaOS provides autonomous voting recommendations</p>
+          </div>
+        )}
+      </main>
+    </div>
+  );
+}
+
+export default App;
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './components/ui/card';
 import { Button } from './components/ui/button';
 import { Badge } from './components/ui/badge';
