@@ -66,6 +66,7 @@ You should respond as an intelligent, forward-thinking AI agent that understands
 class EnhancedElizaAgent:
     def __init__(self):
         self.conversation_history = []
+        self.memory_manager = memory_manager  # Add memory manager
         self.context = {
             'dao_metrics': {},
             'recent_proposals': [],
@@ -86,12 +87,27 @@ class EnhancedElizaAgent:
             'zero_knowledge': True,
             'verifiable_compute': True,
             'oracle_integration': True,
-            'autonomous_execution': True
+            'autonomous_execution': True,
+            'long_term_memory': True  # Add memory capability
         }
     
     def process_message(self, message, user_context=None):
         """Process a message through enhanced Eliza AI"""
         try:
+            # Extract user information for memory
+            user_id = user_context.get('user_id', 'anonymous') if user_context else 'anonymous'
+            session_id = user_context.get('session_id', f"session_{int(time.time())}") if user_context else f"session_{int(time.time())}"
+            
+            # Store user message in conversation history (memory)
+            if self.memory_manager:
+                self.memory_manager.store_conversation(
+                    user_id=user_id,
+                    session_id=session_id,
+                    role='user',
+                    content=message,
+                    context_data=user_context
+                )
+            
             # Detect if message requires special capabilities
             message_type = self._classify_message(message)
             
@@ -103,8 +119,8 @@ class EnhancedElizaAgent:
                 'type': message_type
             })
             
-            # Enhance context based on message type
-            enhanced_context = self._enhance_context(message_type, user_context)
+            # Enhance context based on message type and memory
+            enhanced_context = self._enhance_context(message_type, user_context, user_id)
             
             # Prepare messages for OpenAI
             messages = [
@@ -147,6 +163,19 @@ class EnhancedElizaAgent:
                 'autonomous_actions': autonomous_actions
             })
             
+            # Store assistant response in memory
+            if self.memory_manager:
+                self.memory_manager.store_conversation(
+                    user_id=user_id,
+                    session_id=session_id,
+                    role='assistant',
+                    content=eliza_response,
+                    autonomous_actions=autonomous_actions
+                )
+                
+                # Extract and store important information as memories
+                self._extract_and_store_memories(message, eliza_response, user_id, session_id, message_type)
+            
             return {
                 'success': True,
                 'response': eliza_response,
@@ -178,11 +207,41 @@ class EnhancedElizaAgent:
         else:
             return 'general'
     
-    def _enhance_context(self, message_type: str, user_context: Dict = None) -> Dict[str, Any]:
+    def _enhance_context(self, message_type: str, user_context: Dict = None, user_id: str = 'anonymous') -> Dict[str, Any]:
         """Enhance context based on message type"""
         enhanced_context = {}
         
         try:
+            # Add memory context if available
+            if self.memory_manager and user_id != 'anonymous':
+                # Get relevant memories based on current message
+                current_message = user_context.get('current_message', '') if user_context else ''
+                if current_message:
+                    relevant_memories = self.memory_manager.search_memories_semantic(
+                        user_id, current_message, limit=5
+                    )
+                    if relevant_memories:
+                        enhanced_context['memories'] = [
+                            {
+                                'content': mem.content if hasattr(mem, 'content') else mem.get('content', ''),
+                                'type': mem.memory_type if hasattr(mem, 'memory_type') else mem.get('memory_type', ''),
+                                'score': score
+                            }
+                            for mem, score in relevant_memories
+                        ]
+                
+                # Get recent conversation history from memory
+                recent_conversations = self.memory_manager.get_conversation_history(user_id, limit=10)
+                if recent_conversations:
+                    enhanced_context['recent_conversations'] = [
+                        {
+                            'role': conv.role if hasattr(conv, 'role') else conv.get('role', ''),
+                            'content': conv.content if hasattr(conv, 'content') else conv.get('content', ''),
+                            'timestamp': conv.timestamp.isoformat() if hasattr(conv, 'timestamp') and conv.timestamp else conv.get('timestamp', '')
+                        }
+                        for conv in recent_conversations[-5:]  # Last 5 exchanges
+                    ]
+            
             if message_type == 'cross_chain':
                 # In a real autonomous system, this would interact with actual cross-chain APIs
                 cross_chain_data = self._fetch_cross_chain_status()
@@ -653,4 +712,40 @@ def eliza_status():
             'error': str(e)
         }), 500
 
+
+
+    def _extract_and_store_memories(self, user_message: str, eliza_response: str, user_id: str, session_id: str, message_type: str):
+        """Extract and store important information as memories"""
+        try:
+            # Store user preferences
+            if any(word in user_message.lower() for word in ['like', 'prefer', 'love', 'hate', 'dislike', 'favorite']):
+                self.memory_manager.store_memory(
+                    user_id=user_id,
+                    content=user_message,
+                    memory_type=MemoryType.PREFERENCE,
+                    session_id=session_id,
+                    metadata={'extracted_from': 'user_input', 'message_type': message_type}
+                )
+            
+            # Store factual information
+            elif any(word in user_message.lower() for word in ['is', 'are', 'was', 'were', 'born', 'live', 'work']):
+                self.memory_manager.store_memory(
+                    user_id=user_id,
+                    content=user_message,
+                    memory_type=MemoryType.FACTUAL,
+                    session_id=session_id,
+                    metadata={'extracted_from': 'user_input', 'message_type': message_type}
+                )
+            
+            # Store contextual information for longer messages
+            elif len(user_message) > 50:
+                self.memory_manager.store_memory(
+                    user_id=user_id,
+                    content=user_message,
+                    memory_type=MemoryType.CONTEXTUAL,
+                    session_id=session_id,
+                    metadata={'extracted_from': 'user_input', 'length': len(user_message), 'message_type': message_type}
+                )
+        except Exception as e:
+            print(f"Error extracting memories: {e}")
 
