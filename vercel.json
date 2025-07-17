@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "buildCommand": "cd frontend/xmrt-dao-frontend && pnpm install && pnpm run build",
+  "buildCommand": "cd frontend/xmrt-dao-frontend && pnpm install --frozen-lockfile && pnpm run build",
   "outputDirectory": "frontend/xmrt-dao-frontend/dist",
-  "installCommand": "pnpm install --store=node_modules/.pnpm-store",
+  "installCommand": "pnpm install --frozen-lockfile --store=node_modules/.pnpm-store",
   "framework": null,
   "rewrites": [
     {
@@ -45,13 +45,13 @@
   "build": {
     "env": {
       "PNPM_VERSION": "10.4.1",
-      "NODE_VERSION": "18"
+      "NODE_VERSION": "18",
+      "PYTHON_VERSION": "3.11"
     }
   },
   "functions": {
     "frontend/xmrt-dao-frontend/dist/**": {
-      "maxDuration": 10
+      "maxDuration": 30
     }
   }
 }
-

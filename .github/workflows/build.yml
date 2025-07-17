@@ -31,12 +31,12 @@ jobs:
 
     - name: Install Frontend Dependencies
       run: |
-        cd app
+        cd frontend/xmrt-dao-frontend
         pnpm install --frozen-lockfile
 
     - name: Build Frontend
       run: |
-        cd app
+        cd frontend/xmrt-dao-frontend
         pnpm run build
 
     - name: Install Backend Dependencies
@@ -49,27 +49,80 @@ jobs:
 
         # AI Automation Service
         cd backend/ai-automation-service
+        python -m pip install --upgrade pip
         pip install -r requirements.txt
         cd ../..
 
         # Cross-Chain Service
         cd backend/cross-chain-service/xmrt-cross-chain-service
+        python -m pip install --upgrade pip
         pip install -r requirements.txt
         cd ../../..
 
         # ZK Service
         cd backend/zk-service/xmrt-zk-service
+        python -m pip install --upgrade pip
         pip install -r requirements.txt
+        cd ../../..
 
-    - name: Compile Smart Contracts
+    - name: Run Backend Tests
       run: |
-        pnpm install
-        npx truffle compile
+        # Main DAO Backend Tests
+        cd backend/xmrt-dao-backend
+        python -m pytest
+        cd ../..
 
-    - name: Upload Build Artifacts
+        # AI Automation Service Tests
+        cd backend/ai-automation-service
+        python -m pytest
+        cd ../..
+
+        # Cross-Chain Service Tests
+        cd backend/cross-chain-service/xmrt-cross-chain-service
+        python -m pytest
+        cd ../../..
+
+        # ZK Service Tests
+        cd backend/zk-service/xmrt-zk-service
+        python -m pytest
+        cd ../../..
+
+    - name: Run Frontend Tests
+      run: |
+        cd frontend/xmrt-dao-frontend
+        pnpm test
+
+    - name: Run Contract Tests
+      run: |
+        cd contracts
+        npm test
+
+    - name: Archive Production Artifacts
       uses: actions/upload-artifact@v4
       with:
-        name: xmrt-build-artifacts
+        name: production-artifacts
         path: |
-          app/dist/
-          build/contracts/
+          frontend/xmrt-dao-frontend/dist
+          backend/xmrt-dao-backend/build
+          contracts/build
+
+    - name: Deploy to Vercel (Frontend)
+      if: github.ref == 'refs/heads/main'
+      run: |
+        cd frontend/xmrt-dao-frontend
+        npm install -g vercel
+        vercel --prod --token ${{ secrets.VERCEL_TOKEN }}
+
+    - name: Deploy to Render (Backend)
+      if: github.ref == 'refs/heads/main'
+      run: |
+        # Render deployment logic here
+        echo "Deploying backend to Render..."
+
+    - name: Deploy Contracts
+      if: github.ref == 'refs/heads/main'
+      run: |
+        # Contract deployment logic here
+        echo "Deploying contracts..."
+
+

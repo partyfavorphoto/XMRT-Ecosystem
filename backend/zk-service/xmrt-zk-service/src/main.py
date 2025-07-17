@@ -11,7 +11,8 @@ from src.routes.noir import noir_bp
 from src.routes.risc_zero import risc_zero_bp
 from src.routes.zk_oracles import zk_oracles_bp
 
-app = Flask(__name__, static_folder=os.path.join(os.path.dirname(__file__), 'static'))app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "your_fallback_secret_key")'
+app = Flask(__name__, static_folder=os.path.join(os.path.dirname(__file__), "static"))
+app.config["SECRET_KEY"] = os.environ["SECRET_KEY"]
 
 # Enable CORS for all routes
 CORS(app)
