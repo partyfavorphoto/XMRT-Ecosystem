@@ -1,0 +1,6 @@
+packages:
+  - 'frontend/*'
+  - 'backend/*'
+  - '!**/node_modules/**'
+  - '!**/dist/**'
+  - '!**/build/**'
