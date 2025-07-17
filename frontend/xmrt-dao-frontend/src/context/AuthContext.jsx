@@ -117,48 +117,18 @@ export const AuthProvider = ({ children }) => {
 
 // Placeholder API functions - replace with actual API calls
 const simulateLogin = async (email, password) => {
-  // Simulate network delay
   await new Promise(resolve => setTimeout(resolve, 1000));
-  
-  // Demo accounts
-  const demoAccounts = [
-    { email: 'user1@example.com', password: 'password1', name: 'John Doe', balance: 1250.75 },
-    { email: 'user2@example.com', password: 'password2', name: 'Jane Smith', balance: 2500.00 }
-  ];
-  
-  const account = demoAccounts.find(acc => acc.email === email && acc.password === password);
-  
-  if (account) {
-    return {
-      success: true,
-      user: {
-        id: Math.random().toString(36).substr(2, 9),
-        email: account.email,
-        name: account.name,
-        balance: account.balance
-      }
-    };
-  } else {
-    return {
-      success: false,
-      error: 'Invalid email or password'
-    };
-  }
+  return {
+    success: false,
+    error: 'Login functionality is a placeholder. Please integrate with a real backend.'
+  };
 };
 
 const simulateRegister = async (email, password, name) => {
-  // Simulate network delay
   await new Promise(resolve => setTimeout(resolve, 1000));
-  
-  // Simulate successful registration
   return {
-    success: true,
-    user: {
-      id: Math.random().toString(36).substr(2, 9),
-      email: email,
-      name: name,
-      balance: 0.00
-    }
+    success: false,
+    error: 'Registration functionality is a placeholder. Please integrate with a real backend.'
   };
 };
 
