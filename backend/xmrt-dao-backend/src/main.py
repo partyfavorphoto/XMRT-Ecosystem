@@ -18,7 +18,7 @@ from src.routes.ai_agents import ai_agents_bp
 from src.routes.storage import storage_bp
 
 app = Flask(__name__, static_folder=os.path.join(os.path.dirname(__file__), 'static'))
-app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'asdf#FGSgvasgf$5$WGT')
+app.config["SECRET_KEY"] = os.environ["SECRET_KEY"]
 
 # Enable CORS for all routes
 CORS(app)
