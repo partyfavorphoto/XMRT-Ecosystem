@@ -26,7 +26,7 @@ module.exports = {
     },
     sepolia: {
       url: process.env.SEPOLIA_RPC_URL || "https://sepolia.infura.io/v3/c843a693bc5d43d1aee471d2491f2414",
-      accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : ["2945003529e7268a5c01e9ed7ef73ffa066fe2e62af24fe073e97c477c65d324"],
+      accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
       chainId: 11155111,
       gas: 5500000,
       gasPrice: 20000000000, // 20 gwei
