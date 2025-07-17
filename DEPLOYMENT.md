@@ -1,165 +1,269 @@
-# XMRT-Ecosystem Deployment Guide
+# 🚀 XMRTNET Deployment Guide
 
-## Overview
+## Quick Deploy to Vercel
 
-This guide provides instructions for deploying and running the XMRT-Ecosystem DAO prototype with Eliza AI integration.
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2FDevGruGold%2FXMRT-Ecosystem&env=VITE_API_BASE_URL,VITE_STRIPE_PUBLISHABLE_KEY,VITE_WALLET_CONNECT_PROJECT_ID&envDescription=Environment%20variables%20for%20XMRTNET%20CashDapp&envLink=https%3A%2F%2Fgithub.com%2FDevGruGold%2FXMRT-Ecosystem%2Fblob%2Fmain%2F.env.example)
 
-## Prerequisites
+## 📋 Prerequisites
 
-- Node.js 18+ and pnpm
-- Python 3.8+ and pip
+- Node.js 18+ 
+- pnpm 8+
+- Vercel account
 - Git
-- Sepolia testnet ETH for AI agent wallets
-- OpenAI API key for Eliza functionality
 
-## Environment Setup
+## 🔧 Environment Setup
 
-### 1. Backend Configuration
-
-Create a `.env` file in `backend/xmrt-dao-backend/`:
-
-```env
-# Blockchain Configuration
-SEPOLIA_RPC_URL=https://sepolia.infura.io/v3/YOUR_INFURA_PROJECT_ID
-XMRT_CONTRACT_ADDRESS=0x77307DFbc436224d5e6f2048d2b6bDfA66998a15
-CHAIN_ID=11155111
-
-# AI Agent Wallets (Generate new keys for production)
-GOVERNANCE_AGENT_PRIVATE_KEY=your_governance_agent_private_key
-TREASURY_AGENT_PRIVATE_KEY=your_treasury_agent_private_key
-COMMUNITY_AGENT_PRIVATE_KEY=your_community_agent_private_key
-
-# OpenAI Configuration
-OPENAI_API_KEY=your_openai_api_key_here
-
-# Flask Configuration
-FLASK_ENV=development
-SECRET_KEY=your_secret_key_here
-```
-
-### 2. Install Dependencies
-
-Backend:
-```bash
-cd backend/xmrt-dao-backend
-source venv/bin/activate
-pip install -r requirements.txt
-```
-
-Frontend:
-```bash
-cd frontend/xmrt-dao-frontend
-pnpm install
-```
-
-## Running the Application
-
-### 1. Start Backend Server
-
-```bash
-cd backend/xmrt-dao-backend
-source venv/bin/activate
-python src/main.py
-```
-
-The backend will run on `http://localhost:5000`
-
-### 2. Start Frontend Development Server
-
-```bash
-cd frontend/xmrt-dao-frontend
-pnpm run dev --host
-```
-
-The frontend will run on `http://localhost:5173`
-
-## API Endpoints
-
-### Blockchain Endpoints
-- `GET /api/blockchain/contract-info` - Get contract information
-- `GET /api/blockchain/balance/{address}` - Get XMRT balance
-- `GET /api/blockchain/stake-info/{address}` - Get staking information
-- `GET /api/blockchain/network-status` - Get network status
-
-### Eliza AI Endpoints
-- `POST /api/eliza/chat` - Chat with Eliza
-- `POST /api/eliza/analyze-proposal` - Analyze governance proposals
-- `POST /api/eliza/treasury-recommendation` - Get treasury recommendations
-- `GET /api/eliza/status` - Get Eliza status
-
-### AI Agents Endpoints
-- `GET /api/ai-agents/agents` - List all AI agents
-- `GET /api/ai-agents/agent/{type}` - Get specific agent info
-- `POST /api/ai-agents/agent/{type}/generate-wallet` - Generate new wallet
-- `GET /api/ai-agents/funding-instructions` - Get funding instructions
-
-## AI Agent Wallet Setup
-
-1. Generate new wallets for each agent using the API:
+1. **Copy Environment Template**
    ```bash
-   curl -X POST http://localhost:5000/api/ai-agents/agent/governance/generate-wallet
-   curl -X POST http://localhost:5000/api/ai-agents/agent/treasury/generate-wallet
-   curl -X POST http://localhost:5000/api/ai-agents/agent/community/generate-wallet
+   cp .env.example .env.local
    ```
 
-2. Fund the wallets with Sepolia ETH using faucets:
-   - https://faucets.chain.link/sepolia
-   - https://sepolia-faucet.pk910.de/
-   - https://www.alchemy.com/faucets/ethereum-sepolia
+2. **Configure Required Variables**
+   ```bash
+   # Minimum required for basic functionality
+   VITE_API_BASE_URL=https://your-api-domain.com
+   VITE_MOCK_API=true  # Set to false when real APIs are ready
+   
+   # For wallet functionality
+   VITE_WALLET_CONNECT_PROJECT_ID=your_project_id
+   VITE_METAMASK_ENABLED=true
+   
+   # For payment processing
+   VITE_STRIPE_PUBLISHABLE_KEY=pk_test_your_stripe_key
+   ```
 
-3. Update the `.env` file with the generated private keys
+## 🚀 Deployment Methods
 
-## Smart Contract Integration
+### Method 1: Vercel CLI (Recommended)
 
-The system integrates with the XMRT token contract deployed at:
-`0x77307DFbc436224d5e6f2048d2b6bDfA66998a15` (Sepolia Testnet)
+1. **Install Vercel CLI**
+   ```bash
+   npm i -g vercel
+   ```
 
-Key features:
-- ERC20 token with 21M total supply
-- Staking mechanism with 7-day minimum period
-- 10% early unstaking penalty
-- Role-based access control for AI agents
+2. **Login to Vercel**
+   ```bash
+   vercel login
+   ```
 
-## Security Notes
+3. **Deploy**
+   ```bash
+   vercel --prod
+   ```
 
-⚠️ **Important Security Considerations:**
+### Method 2: GitHub Integration
 
-1. This is a testnet prototype - do not use with real funds
-2. Generate new private keys for production deployment
-3. Use environment variables for all sensitive data
-4. The smart contract has not been audited
-5. AI agent wallets should use hardware security modules in production
+1. **Connect Repository**
+   - Go to [Vercel Dashboard](https://vercel.com/dashboard)
+   - Click "New Project"
+   - Import from GitHub: `DevGruGold/XMRT-Ecosystem`
 
-## Troubleshooting
+2. **Configure Build Settings**
+   - Framework Preset: `Other`
+   - Build Command: `cd frontend/xmrt-dao-frontend && pnpm install && pnpm run build`
+   - Output Directory: `frontend/xmrt-dao-frontend/dist`
+   - Install Command: `pnpm install --store=node_modules/.pnpm-store`
+
+3. **Add Environment Variables**
+   - Copy variables from `.env.example`
+   - Add them in Vercel project settings
+
+### Method 3: Manual Build
+
+1. **Build Locally**
+   ```bash
+   cd frontend/xmrt-dao-frontend
+   pnpm install
+   pnpm run build
+   ```
+
+2. **Upload to Vercel**
+   ```bash
+   vercel --prebuilt
+   ```
+
+## 🔐 Environment Variables
+
+### Required Variables
+```bash
+VITE_API_BASE_URL=https://api.xmrtnet.com
+VITE_WALLET_CONNECT_PROJECT_ID=your_project_id
+VITE_STRIPE_PUBLISHABLE_KEY=pk_live_your_stripe_key
+```
+
+### Optional Variables
+```bash
+# Blockchain RPCs
+VITE_ETHEREUM_RPC_URL=https://mainnet.infura.io/v3/YOUR_KEY
+VITE_POLYGON_RPC_URL=https://polygon-mainnet.infura.io/v3/YOUR_KEY
+
+# Analytics
+VITE_GOOGLE_ANALYTICS_ID=G-XXXXXXXXXX
+
+# Feature Flags
+VITE_ENABLE_CRYPTO_TRADING=true
+VITE_ENABLE_NFT_MARKETPLACE=true
+```
+
+## 🧪 Testing Deployment
+
+### Local Testing
+```bash
+# Install dependencies
+pnpm install
+
+# Start development server
+cd frontend/xmrt-dao-frontend
+pnpm run dev
+
+# Build and preview
+pnpm run build
+pnpm run preview
+```
+
+### Production Testing
+1. **Check Build Output**
+   ```bash
+   cd frontend/xmrt-dao-frontend/dist
+   ls -la
+   ```
+
+2. **Test Routes**
+   - `/` - Login page
+   - `/dashboard` - Main dashboard (after login)
+   - `/activity` - Transaction history
+   - `/terminal` - Payment terminal
+   - `/banking` - Banking features
+   - `/assets` - Portfolio management
+   - `/settings` - User settings
+
+3. **Mobile Responsiveness**
+   - Test on various screen sizes
+   - Verify touch interactions
+   - Check navigation functionality
+
+## 🔍 Troubleshooting
 
 ### Common Issues
 
-1. **Backend fails to start**: Check that all dependencies are installed and the virtual environment is activated
-2. **Frontend build errors**: Ensure Node.js 18+ and pnpm are installed
-3. **Blockchain connection issues**: Verify Infura project ID and RPC URL
-4. **Eliza not responding**: Check OpenAI API key configuration
+1. **Build Fails**
+   ```bash
+   # Clear cache and reinstall
+   rm -rf node_modules pnpm-lock.yaml
+   pnpm install
+   ```
 
-### Logs
+2. **Environment Variables Not Working**
+   - Ensure variables start with `VITE_`
+   - Check Vercel project settings
+   - Redeploy after adding variables
 
-Backend logs are output to the console. For production deployment, configure proper logging.
+3. **Routing Issues**
+   - Verify `vercel.json` rewrites configuration
+   - Check SPA routing setup
 
-## Production Deployment
+4. **Performance Issues**
+   ```bash
+   # Analyze bundle size
+   pnpm run build
+   npx vite-bundle-analyzer dist
+   ```
 
-For production deployment:
+### Debug Mode
+```bash
+# Enable debug logging
+VITE_DEBUG_MODE=true pnpm run dev
+```
 
-1. Use a proper database (PostgreSQL/MongoDB) instead of SQLite
-2. Set up proper environment variable management
-3. Configure HTTPS and security headers
-4. Use a process manager like PM2 for the backend
-5. Build and serve the frontend through a CDN
-6. Implement proper monitoring and alerting
-7. Conduct security audits of smart contracts
-8. Use hardware security modules for AI agent wallets
+## 📊 Performance Optimization
 
-## Support
+### Build Optimization
+- Code splitting enabled
+- Tree shaking configured
+- Asset optimization
+- Gzip compression
 
-For issues and questions:
-- GitHub Issues: https://github.com/DevGruGold/XMRT-Ecosystem/issues
-- Discord: https://discord.gg/xmrtdao
-- Twitter: @xmrtdao
+### Runtime Optimization
+- Lazy loading components
+- Image optimization
+- Service worker caching
+- CDN integration
+
+## 🔒 Security Considerations
+
+### Headers Configuration
+- CSP headers configured
+- XSS protection enabled
+- HTTPS enforcement
+- Secure cookie settings
+
+### API Security
+- CORS properly configured
+- Rate limiting implemented
+- Input validation
+- Authentication tokens
+
+## 📈 Monitoring
+
+### Analytics Setup
+1. **Google Analytics**
+   ```bash
+   VITE_GOOGLE_ANALYTICS_ID=G-XXXXXXXXXX
+   ```
+
+2. **Error Tracking**
+   ```bash
+   VITE_SENTRY_DSN=your_sentry_dsn
+   ```
+
+3. **Performance Monitoring**
+   - Core Web Vitals tracking
+   - Real User Monitoring (RUM)
+   - Synthetic monitoring
+
+## 🔄 CI/CD Pipeline
+
+### GitHub Actions (Optional)
+```yaml
+# .github/workflows/deploy.yml
+name: Deploy to Vercel
+on:
+  push:
+    branches: [main]
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: amondnet/vercel-action@v20
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.ORG_ID }}
+          vercel-project-id: ${{ secrets.PROJECT_ID }}
+```
+
+## 📞 Support
+
+- **Documentation**: [GitHub Repository](https://github.com/DevGruGold/XMRT-Ecosystem)
+- **Issues**: [GitHub Issues](https://github.com/DevGruGold/XMRT-Ecosystem/issues)
+- **Discord**: [Community Server](https://discord.gg/xmrt)
+
+## 🎯 Production Checklist
+
+- [ ] Environment variables configured
+- [ ] SSL certificate active
+- [ ] Custom domain configured
+- [ ] Analytics tracking enabled
+- [ ] Error monitoring setup
+- [ ] Performance monitoring active
+- [ ] Security headers configured
+- [ ] Backup strategy implemented
+- [ ] Monitoring alerts configured
+- [ ] Documentation updated
+
+---
+
+**Built with ❤️ by the XMRT Community**
+
+*Ready for production deployment on Vercel with full mobile responsiveness and placeholder APIs.*
 

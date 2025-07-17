@@ -10,7 +10,7 @@ import time
 from typing import Dict, Any, List, Optional
 
 # Import memory manager
-from src.utils.memory_manager import memory_manager
+from src.utils.supabase_memory_manager import supabase_memory_manager as memory_manager
 from src.models.memory import MemoryType, AssociationType
 
 load_dotenv()
@@ -90,6 +90,7 @@ class EnhancedElizaAgent:
             'autonomous_execution': True,
             'long_term_memory': True  # Add memory capability
         }
+        self.memory_manager = memory_manager
     
     def process_message(self, message, user_context=None):
         """Process a message through enhanced Eliza AI"""
@@ -119,8 +120,28 @@ class EnhancedElizaAgent:
                 'type': message_type
             })
             
+<<<<<<< HEAD
             # Enhance context based on message type and memory
             enhanced_context = self._enhance_context(message_type, user_context, user_id)
+=======
+            # Store user message as a memory
+            self.memory_manager.store_memory(
+                user_id='eliza_user',  # Placeholder user ID
+                content=message,
+                memory_type=MemoryType.CONVERSATION,
+                metadata={'message_type': message_type, 'role': 'user'}
+            )
+
+            # Retrieve relevant memories
+            relevant_memories = self.memory_manager.search_memories(
+                user_id='eliza_user',  # Placeholder user ID
+                query=message,
+                limit=5
+            )
+            
+            # Enhance context based on message type and relevant memories
+            enhanced_context = self._enhance_context(message_type, user_context, relevant_memories)
+>>>>>>> 707b4bb691ba1f717aa714b5bbb8b87a5d11435c
             
             # Prepare messages for OpenAI
             messages = [
@@ -162,6 +183,14 @@ class EnhancedElizaAgent:
                 'timestamp': datetime.now().isoformat(),
                 'autonomous_actions': autonomous_actions
             })
+
+            # Store Eliza's response as a memory
+            self.memory_manager.store_memory(
+                user_id='eliza_user',  # Placeholder user ID
+                content=eliza_response,
+                memory_type=MemoryType.CONVERSATION,
+                metadata={'message_type': message_type, 'role': 'assistant', 'autonomous_actions': autonomous_actions}
+            )
             
             # Store assistant response in memory
             if self.memory_manager:
@@ -207,8 +236,13 @@ class EnhancedElizaAgent:
         else:
             return 'general'
     
+<<<<<<< HEAD
     def _enhance_context(self, message_type: str, user_context: Dict = None, user_id: str = 'anonymous') -> Dict[str, Any]:
         """Enhance context based on message type"""
+=======
+    def _enhance_context(self, message_type: str, user_context: Dict = None, relevant_memories: List[Dict] = None) -> Dict[str, Any]:
+        """Enhance context based on message type and relevant memories"""
+>>>>>>> 707b4bb691ba1f717aa714b5bbb8b87a5d11435c
         enhanced_context = {}
         
         try:
@@ -267,6 +301,9 @@ class EnhancedElizaAgent:
             
             if user_context:
                 enhanced_context['user'] = user_context
+
+            if relevant_memories:
+                enhanced_context['relevant_memories'] = relevant_memories
             
         except Exception as e:
             enhanced_context['error'] = f"Context enhancement failed: {str(e)}"
@@ -714,6 +751,7 @@ def eliza_status():
 
 
 
+<<<<<<< HEAD
     def _extract_and_store_memories(self, user_message: str, eliza_response: str, user_id: str, session_id: str, message_type: str):
         """Extract and store important information as memories"""
         try:
@@ -748,4 +786,302 @@ def eliza_status():
                 )
         except Exception as e:
             print(f"Error extracting memories: {e}")
+=======
+
+# Memory API endpoints
+@eliza_bp.route('/memory/search', methods=['POST'])
+def search_memories():
+    """Search memories by query/type"""
+    try:
+        data = request.get_json()
+        user_id = data.get('user_id', 'eliza_user')
+        query = data.get('query', '')
+        memory_type = data.get('memory_type')
+        limit = data.get('limit', 10)
+        
+        if not query:
+            return jsonify({
+                'success': False,
+                'error': 'Query is required'
+            }), 400
+        
+        # Convert memory_type string to enum if provided
+        memory_type_enum = None
+        if memory_type:
+            try:
+                memory_type_enum = MemoryType(memory_type)
+            except ValueError:
+                return jsonify({
+                    'success': False,
+                    'error': f'Invalid memory type: {memory_type}'
+                }), 400
+        
+        memories = memory_manager.search_memories(
+            user_id=user_id,
+            query=query,
+            memory_type=memory_type_enum,
+            limit=limit
+        )
+        
+        return jsonify({
+            'success': True,
+            'data': {
+                'memories': memories,
+                'count': len(memories),
+                'query': query,
+                'memory_type': memory_type
+            }
+        })
+        
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+@eliza_bp.route('/memory/store', methods=['POST'])
+def store_memory():
+    """Manually store memories"""
+    try:
+        data = request.get_json()
+        user_id = data.get('user_id', 'eliza_user')
+        content = data.get('content', '')
+        memory_type = data.get('memory_type', 'general')
+        metadata = data.get('metadata', {})
+        
+        if not content:
+            return jsonify({
+                'success': False,
+                'error': 'Content is required'
+            }), 400
+        
+        # Convert memory_type string to enum
+        try:
+            memory_type_enum = MemoryType(memory_type)
+        except ValueError:
+            return jsonify({
+                'success': False,
+                'error': f'Invalid memory type: {memory_type}'
+            }), 400
+        
+        memory_id = memory_manager.store_memory(
+            user_id=user_id,
+            content=content,
+            memory_type=memory_type_enum,
+            metadata=metadata
+        )
+        
+        return jsonify({
+            'success': True,
+            'data': {
+                'memory_id': memory_id,
+                'message': 'Memory stored successfully'
+            }
+        })
+        
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+@eliza_bp.route('/memory/associations', methods=['GET'])
+def get_memory_associations():
+    """Get memory relationships"""
+    try:
+        memory_id = request.args.get('memory_id')
+        user_id = request.args.get('user_id', 'eliza_user')
+        association_type = request.args.get('association_type')
+        
+        if not memory_id:
+            return jsonify({
+                'success': False,
+                'error': 'Memory ID is required'
+            }), 400
+        
+        # Convert association_type string to enum if provided
+        association_type_enum = None
+        if association_type:
+            try:
+                association_type_enum = AssociationType(association_type)
+            except ValueError:
+                return jsonify({
+                    'success': False,
+                    'error': f'Invalid association type: {association_type}'
+                }), 400
+        
+        associations = memory_manager.get_memory_associations(
+            memory_id=memory_id,
+            association_type=association_type_enum
+        )
+        
+        return jsonify({
+            'success': True,
+            'data': {
+                'memory_id': memory_id,
+                'associations': associations,
+                'count': len(associations)
+            }
+        })
+        
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+@eliza_bp.route('/memory/analytics', methods=['GET'])
+def get_memory_analytics():
+    """Memory usage stats"""
+    try:
+        user_id = request.args.get('user_id', 'eliza_user')
+        days = request.args.get('days', 30, type=int)
+        
+        analytics = memory_manager.get_memory_analytics(user_id=user_id, days=days)
+        
+        return jsonify({
+            'success': True,
+            'data': analytics
+        })
+        
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+@eliza_bp.route('/memory/prune', methods=['POST'])
+def prune_memories():
+    """Clean up old memories"""
+    try:
+        data = request.get_json()
+        user_id = data.get('user_id', 'eliza_user')
+        days_old = data.get('days_old', 365)
+        memory_type = data.get('memory_type')
+        dry_run = data.get('dry_run', True)
+        
+        # Convert memory_type string to enum if provided
+        memory_type_enum = None
+        if memory_type:
+            try:
+                memory_type_enum = MemoryType(memory_type)
+            except ValueError:
+                return jsonify({
+                    'success': False,
+                    'error': f'Invalid memory type: {memory_type}'
+                }), 400
+        
+        result = memory_manager.prune_memories(
+            user_id=user_id,
+            days_old=days_old,
+            memory_type=memory_type_enum,
+            dry_run=dry_run
+        )
+        
+        return jsonify({
+            'success': True,
+            'data': result
+        })
+        
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+>>>>>>> 707b4bb691ba1f717aa714b5bbb8b87a5d11435c
+
+
+# New Memory API Endpoints
+@eliza_bp.route('/memory/search', methods=['POST'])
+def search_memories():
+    """Search memories by query, type, time range"""
+    try:
+        data = request.get_json()
+        user_id = data.get('user_id')
+        query = data.get('query', '')
+        memory_types = data.get('memory_types', [])
+        limit = data.get('limit', 10)
+        
+        if not user_id:
+            return jsonify({'success': False, 'error': 'user_id required'}), 400
+        
+        # Semantic search if query provided
+        if query:
+            results = memory_manager.search_memories_semantic(user_id, query, limit, memory_types)
+            memories = [{'memory': mem, 'similarity': score} for mem, score in results]
+        else:
+            results = memory_manager.retrieve_memories(user_id, memory_types=memory_types, limit=limit)
+            memories = [{'memory': mem, 'similarity': 1.0} for mem in results]
+        
+        return jsonify({'success': True, 'memories': memories})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@eliza_bp.route('/memory/store', methods=['POST']) 
+def store_memory():
+    """Manually store specific memories"""
+    try:
+        data = request.get_json()
+        user_id = data.get('user_id')
+        content = data.get('content')
+        memory_type = data.get('memory_type', 'general')
+        metadata = data.get('metadata', {})
+        tags = data.get('tags', [])
+        
+        if not user_id or not content:
+            return jsonify({'success': False, 'error': 'user_id and content required'}), 400
+        
+        memory = memory_manager.store_memory(user_id, content, memory_type, metadata=metadata, tags=tags)
+        
+        if memory:
+            return jsonify({'success': True, 'memory': memory})
+        else:
+            return jsonify({'success': False, 'error': 'Failed to store memory'}), 500
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@eliza_bp.route('/memory/analytics', methods=['GET'])
+def get_memory_analytics():
+    """Memory usage statistics"""
+    try:
+        user_id = request.args.get('user_id')
+        if not user_id:
+            return jsonify({'success': False, 'error': 'user_id required'}), 400
+        
+        analytics = memory_manager.get_memory_analytics(user_id)
+        return jsonify({'success': True, 'analytics': analytics})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@eliza_bp.route('/memory/prune', methods=['POST'])
+def prune_memories():
+    """Clean up old/irrelevant memories"""
+    try:
+        data = request.get_json()
+        user_id = data.get('user_id')
+        days_threshold = data.get('days_threshold')
+        
+        if not user_id:
+            return jsonify({'success': False, 'error': 'user_id required'}), 400
+        
+        pruned_count = memory_manager.prune_old_memories(user_id, days_threshold)
+        return jsonify({'success': True, 'pruned_count': pruned_count})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@eliza_bp.route('/memory/conversation-history', methods=['GET'])
+def get_conversation_history():
+    """Get conversation history for a user"""
+    try:
+        user_id = request.args.get('user_id')
+        session_id = request.args.get('session_id')
+        limit = request.args.get('limit', 50, type=int)
+        
+        if not user_id:
+            return jsonify({'success': False, 'error': 'user_id required'}), 400
+        
+        history = memory_manager.get_conversation_history(user_id, session_id, limit)
+        return jsonify({'success': True, 'conversation_history': history})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
 
