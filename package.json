@@ -3,9 +3,9 @@
   "version": "1.0.0",
   "description": "Full-stack XMRT-Ecosystem DAO prototype with Eliza AI integration",
   "scripts": {
-    "build": "cd frontend/xmrt-dao-frontend && pnpm install && pnpm run build",
-    "vercel-build": "cd frontend/xmrt-dao-frontend && pnpm install && pnpm run build",
-    "dev": "concurrently \"bash -c \"cd backend/xmrt-dao-backend && source venv/bin/activate && python src/main.py\"\" \"cd frontend/xmrt-dao-frontend && pnpm run dev\"",
+    "build": "cd frontend/xmrt-dao-frontend && pnpm install --frozen-lockfile && pnpm run build",
+    "vercel-build": "cd frontend/xmrt-dao-frontend && pnpm install --frozen-lockfile && pnpm run build",
+    "dev": "concurrently \"cd backend/xmrt-dao-backend && python -m venv venv && source venv/bin/activate && pip install -r requirements.txt && python src/main.py\" \"cd frontend/xmrt-dao-frontend && pnpm install && pnpm run dev\"",
     "install-frontend": "cd frontend/xmrt-dao-frontend && pnpm install",
     "install-backend": "cd backend/xmrt-dao-backend && pip install -r requirements.txt",
     "compile": "hardhat compile",
@@ -14,11 +14,13 @@
     "deploy:mainnet": "hardhat run scripts/deploy-complete-dao.js --network ethereum",
     "verify:sepolia": "hardhat verify --network sepolia",
     "node": "hardhat node",
-    "clean": "hardhat clean",
+    "clean": "rm -rf node_modules frontend/xmrt-dao-frontend/node_modules frontend/xmrt-dao-frontend/dist backend/xmrt-dao-backend/venv && pnpm store prune",
     "coverage": "hardhat coverage",
     "size": "hardhat size-contracts",
     "start:automation": "cd backend/ai-automation-service && python main.py",
-    "start:all": "concurrently \"npm run start:automation\" \"cd backend/xmrt-dao-backend && python src/main.py\" \"cd frontend/xmrt-dao-frontend && pnpm run dev\""
+    "start:all": "concurrently \"npm run start:automation\" \"cd backend/xmrt-dao-backend && python src/main.py\" \"cd frontend/xmrt-dao-frontend && pnpm run dev\"",
+    "install:all": "pnpm install && cd frontend/xmrt-dao-frontend && pnpm install && cd ../../backend/xmrt-dao-backend && pip install -r requirements.txt",
+    "postinstall": "cd frontend/xmrt-dao-frontend && pnpm install"
   },
   "keywords": [
     "dao",
@@ -62,6 +64,9 @@
     "hardhat-contract-sizer": "^2.10.0",
     "hardhat-gas-reporter": "^1.0.9",
     "solidity-coverage": "^0.8.5"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "pnpm": ">=10.4.1"
   }
 }
-
