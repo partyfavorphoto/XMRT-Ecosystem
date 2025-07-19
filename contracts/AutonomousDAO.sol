@@ -124,6 +124,7 @@ contract AutonomousDAO is
     mapping(uint256 => AutonomousProposal) public proposals;
     mapping(address => RegisteredAgent) public registeredAgents;
     mapping(address => bool) public isRegisteredAgent;
+    address[] public registeredAgentAddresses; // New array to store registered agent addresses
     mapping(uint256 => address[]) public proposalAgentVotes;
     mapping(address => uint256[]) public agentExecutionHistory;
 
@@ -219,6 +220,7 @@ contract AutonomousDAO is
         });
 
         isRegisteredAgent[_agentAddress] = true;
+        registeredAgentAddresses.push(_agentAddress); // Add to the new array
         agentCount++;
 
         _grantRole(AI_AGENT_ROLE, _agentAddress);
@@ -411,12 +413,19 @@ contract AutonomousDAO is
         address bestAgent = address(0);
         uint256 bestScore = 0;
 
-        // Simple scoring: success rate + execution count
-        for (uint256 i = 0; i < agentCount; i++) {
-            // This is a simplified approach - in practice, you'd iterate through registered agents
-            // For now, return the first suitable agent found
-        }
+        for (uint256 i = 0; i < registeredAgentAddresses.length; i++) {
+            address currentAgentAddress = registeredAgentAddresses[i];
+            RegisteredAgent storage currentAgent = registeredAgents[currentAgentAddress];
 
+            if (currentAgent.active && currentAgent.authority >= _requiredAuthority) {
+                // Simple scoring: prioritize higher success rate, then higher execution count
+                uint256 currentScore = currentAgent.successRate * 1000 + currentAgent.executionCount;
+                if (currentScore > bestScore) {
+                    bestScore = currentScore;
+                    bestAgent = currentAgentAddress;
+                }
+            }
+        }
         return bestAgent;
     }
 
