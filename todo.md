@@ -47,7 +47,7 @@
 - [x] Integrate `PolicyEngine.sol` with `DAO_Treasury.sol`. and `Governance.sol`.
 
 ### Phase 9: Cross-Chain & ZKP Integration
-- [ ] Develop `CrossChainExecutor.sol` to interact with Wormhole/LayerZero for cross-chain governance.
+- [x] Develop `CrossChainExecutor.sol` to interact with Wormhole/LayerZero for cross-chain governance.
 - [ ] Implement `ZKPVerifier.sol` for on-chain verification of ZK proofs.
 - [ ] Integrate ZKP verification into the voting process for private voting.
 
