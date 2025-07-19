@@ -7,6 +7,9 @@ import "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
+import "@openzeppelin/contracts/token/ERC1155/IERC1155.sol";
+import "@openzeppelin/contracts/token/ERC1155/utils/ERC1155Holder.sol";
 import "./PolicyEngine.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
@@ -19,7 +22,8 @@ contract DAO_Treasury is
     AccessControlUpgradeable,
     ReentrancyGuardUpgradeable,
     PausableUpgradeable,
-    UUPSUpgradeable
+    UUPSUpgradeable,
+    ERC1155Holder
 {
     using SafeERC20 for IERC20;
 
@@ -81,6 +85,10 @@ contract DAO_Treasury is
     PolicyEngine public policyEngine;
     mapping(AllocationType => uint256) public allocationLimits;
 
+    // ERC721 and ERC1155 support
+    mapping(address => mapping(uint256 => bool)) public heldNFTsERC721; // contractAddress => tokenId => held
+    mapping(address => mapping(uint256 => uint256)) public heldNFTsERC1155; // contractAddress => tokenId => amount
+
     // Revenue tracking
     mapping(address => uint256) public totalRevenue;
     mapping(address => mapping(uint256 => uint256)) public monthlyRevenue; // token => month => amount
@@ -125,6 +133,23 @@ contract DAO_Treasury is
         allocationLimits[AllocationType.Operations] = 2000; // 20%
         allocationLimits[AllocationType.Investment] = 2000; // 20%
         allocationLimits[AllocationType.Emergency] = 1000; // 10%
+    }
+
+    function onERC721Received(address operator, address from, uint256 tokenId, bytes memory data) public virtual override returns (bytes4) {
+        heldNFTsERC721[msg.sender][tokenId] = true;
+        return this.onERC721Received.selector;
+    }
+
+    function onERC1155Received(address operator, address from, uint256 id, uint256 value, bytes memory data) public virtual override returns (bytes4) {
+        heldNFTsERC1155[msg.sender][id] += value;
+        return this.onERC1155Received.selector;
+    }
+
+    function onERC1155BatchReceived(address operator, address from, uint256[] memory ids, uint256[] memory values, bytes memory data) public virtual override returns (bytes4) {
+        for (uint256 i = 0; i < ids.length; i++) {
+            heldNFTsERC1155[msg.sender][ids[i]] += values[i];
+        }
+        return this.onERC1155BatchReceived.selector;
     }
 
     /**
@@ -248,6 +273,23 @@ contract DAO_Treasury is
         emit AllocationExecuted(allocationId, msg.sender);
     }
 
+    /**
+     * @dev Transfer ERC721 token from treasury
+     */
+    function transferERC721(address tokenAddress, address recipient, uint256 tokenId) external onlyRole(GOVERNANCE_ROLE) nonReentrant whenNotPaused {
+        require(IERC721(tokenAddress).ownerOf(tokenId) == address(this), "Treasury does not own this NFT");
+        IERC721(tokenAddress).safeTransferFrom(address(this), recipient, tokenId);
+        heldNFTsERC721[tokenAddress][tokenId] = false;
+    }
+
+    /**
+     * @dev Transfer ERC1155 token from treasury
+     */
+    function transferERC1155(address tokenAddress, address recipient, uint256 tokenId, uint256 amount) external onlyRole(GOVERNANCE_ROLE) nonReentrant whenNotPaused {
+        require(heldNFTsERC1155[tokenAddress][tokenId] >= amount, "Treasury does not have enough of this NFT");
+        IERC1155(tokenAddress).safeTransferFrom(address(this), recipient, tokenId, amount, "");
+        heldNFTsERC1155[tokenAddress][tokenId] -= amount;
+    }
 
     /**
      * @dev AI agent spending function with automatic limits
