@@ -23,7 +23,7 @@ app.register_blueprint(x_integration_bp, url_prefix='/api/x')
 app.register_blueprint(typefully_bp, url_prefix='/api/typefully')
 
 # uncomment if you need to use database
-app.config["SQLALCHEMY_DATABASE_URI"] = "postgresql://postgres:T8VZSiTk3RInnBATYzDemKaNQdPmxPzl2ShDr6obsPw@vlaikrbfunhhnihavxky.supabase.co:5432/postgres?options=project%3Dvlaiqfbfunhhnihavxky"
+app.config["SQLALCHEMY_DATABASE_URI"] = "postgresql://postgres:T8VZSiTk3RInnBATYzDemKaNQdPmxPzl2ShDr6obsPw@vlaikrbfunhhnihavxky.supabase.co:5432/postgres"
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db.init_app(app)
 with app.app_context():
