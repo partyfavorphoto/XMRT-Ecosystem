@@ -8,6 +8,7 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "./DAO_Governance.sol";
 import "./DAO_Treasury.sol";
+import "./ParameterRegistry.sol";
 
 /**
  * @title Governance
@@ -32,6 +33,7 @@ contract Governance is
     // Contract references
     DAO_Governance public daoGovernance;
     DAO_Treasury public daoTreasury;
+    ParameterRegistry public parameterRegistry;
 
     // AI agent configuration
     struct AIAgent {
@@ -60,7 +62,8 @@ contract Governance is
 
     function initialize(
         address _daoGovernance,
-        address _daoTreasury
+        address _daoTreasury,
+        address _parameterRegistry
     ) public initializer {
         __AccessControl_init();
         __ReentrancyGuard_init();
@@ -77,6 +80,9 @@ contract Governance is
         }
         if (_daoTreasury != address(0)) {
             daoTreasury = DAO_Treasury(_daoTreasury);
+        }
+        if (_parameterRegistry != address(0)) {
+            parameterRegistry = ParameterRegistry(_parameterRegistry);
         }
 
         // Register AI_LEADER as default AI agent

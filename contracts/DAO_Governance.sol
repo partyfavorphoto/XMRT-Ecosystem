@@ -8,6 +8,7 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import "./XMRT.sol";
+import "./ParameterRegistry.sol";
 
 /**
  * @title DAO_Governance
@@ -66,6 +67,7 @@ contract DAO_Governance is
 
     // State variables
     XMRT public xmrtToken;
+    ParameterRegistry public parameterRegistry;
     uint256 public proposalCount;
     mapping(uint256 => Proposal) public proposals;
     mapping(address => address) public delegates;
@@ -99,13 +101,14 @@ contract DAO_Governance is
         _disableInitializers();
     }
 
-    function initialize(address _xmrtToken) public initializer {
+    function initialize(address _xmrtToken, address _parameterRegistry) public initializer {
         __AccessControl_init();
         __ReentrancyGuard_init();
         __Pausable_init();
         __UUPSUpgradeable_init();
 
         xmrtToken = XMRT(_xmrtToken);
+        parameterRegistry = ParameterRegistry(_parameterRegistry);
         
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
         _grantRole(ADMIN_ROLE, msg.sender);
@@ -121,7 +124,12 @@ contract DAO_Governance is
         bytes memory callData,
         string memory description
     ) external whenNotPaused returns (uint256) {
-        require(getVotingPower(msg.sender) >= MIN_PROPOSAL_THRESHOLD, "Insufficient voting power");
+        uint256 votingPeriod = parameterRegistry.getUint(keccak256("VOTING_PERIOD"));
+        uint256 minProposalThreshold = parameterRegistry.getUint(keccak256("MIN_PROPOSAL_THRESHOLD"));
+        uint256 quorumPercentage = parameterRegistry.getUint(keccak256("QUORUM_PERCENTAGE"));
+        uint256 majorityThreshold = parameterRegistry.getUint(keccak256("MAJORITY_THRESHOLD"));
+
+        require(getVotingPower(msg.sender) >= minProposalThreshold, "Insufficient voting power");
         require(target != address(0), "Invalid target address");
         require(bytes(description).length > 0, "Description required");
 
@@ -135,9 +143,9 @@ contract DAO_Governance is
         proposal.callData = callData;
         proposal.description = description;
         proposal.startTime = block.timestamp;
-        proposal.endTime = block.timestamp + VOTING_PERIOD;
-        proposal.quorumRequired = (xmrtToken.totalStaked() * QUORUM_PERCENTAGE) / 10000;
-        proposal.thresholdRequired = MAJORITY_THRESHOLD;
+        proposal.endTime = block.timestamp + votingPeriod;
+        proposal.quorumRequired = (xmrtToken.totalStaked() * quorumPercentage) / 10000;
+        proposal.thresholdRequired = majorityThreshold;
 
         emit ProposalCreated(
             proposalId,
@@ -162,6 +170,10 @@ contract DAO_Governance is
         string memory description,
         uint256 customThreshold
     ) external onlyRole(AI_AGENT_ROLE) whenNotPaused returns (uint256) {
+        uint256 votingPeriod = parameterRegistry.getUint(keccak256("VOTING_PERIOD"));
+        uint256 quorumPercentage = parameterRegistry.getUint(keccak256("QUORUM_PERCENTAGE"));
+        uint256 majorityThreshold = parameterRegistry.getUint(keccak256("MAJORITY_THRESHOLD"));
+
         require(target != address(0), "Invalid target address");
         require(bytes(description).length > 0, "Description required");
         require(customThreshold <= 10000, "Invalid threshold");
@@ -176,9 +188,9 @@ contract DAO_Governance is
         proposal.callData = callData;
         proposal.description = description;
         proposal.startTime = block.timestamp;
-        proposal.endTime = block.timestamp + VOTING_PERIOD;
-        proposal.quorumRequired = (xmrtToken.totalStaked() * QUORUM_PERCENTAGE) / 10000;
-        proposal.thresholdRequired = customThreshold > 0 ? customThreshold : MAJORITY_THRESHOLD;
+        proposal.endTime = block.timestamp + votingPeriod;
+        proposal.quorumRequired = (xmrtToken.totalStaked() * quorumPercentage) / 10000;
+        proposal.thresholdRequired = customThreshold > 0 ? customThreshold : majorityThreshold;
 
         emit ProposalCreated(
             proposalId,
@@ -220,11 +232,12 @@ contract DAO_Governance is
      * @dev Queue a proposal for execution after timelock
      */
     function queueProposal(uint256 proposalId) external whenNotPaused {
+        uint256 timelockPeriod = parameterRegistry.getUint(keccak256("TIMELOCK_PERIOD"));
         require(getProposalState(proposalId) == ProposalState.Active, "Proposal not ready for queue");
         require(block.timestamp >= proposals[proposalId].endTime, "Voting period not ended");
         require(_hasPassedVoting(proposalId), "Proposal did not pass");
 
-        emit ProposalQueued(proposalId, block.timestamp + TIMELOCK_PERIOD);
+        emit ProposalQueued(proposalId, block.timestamp + timelockPeriod);
     }
 
     /**
