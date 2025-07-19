@@ -3,8 +3,9 @@ import sys
 # DON'T CHANGE THIS !!!
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
-from flask import Flask, send_from_directory
+from flask import Flask, send_from_directory, jsonify
 from flask_cors import CORS
+from src.config import Config
 from src.models.user import db
 from src.routes.user import user_bp
 from src.routes.boardroom import boardroom_bp
@@ -12,22 +13,44 @@ from src.routes.x_integration import x_integration_bp
 from src.routes.typefully_integration import typefully_bp
 
 app = Flask(__name__, static_folder=os.path.join(os.path.dirname(__file__), 'static'))
-app.config['SECRET_KEY'] = 'asdf#FGSgvasgf$5$WGT'
+
+# Load configuration
+app.config['SECRET_KEY'] = Config.SECRET_KEY
+app.config['DEBUG'] = Config.DEBUG
 
 # Enable CORS for all routes
 CORS(app)
 
+# Register blueprints
 app.register_blueprint(user_bp, url_prefix='/api')
 app.register_blueprint(boardroom_bp, url_prefix='/api/boardroom')
 app.register_blueprint(x_integration_bp, url_prefix='/api/x')
 app.register_blueprint(typefully_bp, url_prefix='/api/typefully')
 
-# uncomment if you need to use database
-app.config["SQLALCHEMY_DATABASE_URI"] = "postgresql://postgres:T8VZSiTk3RInnBATYzDemKaNQdPmxPzl2ShDr6obsPw@vlaikrbfunhhnihavxky.supabase.co:5432/postgres"
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-db.init_app(app)
-with app.app_context():
-    db.create_all()
+# Database configuration
+try:
+    db_config = Config.get_database_config()
+    app.config.update(db_config)
+    db.init_app(app)
+    
+    with app.app_context():
+        db.create_all()
+        print("Database initialized successfully")
+except Exception as e:
+    print(f"Database initialization failed: {e}")
+    print("Running without database - some features may not work")
+
+@app.route('/health')
+def health_check():
+    """Health check endpoint"""
+    config_validation = Config.validate_required_config()
+    config_summary = Config.get_config_summary()
+    
+    return jsonify({
+        'status': 'healthy',
+        'config_validation': config_validation,
+        'config_summary': config_summary
+    })
 
 @app.route('/', defaults={'path': ''})
 @app.route('/<path:path>')
@@ -47,4 +70,4 @@ def serve(path):
 
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    app.run(host='0.0.0.0', port=5000, debug=Config.DEBUG)

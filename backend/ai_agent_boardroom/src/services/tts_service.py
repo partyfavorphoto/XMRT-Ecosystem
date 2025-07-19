@@ -111,7 +111,7 @@ class TTSService:
             voice_type = self.get_voice_for_agent(agent_personality)
             
             # Import the media generation function here to avoid circular imports
-            from src.utils.media_utils import generate_speech_audio
+from src.utils.media_utils import generate_speech_audio
             
             # Generate the speech audio
             audio_result = generate_speech_audio(cleaned_text, file_path, voice_type)
