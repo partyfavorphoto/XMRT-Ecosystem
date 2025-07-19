@@ -7,6 +7,7 @@ import "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "./PolicyEngine.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 /**
@@ -77,7 +78,7 @@ contract DAO_Treasury is
     address[] public assetList;
     mapping(uint256 => Allocation) public allocations;
     uint256 public allocationCount;
-    mapping(address => SpendingLimit) public aiSpendingLimits;
+    PolicyEngine public policyEngine;
     mapping(AllocationType => uint256) public allocationLimits;
 
     // Revenue tracking
@@ -106,7 +107,7 @@ contract DAO_Treasury is
         _disableInitializers();
     }
 
-    function initialize() public initializer {
+    function initialize(address _policyEngine) public initializer {
         __AccessControl_init();
         __ReentrancyGuard_init();
         __Pausable_init();
@@ -115,6 +116,8 @@ contract DAO_Treasury is
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
         _grantRole(ADMIN_ROLE, msg.sender);
         _grantRole(GUARDIAN_ROLE, msg.sender);
+
+        policyEngine = PolicyEngine(_policyEngine);
 
         // Set default allocation limits (in basis points, 10000 = 100%)
         allocationLimits[AllocationType.Development] = 3000; // 30%
@@ -245,28 +248,6 @@ contract DAO_Treasury is
         emit AllocationExecuted(allocationId, msg.sender);
     }
 
-    /**
-     * @dev Set spending limits for AI agents
-     */
-    function setAISpendingLimit(
-        address tokenAddress,
-        uint256 dailyLimit,
-        uint256 totalLimit
-    ) external onlyRole(ADMIN_ROLE) {
-        require(assets[tokenAddress].isActive || tokenAddress == address(0), "Asset not supported");
-
-        aiSpendingLimits[tokenAddress] = SpendingLimit({
-            tokenAddress: tokenAddress,
-            dailyLimit: dailyLimit,
-            totalLimit: totalLimit,
-            dailySpent: 0,
-            totalSpent: 0,
-            lastResetTime: block.timestamp,
-            isActive: true
-        });
-
-        emit SpendingLimitSet(tokenAddress, dailyLimit, totalLimit);
-    }
 
     /**
      * @dev AI agent spending function with automatic limits
@@ -281,25 +262,11 @@ contract DAO_Treasury is
         require(amount > 0, "Amount must be greater than 0");
         require(recipient != address(0), "Invalid recipient");
 
-        SpendingLimit storage limit = aiSpendingLimits[tokenAddress];
-        require(limit.isActive, "Spending limit not set");
-
-        // Reset daily spending if a day has passed
-        if (block.timestamp >= limit.lastResetTime + 1 days) {
-            limit.dailySpent = 0;
-            limit.lastResetTime = block.timestamp;
-        }
-
-        // Check limits
-        require(limit.dailySpent + amount <= limit.dailyLimit, "Daily spending limit exceeded");
-        require(limit.totalSpent + amount <= limit.totalLimit, "Total spending limit exceeded");
+        // Use PolicyEngine to check and record spending
+        require(policyEngine.recordAISpending(msg.sender, tokenAddress, amount), "AI spending limit exceeded");
 
         uint256 availableBalance = _getAvailableBalance(tokenAddress);
         require(amount <= availableBalance, "Insufficient available balance");
-
-        // Update spending tracking
-        limit.dailySpent += amount;
-        limit.totalSpent += amount;
 
         // Execute transfer
         if (tokenAddress == address(0)) {

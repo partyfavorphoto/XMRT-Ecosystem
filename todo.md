@@ -43,9 +43,8 @@
 - [x] Create a `ParameterRegistry.sol` contract to centralize governable parameters.
 
 ### Phase 8: Advanced Treasury & Multi-Asset Management
-- [ ] Modify `DAO_Treasury.sol` to support ERC20 tokens and potentially NFTs.
-- [ ] Develop `PolicyEngine.sol` to define and enforce AI agent spending limits and policies.
-- [ ] Integrate `PolicyEngine.sol` with `DAO_Treasury.sol` and `Governance.sol`.
+- [ ] Modify `DAO_Treasury.sol` to support ERC20 tokens and potentially NFTs.- [x] Develop `PolicyEngine.sol` to define and enforce AI agent spending limits and policies.
+- [x] Integrate `PolicyEngine.sol` with `DAO_Treasury.sol`. and `Governance.sol`.
 
 ### Phase 9: Cross-Chain & ZKP Integration
 - [ ] Develop `CrossChainExecutor.sol` to interact with Wormhole/LayerZero for cross-chain governance.
