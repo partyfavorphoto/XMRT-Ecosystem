@@ -18,7 +18,7 @@ langchain-experimental>=0.0.50
 
 # XMRT Langflow Integration  
 # Install from: git+https://github.com/DevGruGold/xmrt-langflow-competition.git
-langflow>=1.0.0
+langflow>=0.6.19
 langflow-base>=0.0.50
 
 # Vector Database and Embeddings
@@ -28,19 +28,14 @@ pinecone-client>=3.0.0
 weaviate-client>=3.25.0
 
 # Memory and Storage
-sqlite3
-postgresql-adapter>=3.0.0
+
+
 redis>=5.0.0
 numpy>=1.24.0
 pandas>=2.0.0
 
 # Text Processing and NLP
-tiktoken>=0.5.0
-sentence-transformers>=2.2.0
-transformers>=4.35.0
-torch>=2.1.0
 
-# Async and Concurrency
 asyncio
 aiohttp>=3.9.0
 asyncpg>=0.29.0

@@ -1,67 +1,157 @@
-# XMRT-Ecosystem - Fully Autonomous DAO
+# XMRT-Ecosystem: Unified DAO Platform
 
-Welcome to the XMRT-Ecosystem repository! This repository houses the various decentralized applications (dApps) and core components that form the XMRTNET ecosystem, powered by **Autonomous ElizaOS** - a fully autonomous AI agent system.
+## Overview
 
-## 🤖 Autonomous ElizaOS
+The XMRT-Ecosystem has been transformed into a unified, streamlined platform that consolidates all DAO functionalities into a single, cohesive application. This new architecture eliminates redundancy and provides users with an intuitive MobileMonero-based CashDapp interface, enhanced by AI-powered automation through Eliza.
 
-The XMRT DAO is managed by **Autonomous ElizaOS**, a production-ready AI agent system that:
+## 🚀 Key Features
 
-- **Fully Manages DAO Operations**: Governance, treasury, community, security, and analytics
-- **GPT-5 Ready**: Seamless integration when GPT-5 becomes available
-- **Production Deployed**: High-availability, fault-tolerant autonomous operations
-- **Multi-Chain Support**: Operates across Ethereum, Polygon, BSC, Avalanche, Arbitrum, and Optimism
-- **Emergency Response**: Automatic threat detection and response
-- **Human Oversight**: Optional human approval for high-risk decisions
+- **Unified CashDapp Frontend**: Single, responsive interface consolidating all DAO operations
+- **AI-Enabled Eliza**: Integrated AI assistant for automated DAO operations and insights
+- **Streamlined Backend**: Optimized microservices architecture with centralized API gateway
+- **Cross-Chain Support**: Seamless multi-blockchain operations
+- **Zero-Knowledge Privacy**: Enhanced privacy features through ZK proofs
+- **Real-Time Governance**: Live proposal tracking and voting
+- **Treasury Management**: AI-powered treasury optimization and monitoring
 
-📖 **[Full Autonomous ElizaOS Documentation](AUTONOMOUS_ELIZA_README.md)**
+## 🏗️ Architecture
 
-## 📚 Organizational Structure
+### Frontend (Unified CashDapp)
+- **Location**: `frontend/xmrt-unified-cashdapp/`
+- **Technology**: React + Vite, Tailwind CSS, shadcn/ui
+- **Features**: 
+  - Dashboard with balance, trading, and governance overview
+  - Integrated Eliza AI chat interface
+  - Quick access to Wallet, Trading, Governance, and Mining
+  - Responsive design optimized for all devices
 
-This repository is organized into a `main` branch that serves as the central hub for the entire XMRTNET DAO, linking to various independent dApps. Each major dApp or user experience (UX) within the ecosystem resides in its own dedicated branch, following a `ux/<dapp-name>` naming convention.
+### Backend Services
+- **API Gateway**: `backend/xmrt-unified-backend/` - Centralized API routing and authentication
+- **AI Automation**: `backend/ai-automation-service/` - Eliza AI for DAO automation
+- **DAO Core**: `backend/xmrt-dao-backend/` - Main DAO logic and operations
+- **Cross-Chain**: `backend/cross-chain-service/` - Multi-blockchain support
+- **ZK Service**: `backend/zk-service/` - Zero-knowledge proof functionality
 
-This structure allows for independent development, testing, and deployment of each dApp, while maintaining a cohesive overview on the `main` branch.
+### Smart Contracts
+- **Location**: `contracts/`
+- **Features**: Core DAO governance, token management, and dApp-specific logic
 
-### **`main` Branch (XMRTNET DAO Hub)**
+## 🛠️ Development Setup
 
-The `main` branch represents the overarching XMRTNET Decentralized Autonomous Organization. It will feature a high-level overview of the ecosystem and provide links and entry points to all the individual dApps.
+### Prerequisites
+- Node.js 18+ and pnpm
+- Python 3.11+ and pip
+- Git
 
-### **`ux/<dapp-name>` Branches (Individual dApps)**
+### Frontend Development
+```bash
+cd frontend/xmrt-unified-cashdapp
+pnpm install
+pnpm run dev --host
+```
 
-Each `ux/<dapp-name>` branch contains a complete, self-contained dApp or user experience. For example:
+### Backend Development
+```bash
+cd backend/xmrt-unified-backend
+source venv/bin/activate
+pip install -r requirements.txt
+python src/main.py
+```
 
-- `ux/cashdapp`: The XMRTNET CashDapp, a comprehensive financial application including dashboard, payments (terminal), banking, assets management, and user settings.
-- `ux/trading-dapp`: The decentralized exchange (DEX) or trading interface for XMRT and other tokens.
-- `ux/governance-dapp`: The dApp for XMRTNET DAO governance, allowing users to propose, vote on, and execute proposals.
-- `ux/staking-dapp`: The dApp for staking XMRT tokens and earning rewards.
-- `ux/nft-marketplace`: The dApp for browsing, buying, selling, and managing NFTs within the XMRT ecosystem.
-- `ux/lending-dapp`: The dApp for decentralized lending and borrowing.
+### AI Automation Service
+```bash
+cd backend/ai-automation-service
+pip install -r requirements.txt
+python main.py
+```
 
-## 📂 Repository Contents
+## 📱 User Interface
 
-- `backend/`: Backend services and APIs for the ecosystem.
-- `contracts/`: Smart contracts for XMRTNET, including tokens, governance, and dApp-specific contracts.
-- `frontend/`: Contains the source code for various frontend applications. Each dApp will have its own directory here (e.g., `frontend/cashdapp/`).
-- `docs/`: Documentation, whitepapers, and technical specifications.
-- `test/`: Test suites for smart contracts and backend services.
-- `monitoring/`: Tools and configurations for monitoring the ecosystem.
-- `scripts/`: Utility scripts for deployment, testing, and development.
-- `vercel.json`: Vercel deployment configuration for the main branch and potentially for individual dApps.
-- `.env.example`: Example environment variables for local development and deployment.
-- `DEPLOYMENT.md`: Detailed deployment instructions for the ecosystem.
+The unified CashDapp provides:
 
-## 🚀 Getting Started
+1. **Dashboard Overview**: Real-time balance, trading volume, and active proposals
+2. **Eliza AI Chat**: Direct interaction with the AI assistant for DAO operations
+3. **Quick Actions**: One-click access to core functionalities
+4. **Responsive Design**: Optimized for desktop and mobile devices
 
-To get started with local development or deployment, please refer to the `DEPLOYMENT.md` file for detailed instructions.
+## 🤖 Eliza AI Integration
+
+Eliza provides intelligent automation for:
+- **Governance**: Proposal analysis and voting recommendations
+- **Treasury**: Portfolio optimization and risk management
+- **Community**: Engagement monitoring and report generation
+- **Operations**: Automated task execution and system monitoring
+
+## 🔧 Configuration
+
+### Environment Variables
+Create `.env` files in respective service directories:
+
+```bash
+# AI Automation Service
+OPENAI_API_KEY=your_openai_key
+BLOCKCHAIN_RPC_URL=your_rpc_url
+PRIVATE_KEY=your_private_key
+
+# Backend Services
+DATABASE_URL=your_database_url
+JWT_SECRET=your_jwt_secret
+```
+
+## 🚀 Deployment
+
+### Development
+```bash
+# Start all services
+docker-compose up -d
+```
+
+### Production
+```bash
+# Build and deploy
+docker-compose -f docker-compose.prod.yml up -d
+```
+
+## 📊 Monitoring
+
+- **Health Checks**: `/health` endpoints on all services
+- **Metrics**: Prometheus integration for performance monitoring
+- **Logs**: Structured logging with correlation IDs
+
+## 🔐 Security
+
+- **Authentication**: JWT-based user authentication
+- **Authorization**: Role-based access control
+- **Privacy**: Zero-knowledge proofs for sensitive operations
+- **Auditing**: Comprehensive audit trails for all operations
 
 ## 🤝 Contributing
 
-We welcome contributions to the XMRT-Ecosystem! Please refer to our [Contribution Guidelines](CONTRIBUTING.md) (to be created) for more information.
+1. Fork the repository
+2. Create a feature branch: `git checkout -b feature/amazing-feature`
+3. Commit changes: `git commit -m 'Add amazing feature'`
+4. Push to branch: `git push origin feature/amazing-feature`
+5. Open a Pull Request
 
 ## 📄 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
+## 🆘 Support
+
+- **Documentation**: [docs/](docs/)
+- **Issues**: [GitHub Issues](https://github.com/DevGruGold/XMRT-Ecosystem/issues)
+- **Community**: [Discord](https://discord.gg/xmrt-dao)
+
+## 🗺️ Roadmap
+
+- [ ] Mobile app development
+- [ ] Advanced AI features
+- [ ] Multi-chain expansion
+- [ ] DeFi integrations
+- [ ] NFT marketplace
+
 ---
 
-*This README.md is a living document and will be updated as the XMRT-Ecosystem evolves.*
+**Built with ❤️ by the XMRT DAO Community**
 
