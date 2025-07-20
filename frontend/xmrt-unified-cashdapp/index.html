@@ -1,13 +1,1062 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/x-icon" href="/favicon.ico" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>XMRT CashDapp - Unified DAO Dashboard</title>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
-  </body>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MobileMonero - AI-Powered Autonomous Mining DAO</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary-green: #00ff88;
+            --dark-bg: #1a1a1a;
+            --card-bg: #2d2d2d;
+            --text-primary: #ffffff;
+            --text-secondary: #a0a0a0;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: var(--dark-bg);
+            color: var(--text-primary);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .mobile-container {
+            width: 100%;
+            max-width: 414px;
+            margin: 0 auto;
+            padding: 0 16px;
+        }
+
+        .mobile-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            background-color: var(--dark-bg);
+            border-bottom: 1px solid #333;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .logo-icon {
+            width: 32px;
+            height: 32px;
+            background-color: var(--primary-green);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #000;
+            font-weight: bold;
+        }
+
+        .mobile-card {
+            background-color: var(--card-bg);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 16px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        .balance-section {
+            text-align: center;
+            padding: 20px 0;
+        }
+
+        .balance-amount {
+            font-size: 36px;
+            font-weight: bold;
+            color: var(--text-primary);
+            margin: 8px 0;
+        }
+
+        .balance-label {
+            font-size: 14px;
+            color: var(--text-secondary);
+            margin-bottom: 16px;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            margin-top: 16px;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 14px;
+            border: none;
+            cursor: pointer;
+            min-height: 44px;
+            min-width: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: all 0.2s ease;
+        }
+
+        .btn-primary {
+            background-color: var(--primary-green);
+            color: #000;
+        }
+
+        .btn-secondary {
+            background-color: #444;
+            color: var(--text-primary);
+        }
+
+        .btn:hover {
+            opacity: 0.9;
+            transform: translateY(-1px);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin: 16px 0;
+        }
+
+        .stat-item {
+            text-align: center;
+            padding: 12px;
+            background-color: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+        }
+
+        .stat-value {
+            font-size: 18px;
+            font-weight: bold;
+            color: var(--primary-green);
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-top: 4px;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            background-color: #333;
+            border-radius: 3px;
+            overflow: hidden;
+            margin: 12px 0;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background-color: var(--primary-green);
+            transition: width 0.3s ease;
+        }
+
+        .agent-activity {
+            max-height: 200px;
+            overflow-y: auto;
+            margin: 12px 0;
+        }
+
+        .agent-message {
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+            margin-bottom: 12px;
+            padding: 8px;
+            background-color: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            font-size: 13px;
+        }
+
+        .agent-avatar {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background-color: var(--primary-green);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #000;
+            font-weight: bold;
+            font-size: 10px;
+            flex-shrink: 0;
+        }
+
+        .agent-content {
+            flex: 1;
+        }
+
+        .agent-name {
+            font-weight: bold;
+            color: var(--primary-green);
+            margin-bottom: 2px;
+        }
+
+        .agent-text {
+            color: var(--text-secondary);
+            line-height: 1.3;
+        }
+
+        .chatbot-container {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 50px;
+            height: 50px;
+            z-index: 1000;
+        }
+
+        .chatbot-toggle {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background-color: var(--primary-green);
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #000;
+            font-size: 20px;
+            box-shadow: 0 4px 12px rgba(0, 255, 136, 0.3);
+        }
+
+        .chatbot-popup {
+            position: fixed;
+            bottom: 80px;
+            right: 20px;
+            width: calc(100vw - 40px);
+            max-width: 320px;
+            height: 400px;
+            background-color: var(--card-bg);
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+            display: none;
+            flex-direction: column;
+            z-index: 1001;
+        }
+
+        .chatbot-header {
+            padding: 16px;
+            border-bottom: 1px solid #444;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .chatbot-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px;
+        }
+
+        .chat-message {
+            margin-bottom: 12px;
+            padding: 8px 12px;
+            border-radius: 8px;
+            max-width: 80%;
+            font-size: 14px;
+            line-height: 1.4;
+        }
+
+        .chat-message.user {
+            background-color: var(--primary-green);
+            color: #000;
+            margin-left: auto;
+        }
+
+        .chat-message.bot {
+            background-color: rgba(255, 255, 255, 0.1);
+            color: var(--text-primary);
+        }
+
+        .chatbot-input {
+            display: flex;
+            padding: 16px;
+            border-top: 1px solid #444;
+            gap: 8px;
+        }
+
+        .chatbot-input input {
+            flex: 1;
+            padding: 8px 12px;
+            border: 1px solid #444;
+            border-radius: 6px;
+            background-color: var(--dark-bg);
+            color: var(--text-primary);
+            font-size: 14px;
+        }
+
+        .chatbot-input button {
+            padding: 8px 16px;
+            background-color: var(--primary-green);
+            color: #000;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .section-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 12px;
+            color: var(--text-primary);
+        }
+
+        .nav-tabs {
+            display: flex;
+            justify-content: space-around;
+            background-color: var(--card-bg);
+            border-radius: 12px;
+            padding: 8px;
+            margin-bottom: 16px;
+        }
+
+        .nav-tab {
+            flex: 1;
+            text-align: center;
+            padding: 8px 4px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 600;
+            transition: all 0.2s ease;
+        }
+
+        .nav-tab.active {
+            background-color: var(--primary-green);
+            color: #000;
+        }
+
+        .nav-tab:not(.active) {
+            color: var(--text-secondary);
+        }
+
+        .bridge-widget {
+            background-color: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            padding: 16px;
+            margin: 12px 0;
+        }
+
+        .bridge-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .bridge-input {
+            flex: 1;
+            padding: 8px 12px;
+            border: 1px solid #444;
+            border-radius: 6px;
+            background-color: var(--dark-bg);
+            color: var(--text-primary);
+            font-size: 14px;
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: var(--primary-green);
+            margin-right: 8px;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .footer {
+            background-color: var(--card-bg);
+            padding: 20px 16px;
+            margin-top: 40px;
+            border-top: 1px solid #333;
+        }
+
+        .footer-content {
+            max-width: 414px;
+            margin: 0 auto;
+            text-align: center;
+        }
+
+        .footer-links {
+            display: flex;
+            justify-content: center;
+            gap: 16px;
+            margin-bottom: 16px;
+        }
+
+        .footer-link {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 14px;
+        }
+
+        .footer-text {
+            font-size: 12px;
+            color: var(--text-secondary);
+            line-height: 1.4;
+        }
+
+        .social-links {
+            display: flex;
+            justify-content: center;
+            gap: 16px;
+            margin: 16px 0;
+        }
+
+        .social-link {
+            color: var(--text-secondary);
+            font-size: 20px;
+            transition: color 0.2s ease;
+        }
+
+        .social-link:hover {
+            color: var(--primary-green);
+        }
+
+        /* Desktop styles */
+        @media (min-width: 768px) {
+            .mobile-container {
+                max-width: 100%;
+                padding: 0 32px;
+            }
+
+            .desktop-grid {
+                display: grid;
+                grid-template-columns: 280px 1fr 320px;
+                gap: 32px;
+                max-width: 1400px;
+                margin: 0 auto;
+            }
+
+            .chatbot-popup {
+                width: 400px;
+                height: 500px;
+            }
+
+            .stats-grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+
+        @media (min-width: 1024px) {
+            .mobile-container {
+                padding: 0 48px;
+            }
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="mobile-container">
+        <!-- Mobile Header -->
+        <div class="mobile-header">
+            <div class="logo">
+                <div class="logo-icon">
+                    <i class="fas fa-mobile-alt"></i>
+                </div>
+                <div>
+                    <div style="font-weight: bold; font-size: 16px;">MobileMonero</div>
+                    <div style="font-size: 11px; color: var(--text-secondary);">
+                        <span class="status-indicator"></span>AI-Powered Mining DAO
+                    </div>
+                </div>
+            </div>
+            <button class="btn btn-primary" style="font-size: 12px; padding: 8px 16px;">
+                <i class="fas fa-wallet"></i> Connect
+            </button>
+        </div>
+
+        <!-- Navigation Tabs -->
+        <div class="nav-tabs">
+            <div class="nav-tab active" onclick="showTab('dashboard')">
+                <i class="fas fa-home"></i><br>Dashboard
+            </div>
+            <div class="nav-tab" onclick="showTab('mining')">
+                <i class="fas fa-pickaxe"></i><br>Mining
+            </div>
+            <div class="nav-tab" onclick="showTab('bridge')">
+                <i class="fas fa-exchange-alt"></i><br>Bridge
+            </div>
+            <div class="nav-tab" onclick="showTab('ai')">
+                <i class="fas fa-robot"></i><br>AI Agents
+            </div>
+            <div class="nav-tab" onclick="showTab('governance')">
+                <i class="fas fa-vote-yea"></i><br>DAO
+            </div>
+        </div>
+
+        <!-- Dashboard Tab -->
+        <div id="dashboard" class="tab-content active">
+            <!-- Balance Section -->
+            <div class="mobile-card">
+                <div class="balance-section">
+                    <div class="balance-label">Your Balance</div>
+                    <div class="balance-amount">$1,234.56</div>
+                    <div class="action-buttons">
+                        <button class="btn btn-primary">
+                            <i class="fas fa-paper-plane"></i> Send
+                        </button>
+                        <button class="btn btn-secondary">
+                            <i class="fas fa-download"></i> Receive
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Portfolio Stats -->
+            <div class="mobile-card">
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <div class="stat-value">+2.14%</div>
+                        <div class="stat-label">24h Change</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value">$5,678.90</div>
+                        <div class="stat-label">Portfolio Value</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="mobile-card">
+                <div class="section-title">Quick Actions</div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                    <button class="btn btn-primary">
+                        <i class="fas fa-download"></i> Get Miner
+                    </button>
+                    <button class="btn btn-secondary">
+                        <i class="fas fa-coins"></i> Get Tokens
+                    </button>
+                    <button class="btn btn-secondary">
+                        <i class="fas fa-lock"></i> Stake XMRT
+                    </button>
+                    <button class="btn btn-secondary">
+                        <i class="fas fa-chart-line"></i> View Analytics
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Mining Tab -->
+        <div id="mining" class="tab-content">
+            <div class="mobile-card">
+                <div class="section-title">
+                    Mining Revenue
+                    <span class="status-indicator"></span>
+                    <span style="color: var(--primary-green); font-size: 12px;">Active</span>
+                </div>
+                <div style="margin: 16px 0;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                        <span style="font-size: 14px; color: var(--text-secondary);">Today's Mining</span>
+                        <span style="color: var(--primary-green); font-weight: bold;">+0.0247 XMR</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: 73%;"></div>
+                    </div>
+                </div>
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <div class="stat-value">147</div>
+                        <div class="stat-label">Active Miners</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value">2.3</div>
+                        <div class="stat-label">MH/s Total</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value">$47.20</div>
+                        <div class="stat-label">Daily Revenue</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value">98.7%</div>
+                        <div class="stat-label">Pool Uptime</div>
+                    </div>
+                </div>
+                <div style="margin-top: 16px;">
+                    <button class="btn btn-primary" style="width: 100%;" onclick="window.open('https://xmrtstart.vercel.app', '_blank')">
+                        <i class="fas fa-download"></i> Get XMRT Miner
+                    </button>
+                </div>
+            </div>
+
+            <!-- Mining Performance -->
+            <div class="mobile-card">
+                <div class="section-title">Mining Performance</div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                    <div class="stat-item">
+                        <div class="stat-value">24h</div>
+                        <div class="stat-label">Avg Block Time</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value">89.2%</div>
+                        <div class="stat-label">Efficiency</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bridge Tab -->
+        <div id="bridge" class="tab-content">
+            <div class="mobile-card">
+                <div class="section-title">Universal Bridge</div>
+                <div class="bridge-widget">
+                    <div style="margin-bottom: 16px;">
+                        <label style="font-size: 12px; color: var(--text-secondary); margin-bottom: 4px; display: block;">From</label>
+                        <div style="display: flex; gap: 8px;">
+                            <select class="bridge-input" style="flex: 0 0 80px;">
+                                <option>ETH</option>
+                                <option>BTC</option>
+                                <option>PI</option>
+                                <option>XMR</option>
+                            </select>
+                            <input type="number" class="bridge-input" placeholder="0.00" value="1.5">
+                        </div>
+                    </div>
+                    <div style="text-align: center; margin: 16px 0;">
+                        <button class="btn btn-secondary" style="width: 40px; height: 40px; border-radius: 50%;">
+                            <i class="fas fa-exchange-alt"></i>
+                        </button>
+                    </div>
+                    <div style="margin-bottom: 16px;">
+                        <label style="font-size: 12px; color: var(--text-secondary); margin-bottom: 4px; display: block;">To</label>
+                        <div style="display: flex; gap: 8px;">
+                            <select class="bridge-input" style="flex: 0 0 80px;">
+                                <option>XMRT</option>
+                                <option>PI</option>
+                                <option>ETH</option>
+                                <option>BTC</option>
+                            </select>
+                            <input type="number" class="bridge-input" placeholder="0.00" value="75.32" readonly>
+                        </div>
+                    </div>
+                    <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 16px;">
+                        <div style="display: flex; justify-content: space-between;">
+                            <span>Network Fee:</span>
+                            <span>$2.50</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between;">
+                            <span>Processing Fee:</span>
+                            <span>1.5%</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between;">
+                            <span>Rate:</span>
+                            <span>1 ETH = 50.21 XMRT</span>
+                        </div>
+                    </div>
+                    <button class="btn btn-primary" style="width: 100%;">
+                        <i class="fas fa-exchange-alt"></i> Bridge Tokens
+                    </button>
+                </div>
+            </div>
+
+            <!-- Pi Network Integration -->
+            <div class="mobile-card">
+                <div class="section-title">Pi Network Integration</div>
+                <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
+                    <div style="width: 32px; height: 32px; background-color: #7B3F98; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold;">π</div>
+                    <div>
+                        <div style="font-weight: bold;">Pi Network</div>
+                        <div style="font-size: 12px; color: var(--text-secondary);">1 PI = $50.00</div>
+                    </div>
+                </div>
+                <div style="background-color: rgba(123, 63, 152, 0.1); padding: 12px; border-radius: 8px; margin-bottom: 16px;">
+                    <div style="font-size: 12px; color: var(--text-secondary);">
+                        <i class="fas fa-info-circle"></i> Pi transactions require KYC verification and are secured by Pi Network
+                    </div>
+                </div>
+                <button class="btn btn-secondary" style="width: 100%;">
+                    <i class="fas fa-coins"></i> Bridge Pi to XMRT
+                </button>
+            </div>
+        </div>
+
+        <!-- AI Agents Tab -->
+        <div id="ai" class="tab-content">
+            <div class="mobile-card">
+                <div class="section-title">
+                    AI Agents
+                    <span style="color: var(--primary-green); font-size: 12px; margin-left: 8px;">3 Active</span>
+                </div>
+                <div class="agent-activity">
+                    <div class="agent-message">
+                        <div class="agent-avatar">E</div>
+                        <div class="agent-content">
+                            <div class="agent-name">Executive Agent</div>
+                            <div class="agent-text">Analyzing market conditions for optimal mining strategy...</div>
+                        </div>
+                    </div>
+                    <div class="agent-message">
+                        <div class="agent-avatar">O</div>
+                        <div class="agent-content">
+                            <div class="agent-name">Operations Agent</div>
+                            <div class="agent-text">Mining efficiency increased to 98.7%. Optimizing pool distribution.</div>
+                        </div>
+                    </div>
+                    <div class="agent-message">
+                        <div class="agent-avatar">F</div>
+                        <div class="agent-content">
+                            <div class="agent-name">Financial Agent</div>
+                            <div class="agent-text">Treasury rebalancing complete. $12.4K moved to high-yield strategy.</div>
+                        </div>
+                    </div>
+                    <div class="agent-message">
+                        <div class="agent-avatar">E</div>
+                        <div class="agent-content">
+                            <div class="agent-name">Executive Agent</div>
+                            <div class="agent-text">Cross-chain arbitrage opportunity detected. Executing swap...</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Agent Status -->
+            <div class="mobile-card">
+                <div class="section-title">Agent Performance</div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px;">
+                    <div class="stat-item">
+                        <div class="stat-value">47</div>
+                        <div class="stat-label">Decisions/Day</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value">98.2%</div>
+                        <div class="stat-label">Success Rate</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value">$2.1K</div>
+                        <div class="stat-label">Value Added</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Governance Tab -->
+        <div id="governance" class="tab-content">
+            <div class="mobile-card">
+                <div class="section-title">DAO Governance</div>
+                <div style="margin-bottom: 16px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                        <span style="font-size: 14px;">Active Proposals</span>
+                        <span style="color: var(--primary-green); font-weight: bold;">3</span>
+                    </div>
+                    <div style="background-color: rgba(255, 255, 255, 0.05); padding: 12px; border-radius: 8px; margin-bottom: 12px;">
+                        <div style="font-weight: bold; margin-bottom: 4px;">Proposal #12: Increase Mining Rewards</div>
+                        <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 8px;">Increase XMRT mining rewards by 15% to attract more miners</div>
+                        <div style="display: flex; justify-content: space-between;">
+                            <span style="font-size: 12px; color: var(--primary-green);">✓ 847 Yes</span>
+                            <span style="font-size: 12px; color: #ff4444;">✗ 123 No</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <div class="stat-value">1,247</div>
+                        <div class="stat-label">Total Members</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value">67.8%</div>
+                        <div class="stat-label">Participation</div>
+                    </div>
+                </div>
+                <button class="btn btn-primary" style="width: 100%; margin-top: 16px;">
+                    <i class="fas fa-plus"></i> Create Proposal
+                </button>
+            </div>
+
+            <!-- Staking Section -->
+            <div class="mobile-card">
+                <div class="section-title">XMRT Staking</div>
+                <div style="margin-bottom: 16px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <span style="font-size: 14px; color: var(--text-secondary);">Staked Amount</span>
+                        <span style="font-weight: bold;">1,250 XMRT</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <span style="font-size: 14px; color: var(--text-secondary);">Rewards Earned</span>
+                        <span style="color: var(--primary-green); font-weight: bold;">+47.3 XMRT</span>
+                    </div>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                    <button class="btn btn-primary">
+                        <i class="fas fa-plus"></i> Stake More
+                    </button>
+                    <button class="btn btn-secondary">
+                        <i class="fas fa-minus"></i> Unstake
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="footer">
+            <div class="footer-content">
+                <div class="social-links">
+                    <a href="https://github.com/DevGruGold" class="social-link" target="_blank">
+                        <i class="fab fa-github"></i>
+                    </a>
+                    <a href="https://sepolia.etherscan.io/token/0x77307dfbc436224d5e6f2048d2b6bdfa66998a15" class="social-link" target="_blank">
+                        <i class="fas fa-cube"></i>
+                    </a>
+                    <a href="https://sepolia.etherscan.io/token/0x9de91fc136a846d7442d1321a2d1b6aaef494eda" class="social-link" target="_blank">
+                        <i class="fas fa-certificate"></i>
+                    </a>
+                </div>
+                <div class="footer-links">
+                    <a href="#" class="footer-link">Terms</a>
+                    <a href="#" class="footer-link">Privacy</a>
+                    <a href="/cdn-cgi/l/email-protection#0971647b7d7a66657c7d6066677a496e64686065276a6664" class="footer-link">Investors</a>
+                </div>
+                <div class="footer-text">
+                    © 2024 MobileMonero DAO • v1.0.0<br>
+                    <small>IP tokenized as NFT on Ethereum. Developed by DevGruGold.<br>
+                    Contact: <a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="a5ddc8d7d1d6cac9d0d1cccacbd6e5c2c8c4ccc98bc6cac8">[email&#160;protected]</a></small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Chatbot -->
+    <div class="chatbot-container">
+        <button class="chatbot-toggle" onclick="toggleChat()">
+            <i class="fas fa-comments"></i>
+        </button>
+        <div class="chatbot-popup" id="chatbot">
+            <div class="chatbot-header">
+                <div style="font-weight: bold;">MobileMonero AI Assistant</div>
+                <button onclick="toggleChat()" style="background: none; border: none; color: var(--text-secondary); cursor: pointer;">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="chatbot-messages" id="chatMessages">
+                <div class="chat-message bot">
+                    Hello! I'm your MobileMonero AI assistant. I can help you with mining, staking, governance, and more. What would you like to know?
+                </div>
+            </div>
+            <div class="chatbot-input">
+                <input type="text" id="chatInput" placeholder="Ask me anything..." onkeypress="handleChatEnter(event)">
+                <button onclick="sendMessage()">Send</button>
+            </div>
+        </div>
+    </div>
+
+    <script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
+        // Tab switching functionality
+        function showTab(tabName) {
+            // Hide all tab contents
+            const tabs = document.querySelectorAll('.tab-content');
+            tabs.forEach(tab => tab.classList.remove('active'));
+            
+            // Remove active class from all nav tabs
+            const navTabs = document.querySelectorAll('.nav-tab');
+            navTabs.forEach(tab => tab.classList.remove('active'));
+            
+            // Show selected tab content
+            document.getElementById(tabName).classList.add('active');
+            
+            // Add active class to clicked nav tab
+            event.target.closest('.nav-tab').classList.add('active');
+        }
+
+        // Chatbot functionality
+        function toggleChat() {
+            const chatbot = document.getElementById('chatbot');
+            chatbot.style.display = chatbot.style.display === 'flex' ? 'none' : 'flex';
+        }
+
+        function sendMessage() {
+            const input = document.getElementById('chatInput');
+            const message = input.value.trim();
+            if (!message) return;
+
+            const messagesContainer = document.getElementById('chatMessages');
+            
+            // Add user message
+            const userMessage = document.createElement('div');
+            userMessage.className = 'chat-message user';
+            userMessage.textContent = message;
+            messagesContainer.appendChild(userMessage);
+            
+            // Clear input
+            input.value = '';
+            
+            // Add bot response
+            setTimeout(() => {
+                const botMessage = document.createElement('div');
+                botMessage.className = 'chat-message bot';
+                botMessage.textContent = getBotResponse(message);
+                messagesContainer.appendChild(botMessage);
+                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            }, 1000);
+            
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        function handleChatEnter(event) {
+            if (event.key === 'Enter') {
+                sendMessage();
+            }
+        }
+
+        function getBotResponse(message) {
+            const responses = {
+                'mining': 'MobileMonero enables smartphone mining with our optimized XMR mining pool. Download the miner from our link to start earning XMRT rewards!',
+                'staking': 'You can stake XMRT tokens to earn rewards and participate in DAO governance. Current APY is 12.5% with a 7-day minimum staking period.',
+                'governance': 'Our DAO is fully autonomous with AI agents making decisions. Token holders can create proposals and vote on important matters.',
+                'bridge': 'Our universal bridge supports 70+ chains including Pi Network. You can swap between any supported tokens with low fees.',
+                'ai': 'We have three AI agents: Executive (strategy), Operations (mining), and Financial (treasury). They work 24/7 to optimize the DAO.',
+                'rewards': 'XMRT rewards come from mining revenue, staking yields, and treasury management. All distributed automatically by our AI agents.',
+                'tokenomics': 'XMRT has a 21M max supply with real mining revenue backing. Unlike speculative tokens, our value comes from actual mining operations.',
+                'mobile': 'MobileMonero is designed mobile-first for emerging markets. Mine XMR on your phone and access DeFi services without expensive hardware.',
+                'revenue': 'Our revenue model is transparent: mining income flows to treasury, managed by AI agents for staking rewards and development funding.',
+                'security': 'We use multi-sig wallets, smart contract audits, and AI-powered risk management. IP is tokenized as NFT for additional security.'
+            };
+
+            const lowerMessage = message.toLowerCase();
+            for (const [key, response] of Object.entries(responses)) {
+                if (lowerMessage.includes(key)) {
+                    return response;
+                }
+            }
+
+            return "I'm here to help with MobileMonero! Ask me about mining, staking, governance, our AI agents, or anything else related to our DAO.";
+        }
+
+        // Real-time updates simulation
+        function updateStats() {
+            const stats = {
+                miners: Math.floor(Math.random() * 10) + 140,
+                hashrate: (Math.random() * 0.5 + 2.0).toFixed(1),
+                revenue: (Math.random() * 10 + 40).toFixed(2),
+                balance: (Math.random() * 100 + 1200).toFixed(2)
+            };
+
+            // Update mining stats
+            const minerElements = document.querySelectorAll('.stat-value');
+            if (minerElements.length > 0) {
+                minerElements.forEach((el, index) => {
+                    if (el.textContent.includes('147')) {
+                        el.textContent = stats.miners;
+                    } else if (el.textContent.includes('2.3')) {
+                        el.textContent = stats.hashrate;
+                    } else if (el.textContent.includes('47.20')) {
+                        el.textContent = '$' + stats.revenue;
+                    }
+                });
+            }
+
+            // Update balance
+            const balanceElement = document.querySelector('.balance-amount');
+            if (balanceElement) {
+                balanceElement.textContent = '$' + stats.balance;
+            }
+        }
+
+        // Add new agent messages
+        function addAgentMessage() {
+            const agents = [
+                { name: 'Executive Agent', avatar: 'E', messages: [
+                    'Analyzing cross-chain arbitrage opportunities...',
+                    'Strategic rebalancing initiated for optimal returns.',
+                    'Market conditions favor increased mining allocation.',
+                    'Proposal for treasury diversification under review.'
+                ]},
+                { name: 'Operations Agent', avatar: 'O', messages: [
+                    'Mining pool efficiency optimized to 99.1%',
+                    'New miners onboarded: +12 devices this hour.',
+                    'Hardware utilization increased by 3.2%',
+                    'Pool distribution rebalanced for better performance.'
+                ]},
+                { name: 'Financial Agent', avatar: 'F', messages: [
+                    'Treasury yield optimization complete: +$2.3K.',
+                    'Staking rewards distributed to 1,247 holders.',
+                    'Cross-chain transaction fees reduced by 15%',
+                    'Risk assessment updated: Low volatility detected.'
+                ]}
+            ];
+
+            const agentActivity = document.querySelector('.agent-activity');
+            if (agentActivity) {
+                const agent = agents[Math.floor(Math.random() * agents.length)];
+                const message = agent.messages[Math.floor(Math.random() * agent.messages.length)];
+                
+                const messageDiv = document.createElement('div');
+                messageDiv.className = 'agent-message';
+                messageDiv.innerHTML = `
+                    <div class="agent-avatar">${agent.avatar}</div>
+                    <div class="agent-content">
+                        <div class="agent-name">${agent.name}</div>
+                        <div class="agent-text">${message}</div>
+                    </div>
+                `;
+                
+                agentActivity.appendChild(messageDiv);
+                
+                // Keep only last 5 messages
+                const messages = agentActivity.querySelectorAll('.agent-message');
+                if (messages.length > 5) {
+                    messages[0].remove();
+                }
+                
+                agentActivity.scrollTop = agentActivity.scrollHeight;
+            }
+        }
+
+        // Initialize real-time updates
+        setInterval(updateStats, 5000);
+        setInterval(addAgentMessage, 8000);
+
+        // Initialize progress bar animation
+        document.addEventListener('DOMContentLoaded', function() {
+            const progressBars = document.querySelectorAll('.progress-fill');
+            progressBars.forEach(bar => {
+                const width = bar.style.width;
+                bar.style.width = '0%';
+                setTimeout(() => {
+                    bar.style.width = width;
+                }, 500);
+            });
+        });
+    </script>
+</body>
 </html>
+    <script id="html_badge_script1">
+        window.__genspark_remove_badge_link = "https://www.genspark.ai/api/html_badge/" +
+            "remove_badge?token=To%2FBnjzloZ3UfQdcSaYfDoBagfusJ22pe5W%2BIRq1EUJ3gNs64RWCIRuykysWUGKYkXtqYQzYbdFNi6t9QamUsFSZJ8Twd7B0CgmhRSvTgE9Q2ezHeLf0oMbwTSECfmuVotf2RSZEzjzS8TauQ5SzTpRv1C%2Bj4uk9vPoOuGZ0BSoevDZ1PFcobRiK3Z8I9G46OpWY4kQk1LfJcRU%2BznneCQB48KEEd0BZACScr%2FqozditiuJ4eEa9RUke6SImqQBblw6t5AiFD1mfMhMzjueL3mZzr0HEBl3PqK8ERwewR6pSm9k8SmF7XSlCAqaEN9eyG7AVvg2BSkT5eOzgkC%2F01%2B6WQVKUDI%2FqmeYn6Xk%2Bz3fQUvDs8ppVgqMXh6Tb8NYPaR8xUHJ5Aqlvt%2BkXx98h209PmTh2viFyFPQ4esHQp%2F0BeKk9CaXSxrIcwxnU97QThYFzaks6xcI2tPmhbQuWoSzsjrAGDcjnNbqS%2FXx3wDZGwycKS3qTvRKLFUINdQIx%2FYZnq3G%2FKo2RFuLqx21RxjhsVW3p8LV%2Bq0kfWqlzbNw%3D";
+        window.__genspark_locale = "en-US";
+        window.__genspark_token = "To/BnjzloZ3UfQdcSaYfDoBagfusJ22pe5W+IRq1EUJ3gNs64RWCIRuykysWUGKYkXtqYQzYbdFNi6t9QamUsFSZJ8Twd7B0CgmhRSvTgE9Q2ezHeLf0oMbwTSECfmuVotf2RSZEzjzS8TauQ5SzTpRv1C+j4uk9vPoOuGZ0BSoevDZ1PFcobRiK3Z8I9G46OpWY4kQk1LfJcRU+znneCQB48KEEd0BZACScr/qozditiuJ4eEa9RUke6SImqQBblw6t5AiFD1mfMhMzjueL3mZzr0HEBl3PqK8ERwewR6pSm9k8SmF7XSlCAqaEN9eyG7AVvg2BSkT5eOzgkC/01+6WQVKUDI/qmeYn6Xk+z3fQUvDs8ppVgqMXh6Tb8NYPaR8xUHJ5Aqlvt+kXx98h209PmTh2viFyFPQ4esHQp/0BeKk9CaXSxrIcwxnU97QThYFzaks6xcI2tPmhbQuWoSzsjrAGDcjnNbqS/Xx3wDZGwycKS3qTvRKLFUINdQIx/YZnq3G/Ko2RFuLqx21RxjhsVW3p8LV+q0kfWqlzbNw=";
+    </script>
+    
+    <script id="html_notice_dialog_script" src="https://www.genspark.ai/notice_dialog.js"></script>
+    
+
