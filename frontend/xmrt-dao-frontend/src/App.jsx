@@ -8,6 +8,7 @@ import { Textarea } from '@/components/ui/textarea.jsx'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select.jsx'
 import { Switch } from '@/components/ui/switch.jsx'
 import { Label } from '@/components/ui/label.jsx'
+import ElizaChatbot from './components/ElizaChatbot.jsx'
 import {
   Brain,
   Coins,
@@ -441,56 +442,7 @@ function App() {
 
             <Route path="/eliza" element={activeTab === 'eliza' &&
               <TabsContent value="eliza" className="space-y-6">
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center">
-                      <MessageSquare className="h-5 w-5 mr-2" />
-                      Enhanced Eliza AI
-                    </CardTitle>
-                    <CardDescription>
-                      Advanced AI with cross-chain, ZK, and verifiable computation capabilities
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="h-96 border rounded-lg p-4 bg-gray-50 dark:bg-gray-800 overflow-y-auto">
-                      {chatHistory.map((msg, index) => (
-                        <div key={index} className={`mb-4 ${msg.role === 'user' ? 'text-right' : 'text-left'}`}>
-                          <div className={`inline-block p-3 rounded-lg max-w-[80%] ${
-                            msg.role === 'user' 
-                              ? 'bg-blue-600 text-white' 
-                              : 'bg-white dark:bg-gray-700 border'
-                          }`}>
-                            <p className="text-sm">{msg.content}</p>
-                            {msg.autonomous_actions && msg.autonomous_actions.length > 0 && (
-                              <div className="mt-2 pt-2 border-t border-gray-200">
-                                <p className="text-xs text-gray-500">Autonomous actions triggered</p>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      ))}
-                      {isLoading && (
-                        <div className="text-left">
-                          <div className="inline-block p-3 rounded-lg bg-white dark:bg-gray-700 border">
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                    <div className="flex space-x-2">
-                      <Input
-                        placeholder="Ask about cross-chain ops, ZK proofs, treasury optimization..."
-                        value={message}
-                        onChange={(e) => setMessage(e.target.value)}
-                        onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
-                        className="flex-1"
-                      />
-                      <Button onClick={sendMessage} disabled={isLoading}>
-                        {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Send'}
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
+                <ElizaChatbot />
               </TabsContent>
             } />
 
