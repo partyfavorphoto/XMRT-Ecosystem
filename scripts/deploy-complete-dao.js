@@ -239,13 +239,9 @@ AI_AGENT_INTERFACE_ADDRESS=${deploymentResults.aiAgentInterface}
 ${deploymentResults.xmrtCrossChain ? `XMRT_CROSS_CHAIN_ADDRESS=${deploymentResults.xmrtCrossChain}` : ''}
 ${deploymentResults.xmrtOFT ? `XMRT_OFT_ADDRESS=${deploymentResults.xmrtOFT}` : ''}
 
-# AI Agent Configuration (TEST KEYS - REPLACE IN PRODUCTION)
 GOVERNANCE_AGENT_ADDRESS=${deploymentResults.aiAgents.governance.address}
-GOVERNANCE_AGENT_PRIVATE_KEY=${deploymentResults.aiAgents.governance.privateKey}
 TREASURY_AGENT_ADDRESS=${deploymentResults.aiAgents.treasury.address}
-TREASURY_AGENT_PRIVATE_KEY=${deploymentResults.aiAgents.treasury.privateKey}
 COMMUNITY_AGENT_ADDRESS=${deploymentResults.aiAgents.community.address}
-COMMUNITY_AGENT_PRIVATE_KEY=${deploymentResults.aiAgents.community.privateKey}
 
 # RPC Configuration
 ${network.name.toUpperCase()}_RPC_URL=${network.name === 'sepolia' ? 'https://sepolia.infura.io/v3/YOUR_INFURA_PROJECT_ID' : 'https://mainnet.infura.io/v3/YOUR_INFURA_PROJECT_ID'}
@@ -286,3 +282,12 @@ main()
     console.error(error);
     process.exit(1);
   });
+
+
+    console.log("\n⚠️ IMPORTANT: AI Agent Private Keys (STORE SECURELY - DO NOT COMMIT TO GIT!): ");
+    console.log(`GOVERNANCE_AGENT_PRIVATE_KEY=${deploymentResults.aiAgents.governance.privateKey}`);
+    console.log(`TREASURY_AGENT_PRIVATE_KEY=${deploymentResults.aiAgents.treasury.privateKey}`);
+    console.log(`COMMUNITY_AGENT_PRIVATE_KEY=${deploymentResults.aiAgents.community.privateKey}`);
+    console.log("⚠️ These keys are for backend services. Ensure they are stored securely (e.g., in a secrets manager or environment variables) and NEVER committed to version control.");
+
+
