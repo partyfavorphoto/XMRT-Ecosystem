@@ -48,21 +48,7 @@ const LoginPage = () => {
     }
   };
 
-  const fillDemoAccount = (accountNumber) => {
-    if (accountNumber === 1) {
-      setFormData({
-        email: 'user1@example.com',
-        password: 'password1',
-        name: 'John Doe'
-      });
-    } else {
-      setFormData({
-        email: 'user2@example.com',
-        password: 'password2',
-        name: 'Jane Smith'
-      });
-    }
-  };
+
 
   return (
     <div className="login-page">
@@ -165,25 +151,7 @@ const LoginPage = () => {
           )}
         </div>
 
-        <div className="demo-accounts">
-          <p><strong>Demo accounts:</strong></p>
-          <p>
-            <button
-              onClick={() => fillDemoAccount(1)}
-              style={{ background: 'none', border: 'none', color: '#10b981', cursor: 'pointer', textDecoration: 'underline' }}
-            >
-              user1@example.com / password1
-            </button>
-          </p>
-          <p>
-            <button
-              onClick={() => fillDemoAccount(2)}
-              style={{ background: 'none', border: 'none', color: '#10b981', cursor: 'pointer', textDecoration: 'underline' }}
-            >
-              user2@example.com / password2
-            </button>
-          </p>
-        </div>
+
       </div>
     </div>
   );
