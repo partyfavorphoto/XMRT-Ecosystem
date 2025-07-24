@@ -9,8 +9,9 @@ on:
 jobs:
   test-frontend:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout repository
+      - name: Checkout Repository
         uses: actions/checkout@v4
 
       - name: Setup Node.js
@@ -18,17 +19,14 @@ jobs:
         with:
           node-version: 18
 
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
-
       - name: Install Frontend Dependencies
         working-directory: frontend/xmrt-dao-frontend
-        run: pnpm install
+        run: npm install
 
       - name: Run Frontend Linting
         working-directory: frontend/xmrt-dao-frontend
-        run: pnpm run lint
+        run: npm run lint
 
       - name: Run Frontend Tests (optional)
         working-directory: frontend/xmrt-dao-frontend
-        run: pnpm run test || echo "No tests found"
+        run: npm test || echo "No tests found"
