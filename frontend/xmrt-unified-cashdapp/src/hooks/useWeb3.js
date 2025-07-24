@@ -52,7 +52,7 @@ export const useWeb3 = () => {
   const [isConnected, setIsConnected] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [_chainId, setChainId] = useState(null);
+  const [chainId, setChainId] = useState(null); // eslint-disable-line no-unused-vars
 
   // Initialize provider
   const initializeProvider = useCallback(async () => {

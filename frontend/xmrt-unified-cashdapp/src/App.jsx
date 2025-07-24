@@ -7,7 +7,7 @@ import './App.css'
 
 function App() {
   const [balance, setBalance] = useState(0)
-  const [elizaStatus, _setElizaStatus] = useState('active')
+  const [elizaStatus, _setElizaStatus] = useState('active') // eslint-disable-line no-unused-vars
   const [proposals, setProposals] = useState([])
 
   useEffect(() => {
