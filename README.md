@@ -155,3 +155,10 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 **Built with ❤️ by the XMRT DAO Community**
 
+
+
+## 🛡️ Most Recent Automated Audit
+- Audit performed by automated script in Google Colab
+- Date: **2025-07-24 17:11 UTC**
+- Author: DevGruGold (joeyleepcs@gmail.com)
+- Status: ✅ No critical issues detected, contracts compile successfully.
