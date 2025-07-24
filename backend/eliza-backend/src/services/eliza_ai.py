@@ -5,6 +5,7 @@ import logging
 import time
 from typing import Dict, List, Any, Optional
 from datetime import datetime
+from .eliza_ai_emulation import ElizaAIEmulation
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -12,23 +13,34 @@ logger = logging.getLogger(__name__)
 
 class ElizaAI:
     """
-    Eliza AI service for investor interactions using OpenAI API.
-    Provides intelligent responses about the XMRT DAO ecosystem.
+    Eliza AI service for investor interactions.
+    Uses AI emulation by default for testing, with OpenAI API as fallback.
     """
     
     def __init__(self):
-        # Use the VITE_OPEN_AI_API_KEY environment variable
+        # Initialize emulation service
+        self.emulation = ElizaAIEmulation()
+        
+        # Use emulation by default for testing
+        self.use_emulation = True
+        
+        # Initialize OpenAI client as fallback
         self.api_key = os.getenv('VITE_OPEN_AI_API_KEY') or os.getenv('OPENAI_API_KEY')
-        if not self.api_key:
-            raise ValueError("OpenAI API key not found. Please set VITE_OPEN_AI_API_KEY or OPENAI_API_KEY environment variable.")
+        if self.api_key and not self.use_emulation:
+            try:
+                openai.api_key = self.api_key
+                self.client = openai.OpenAI(api_key=self.api_key)
+                self.model = "gpt-4"
+                logger.info("OpenAI client initialized successfully")
+            except Exception as e:
+                logger.warning(f"OpenAI client initialization failed: {e}. Using emulation.")
+                self.use_emulation = True
+        else:
+            logger.info("Using AI emulation for testing")
+            self.use_emulation = True
         
-        # Initialize OpenAI client
-        openai.api_key = self.api_key
-        self.client = openai.OpenAI(api_key=self.api_key)
-        
-        # Eliza's personality and knowledge base
+        # Eliza's personality and knowledge base for OpenAI
         self.system_prompt = self._build_system_prompt()
-        self.model = "gpt-4"  # Use GPT-4 for better responses
         
     def _build_system_prompt(self) -> str:
         """Build the system prompt that defines Eliza's personality and knowledge."""
@@ -80,15 +92,11 @@ Remember: You are representing a cutting-edge project that's pioneering the futu
                          investor_context: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """
         Generate a response from Eliza based on user input and conversation history.
-        
-        Args:
-            user_message: The user's latest message
-            conversation_history: List of previous messages in the conversation
-            investor_context: Optional context about the investor (profile, interests, etc.)
-            
-        Returns:
-            Dictionary containing the response and metadata
         """
+        if self.use_emulation:
+            return self.emulation.generate_response(user_message, conversation_history, investor_context)
+        
+        # OpenAI implementation (fallback)
         try:
             start_time = time.time()
             
@@ -145,12 +153,8 @@ Remember: You are representing a cutting-edge project that's pioneering the futu
             
         except Exception as e:
             logger.error(f"Error generating Eliza response: {str(e)}")
-            return {
-                "success": False,
-                "error": str(e),
-                "content": "I apologize, but I'm experiencing some technical difficulties. Please try again in a moment.",
-                "timestamp": datetime.utcnow().isoformat()
-            }
+            # Fallback to emulation
+            return self.emulation.generate_response(user_message, conversation_history, investor_context)
     
     def _build_context_message(self, investor_context: Dict[str, Any]) -> str:
         """Build a context message about the investor for personalized responses."""
@@ -182,6 +186,10 @@ Remember: You are representing a cutting-edge project that's pioneering the futu
     
     def generate_welcome_message(self, investor_name: str = None) -> str:
         """Generate a personalized welcome message for new investors."""
+        if self.use_emulation:
+            return self.emulation.generate_welcome_message(investor_name)
+        
+        # OpenAI implementation (fallback)
         if investor_name:
             return f"""Hello {investor_name}! Welcome to XMRT DAO. I'm Eliza, your AI guide to our revolutionary ecosystem.
 
@@ -198,13 +206,11 @@ I'd love to learn more about you and your interests. Could you tell me a bit abo
     def analyze_investor_intent(self, message: str) -> Dict[str, Any]:
         """
         Analyze the investor's message to understand their intent and interests.
-        
-        Args:
-            message: The investor's message
-            
-        Returns:
-            Dictionary with intent analysis
         """
+        if self.use_emulation:
+            return self.emulation.analyze_investor_intent(message)
+        
+        # OpenAI implementation (fallback)
         try:
             analysis_prompt = f"""Analyze this investor message and categorize their intent and interests:
 
@@ -253,27 +259,17 @@ Only return valid JSON."""
                 
         except Exception as e:
             logger.error(f"Error analyzing investor intent: {str(e)}")
-            return {
-                "success": False,
-                "analysis": {
-                    "primary_intent": "general_inquiry",
-                    "topics_of_interest": [],
-                    "urgency_level": "medium",
-                    "investor_sophistication": "intermediate",
-                    "next_action_suggested": "provide_general_information"
-                }
-            }
+            # Fallback to emulation
+            return self.emulation.analyze_investor_intent(message)
     
     def suggest_follow_up_questions(self, conversation_history: List[Dict[str, str]]) -> List[str]:
         """
         Suggest relevant follow-up questions based on the conversation.
-        
-        Args:
-            conversation_history: Recent conversation messages
-            
-        Returns:
-            List of suggested questions
         """
+        if self.use_emulation:
+            return self.emulation.suggest_follow_up_questions(conversation_history)
+        
+        # OpenAI implementation (fallback)
         default_questions = [
             "How does the AI agent boardroom work?",
             "What are the investment opportunities?",
@@ -314,5 +310,6 @@ Return only the questions, one per line."""
             
         except Exception as e:
             logger.error(f"Error generating follow-up questions: {str(e)}")
-            return default_questions
+            # Fallback to emulation
+            return self.emulation.suggest_follow_up_questions(conversation_history)
 
