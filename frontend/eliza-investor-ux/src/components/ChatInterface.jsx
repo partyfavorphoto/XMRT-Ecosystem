@@ -5,7 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card.j
 import { Badge } from '@/components/ui/badge.jsx'
 import { ScrollArea } from '@/components/ui/scroll-area.jsx'
 import { Separator } from '@/components/ui/separator.jsx'
-import { Send, Bot, User, Loader2, MessageCircle, Sparkles } from 'lucide-react'
+import { Send, Bot, User, Loader2, MessageCircle, Sparkles, Headphones } from 'lucide-react'
+import PodcastPlayer from './PodcastPlayer.jsx'
 
 const API_BASE_URL = 'http://localhost:5000/api/eliza'
 
@@ -16,6 +17,7 @@ export default function ChatInterface() {
   const [sessionId, setSessionId] = useState(null)
   const [suggestedQuestions, setSuggestedQuestions] = useState([])
   const [showWelcome, setShowWelcome] = useState(true)
+  const [showPodcast, setShowPodcast] = useState(false)
   const [investorInfo, setInvestorInfo] = useState({
     name: '',
     email: '',
@@ -213,19 +215,37 @@ export default function ChatInterface() {
         {/* Header */}
         <Card className="mb-4">
           <CardHeader className="pb-3">
-            <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
-                <Bot className="w-6 h-6 text-white" />
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
+                  <Bot className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <CardTitle className="text-xl">Eliza - XMRT DAO AI Assistant</CardTitle>
+                  <p className="text-sm text-muted-foreground">
+                    Your guide to autonomous organizations and AI governance
+                  </p>
+                </div>
               </div>
-              <div>
-                <CardTitle className="text-xl">Eliza - XMRT DAO AI Assistant</CardTitle>
-                <p className="text-sm text-muted-foreground">
-                  Your guide to autonomous organizations and AI governance
-                </p>
-              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowPodcast(!showPodcast)}
+                className="flex items-center space-x-2"
+              >
+                <Headphones className="w-4 h-4" />
+                <span>{showPodcast ? 'Hide' : 'Listen to'} Podcast</span>
+              </Button>
             </div>
           </CardHeader>
         </Card>
+
+        {/* Podcast Player */}
+        {showPodcast && (
+          <div className="mb-4">
+            <PodcastPlayer />
+          </div>
+        )}
 
         {/* Chat Messages */}
         <Card className="flex-1 flex flex-col">
