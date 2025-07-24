@@ -20,13 +20,13 @@ jobs:
           node-version: 18
 
       - name: Install Frontend Dependencies
-        working-directory: frontend/xmrt-dao-frontend
+        working-directory: frontend/xmrt-unified-cashdapp
         run: npm install
 
       - name: Run Frontend Linting
-        working-directory: frontend/xmrt-dao-frontend
+        working-directory: frontend/xmrt-unified-cashdapp
         run: npm run lint
 
       - name: Run Frontend Tests (optional)
-        working-directory: frontend/xmrt-dao-frontend
+        working-directory: frontend/xmrt-unified-cashdapp
         run: npm test || echo "No tests found"
