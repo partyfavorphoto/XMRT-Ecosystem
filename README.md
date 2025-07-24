@@ -1,3 +1,10 @@
+
+<p align="center">
+  <img src="https://img.shields.io/github/workflow/status/DevGruGold/XMRT-Ecosystem/Build%20%26%20Test%20Vite%2FReact%20Frontend%20and%20Streamlit%20Backend/main?label=build&style=flat-square" alt="Build Status"/>
+  <img src="https://img.shields.io/badge/audit-passed-brightgreen?style=flat-square" alt="Audit"/>
+  <img src="https://img.shields.io/github/last-commit/DevGruGold/XMRT-Ecosystem?style=flat-square" alt="Last Commit"/>
+</p>
+
 # XMRT-Ecosystem: Unified DAO Platform
 
 ## Overview
