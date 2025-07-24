@@ -167,3 +167,8 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## 🛠️ CI Workflow Fix
 - 2025-07-24 17:21 UTC
 - Removed explicit 'version:' field from pnpm/action-setup to resolve version mismatch in GitHub Actions. Now uses only the version specified in package.json.
+
+## 🚀 CI/CD Workflow Added
+- 2025-07-24 17:39 UTC
+- Custom build.yml for Vite/React frontend and Streamlit backend.
+- Runs on push and PR, Node 18 and Python 3.9.
