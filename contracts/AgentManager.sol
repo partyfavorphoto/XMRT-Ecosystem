@@ -720,3 +720,15 @@ contract AgentManager is
 
     function _authorizeUpgrade(address newImplementation) internal override onlyRole(ADMIN_ROLE) {}
 }
+
+mapping(address => bool) public approvedAgents;
+
+function addAgent(address agent) public {
+    require(msg.sender == owner, "Only owner");
+    approvedAgents[agent] = true;
+}
+
+function removeAgent(address agent) public {
+    require(msg.sender == owner, "Only owner");
+    approvedAgents[agent] = false;
+}

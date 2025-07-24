@@ -505,3 +505,18 @@ contract AutonomousDAO is
         return agentExecutionHistory[_agent];
     }
 }
+
+address public CEO;
+address public CTO;
+address public Auditor;
+
+function setRoles(address _ceo, address _cto, address _auditor) public {
+    CEO = _ceo;
+    CTO = _cto;
+    Auditor = _auditor;
+}
+
+function executeAgentProposal(address agent, bytes calldata data) public returns (bool) {
+    require(agent != address(0), "Invalid agent");
+    return IAgent(agent).executeProposal(data);
+}

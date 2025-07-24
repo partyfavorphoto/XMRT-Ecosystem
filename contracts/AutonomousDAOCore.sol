@@ -648,3 +648,15 @@ contract AutonomousDAOCore is
 
     receive() external payable {}
 }
+
+struct Proposal {
+    uint id;
+    address proposer;
+    string description;
+    bytes data;
+    bool executed;
+}
+
+modifier onlyCEO() { require(msg.sender == CEO, "Not CEO"); _; }
+modifier onlyCTO() { require(msg.sender == CTO, "Not CTO"); _; }
+modifier onlyAuditor() { require(msg.sender == Auditor, "Not Auditor"); _; }
