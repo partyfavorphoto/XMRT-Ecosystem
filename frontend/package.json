@@ -9,7 +9,5 @@
     "lint": "eslint . || true",
     "preview": "vite preview"
   },
-
   "packageManager": "npm@latest"
 }
-
