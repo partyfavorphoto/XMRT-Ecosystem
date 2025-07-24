@@ -7,7 +7,7 @@ import './App.css'
 
 function App() {
   const [balance, setBalance] = useState(0)
-  const [elizaStatus, setElizaStatus] = useState('active')
+  const [elizaStatus, _setElizaStatus] = useState('active')
   const [proposals, setProposals] = useState([])
 
   useEffect(() => {
