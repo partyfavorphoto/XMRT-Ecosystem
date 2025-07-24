@@ -162,3 +162,8 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - Date: **2025-07-24 17:11 UTC**
 - Author: DevGruGold (joeyleepcs@gmail.com)
 - Status: ✅ No critical issues detected, contracts compile successfully.
+
+
+## 🛠️ CI Workflow Fix
+- 2025-07-24 17:21 UTC
+- Removed explicit 'version:' field from pnpm/action-setup to resolve version mismatch in GitHub Actions. Now uses only the version specified in package.json.
