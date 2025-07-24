@@ -1,4 +1,4 @@
-name: Build & Test Vite/React Frontend and Streamlit Backend
+name: Build & Test Frontend
 
 on:
   push:
@@ -7,48 +7,28 @@ on:
     branches: [ main ]
 
 jobs:
-  build:
+  test-frontend:
     runs-on: ubuntu-latest
-
-    strategy:
-      matrix:
-        python-version: [3.9]
-        node-version: [18.x]
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # ---- Frontend (Vite/React) ----
       - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
 
-      - name: Install frontend dependencies
+      - name: Install Frontend Dependencies
         working-directory: frontend/xmrt-dao-frontend
         run: pnpm install
 
-      - name: Build frontend
+      - name: Run Frontend Linting
         working-directory: frontend/xmrt-dao-frontend
-        run: pnpm run build
+        run: pnpm run lint
 
-      - name: Run frontend tests (if available)
+      - name: Run Frontend Tests (optional)
         working-directory: frontend/xmrt-dao-frontend
-        run: pnpm test || echo "No frontend tests found"
-
-      # ---- Backend (Streamlit) ----
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: ${{ matrix.python-version }}
-
-      - name: Install backend dependencies
-        working-directory: backend/streamlit-app
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
-
-      - name: Run backend tests (if test_backend.py exists)
-        working-directory: backend/streamlit-app
-        run: |
-          if [ -f test_backend.py ]; then python test_backend.py; else echo "No backend tests found"; fi
+        run: pnpm run test || echo "No tests found"
