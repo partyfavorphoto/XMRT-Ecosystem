@@ -22,7 +22,7 @@ jobs:
       # ---- Frontend (Vite/React) ----
       - name: Setup Node.js
       - name: Setup pnpm
-       uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@v4
 
       - name: Install frontend dependencies
         working-directory: frontend/xmrt-dao-frontend
