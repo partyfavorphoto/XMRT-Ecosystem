@@ -164,3 +164,12 @@ jobs:
         working-directory: './frontend/xmrt-unified-cashdapp'
 
 
+
+
+    - name: Upload Frontend Build Artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: frontend-build
+        path: frontend/xmrt-dao-frontend/dist/
+
+
