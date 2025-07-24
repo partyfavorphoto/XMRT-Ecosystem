@@ -9,5 +9,8 @@
     "lint": "eslint . || true",
     "preview": "vite preview"
   },
-  "packageManager": "npm@latest"
+  "packageManager": "npm@latest",
+  "dependencies": {
+    "date-fns": "^2.29.3"
+  }
 }
