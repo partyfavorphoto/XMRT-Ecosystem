@@ -184,3 +184,8 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## 🔧 Automated Vercel & Python CI Fixes
 - 2025-07-24 17:46 UTC
 - Removed 'functions' field from vercel.json for Vercel static site deploy compatibility.
+
+
+## 🤖 Automated Eliza.py Rewrite
+- 2025-07-24 17:52 UTC
+- Overwrote src/routes/eliza.py with clean, working ElizaBot (CI unblock).
