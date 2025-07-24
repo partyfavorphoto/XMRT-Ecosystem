@@ -48,10 +48,5 @@
       "NODE_VERSION": "18",
       "PYTHON_VERSION": "3.11"
     }
-  },
-  "functions": {
-    "frontend/xmrt-dao-frontend/dist/**": {
-      "maxDuration": 30
-    }
   }
 }

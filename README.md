@@ -172,3 +172,8 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - 2025-07-24 17:39 UTC
 - Custom build.yml for Vite/React frontend and Streamlit backend.
 - Runs on push and PR, Node 18 and Python 3.9.
+
+
+## 🔧 Automated Vercel & Python CI Fixes
+- 2025-07-24 17:46 UTC
+- Removed 'functions' field from vercel.json for Vercel static site deploy compatibility.
