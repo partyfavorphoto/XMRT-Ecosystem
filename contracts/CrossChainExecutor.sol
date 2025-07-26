@@ -12,6 +12,20 @@ interface ILayerZeroEndpoint {
 }
 
 interface IWormhole {
+    struct VM {
+        uint8 version;
+        uint32 timestamp;
+        uint32 nonce;
+        uint16 emitterChainId;
+        bytes32 emitterAddress;
+        uint64 sequence;
+        uint8 consistencyLevel;
+        bytes payload;
+        uint32 guardianSetIndex;
+        bytes32[] signatures;
+        bytes32 hash;
+    }
+
     function publishMessage(uint32 nonce, bytes memory payload, uint8 consistencyLevel) external payable returns (uint64 sequence);
     function parseAndVerifyVMAs(bytes memory encodedVmAs) external view returns (bytes33[] memory hashDigests, IWormhole.VM[] memory vm);
 }

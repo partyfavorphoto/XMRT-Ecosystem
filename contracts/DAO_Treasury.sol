@@ -93,6 +93,9 @@ contract DAO_Treasury is
     mapping(address => uint256) public totalRevenue;
     mapping(address => mapping(uint256 => uint256)) public monthlyRevenue; // token => month => amount
 
+    // AI agent spending limits
+    mapping(address => SpendingLimit) public aiSpendingLimits;
+
     // Events
     event AssetAdded(address indexed tokenAddress, string name, string symbol);
     event AssetRemoved(address indexed tokenAddress);

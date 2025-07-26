@@ -421,5 +421,4 @@ contract DAO_Governance is
         return proposals[proposalId].votingPower[voter];
     }
 }
-}
 

@@ -20,6 +20,16 @@ interface ILayerZeroEndpoint {
         uint _gasLimit,
         bytes calldata _payload
     ) external;
+
+    function estimateFees(
+        uint16 _dstChainId,
+        address _userApplication,
+        bytes calldata _payload,
+        bool _payInZRO,
+        bytes calldata _adapterParam
+    ) external view returns (uint nativeFee, uint zroFee);
+
+    function forceResumeReceive(uint16 _srcChainId, bytes calldata _srcAddress) external;
 }
 
 interface ILayerZeroReceiver {
