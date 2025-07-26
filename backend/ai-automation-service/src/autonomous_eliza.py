@@ -18,6 +18,8 @@ import openai
 from web3 import Web3
 import requests
 from dotenv import load_dotenv
+from eliza_memory_integration import XMRTElizaMemoryManager
+from github_client import GitHubClient
 
 load_dotenv()
 
@@ -103,8 +105,10 @@ class AutonomousElizaOS:
         
         self.is_running = False
         self.last_health_check = datetime.now()
-        self.confidence_manager = ConfidenceManager(memory_api_client=None) # Placeholder for memory_api_client
-        self.self_assessment_module = SelfAssessmentModule(confidence_manager=self.confidence_manager, memory_api_client=None) # Placeholder for memory_api_client
+        self.memory_manager = XMRTElizaMemoryManager(config={})
+        self.confidence_manager = ConfidenceManager(memory_api_client=self.memory_manager)
+        self.self_assessment_module = SelfAssessmentModule(confidence_manager=self.confidence_manager, memory_api_client=self.memory_manager)
+        self.github_client = GitHubClient(token=os.getenv("GITHUB_PAT"), owner=os.getenv("GITHUB_USERNAME"), repo_name="XMRT-Ecosystem")
         
         self.logger.info("🤖 Autonomous ElizaOS System Initialized")
     
@@ -572,5 +576,70 @@ class SelfAssessmentModule:
         # Store outcome in memory (placeholder)
         print(f"Assessed action {action.action_id}: Successful = {is_successful}")
         # await self.memory_api_client.store_assessment(action.action_id, is_successful, actual_outcome)
+
+
+
+
+    async def propose_code_change(self, file_path: str, new_content: str, description: str, branch_name: str, commit_message: str):
+        """Proposes a code change by creating a new branch, committing the change, and opening a PR."""
+        try:
+            if not self.github_client.create_branch(branch_name, base_branch="main"):
+                self.logger.error(f"Failed to create branch {branch_name}.")
+                return False
+            
+            if not self.github_client.commit_and_push(branch_name, file_path, new_content, commit_message):
+                self.logger.error(f"Failed to commit and push changes to {branch_name}.")
+                return False
+            
+            pr_url = self.github_client.create_pull_request(
+                title=f"ElizaOS: {description}",
+                body=f"Automated code change proposed by ElizaOS.\n\n{description}",
+                head_branch=branch_name
+            )
+            
+            if pr_url:
+                self.logger.info(f"Code change proposed successfully: {pr_url}")
+                return True
+            else:
+                self.logger.error("Failed to create pull request.")
+                return False
+        except Exception as e:
+            self.logger.error(f"Error proposing code change: {e}")
+            return False
+
+    async def implement_code_change(self, file_path: str, new_content: str, commit_message: str):
+        """Directly implements a code change to the main branch (use with extreme caution)."""
+        try:
+            # This method should only be used for very low-risk, highly confident changes
+            # and ideally with additional safeguards (e.g., human approval for direct commits).
+            if not self.github_client.commit_and_push("main", file_path, new_content, commit_message):
+                self.logger.error(f"Failed to directly implement code change to main for {file_path}.")
+                return False
+            self.logger.info(f"Code change implemented directly to main: {file_path}")
+            return True
+        except Exception as e:
+            self.logger.error(f"Error implementing code change directly: {e}")
+            return False
+
+    async def manage_pull_request(self, pr_number: int, action: str, comment: Optional[str] = None):
+        """Manages a pull request (e.g., add comment, merge, close)."""
+        # Placeholder for PR management logic using github_client
+        self.logger.info(f"Managing PR {pr_number} with action: {action}")
+        # Example: if action == "comment": self.github_client.comment_on_pr(pr_number, comment)
+        return True
+
+    async def manage_issue(self, issue_number: int, action: str, comment: Optional[str] = None):
+        """Manages a GitHub issue (e.g., add comment, close)."""
+        try:
+            if action == "comment" and comment:
+                return self.github_client.comment_on_issue(issue_number, comment)
+            elif action == "close":
+                return self.github_client.close_issue(issue_number)
+            else:
+                self.logger.warning(f"Unsupported issue action: {action}")
+                return False
+        except Exception as e:
+            self.logger.error(f"Error managing issue {issue_number}: {e}")
+            return False
 
 
