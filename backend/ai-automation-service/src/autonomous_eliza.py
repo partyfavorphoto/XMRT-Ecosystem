@@ -103,6 +103,8 @@ class AutonomousElizaOS:
         
         self.is_running = False
         self.last_health_check = datetime.now()
+        self.confidence_manager = ConfidenceManager(memory_api_client=None) # Placeholder for memory_api_client
+        self.self_assessment_module = SelfAssessmentModule(confidence_manager=self.confidence_manager, memory_api_client=None) # Placeholder for memory_api_client
         
         self.logger.info("🤖 Autonomous ElizaOS System Initialized")
     
@@ -146,7 +148,7 @@ class AutonomousElizaOS:
                 for proposal in proposals:
                     analysis = await self.analyze_proposal_with_ai(proposal)
                     
-                    if analysis["confidence"] > self.autonomy_config["confidence_threshold"]:
+                    if analysis["confidence"] > self.confidence_manager.get_threshold(DecisionLevel.AUTONOMOUS):
                         action = AutonomousAction(
                             action_id=f"gov_{proposal['id']}_{int(time.time())}",
                             capability=AgentCapability.GOVERNANCE,
@@ -179,7 +181,7 @@ class AutonomousElizaOS:
                     action = AutonomousAction(
                         action_id=f"treasury_{int(time.time())}",
                         capability=AgentCapability.TREASURY,
-                        decision_level=DecisionLevel.AUTONOMOUS if optimization["value"] < self.autonomy_config["max_autonomous_value"] else DecisionLevel.ADVISORY,
+                        decision_level=DecisionLevel.AUTONOMOUS if optimization["value"] < self.autonomy_config["max_autonomous_value"] and optimization["confidence"] > self.confidence_manager.get_threshold(DecisionLevel.AUTONOMOUS) else DecisionLevel.ADVISORY,
                         description=optimization["description"],
                         parameters=optimization["parameters"],
                         confidence_score=optimization["confidence"],
@@ -299,6 +301,7 @@ class AutonomousElizaOS:
                         
                         self.executed_actions.append(action)
                         self.logger.info(f"✅ Executed autonomous action: {action.description}")
+                        await self.self_assessment_module.assess_action_outcome(action, result)
                     
                     elif action.decision_level == DecisionLevel.EMERGENCY:
                         await self.execute_emergency_action(action)
@@ -517,3 +520,57 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
+
+
+class ConfidenceManager:
+    def __init__(self, memory_api_client):
+        self.memory_api_client = memory_api_client
+        self.confidence_thresholds = {
+            DecisionLevel.AUTONOMOUS: 0.85,  # Initial threshold
+            DecisionLevel.ADVISORY: 0.60,
+            DecisionLevel.EMERGENCY: 0.95
+        }
+
+    def get_threshold(self, decision_level):
+        return self.confidence_thresholds.get(decision_level, 0.75)
+
+    async def update_threshold(self, decision_level: DecisionLevel, success_rate: float):
+        # This is a simplified update logic. In a real system, this would be more complex.
+        # For example, it could use a moving average or a more sophisticated learning algorithm.
+        current_threshold = self.confidence_thresholds.get(decision_level, 0.75)
+        if success_rate > current_threshold:
+            self.confidence_thresholds[decision_level] = min(1.0, current_threshold + 0.01)
+        elif success_rate < current_threshold:
+            self.confidence_thresholds[decision_level] = max(0.0, current_threshold - 0.01)
+        print(f"Updated {decision_level.name} confidence threshold to {self.confidence_thresholds[decision_level]:.2f}")
+
+    async def get_historical_performance(self, decision_level: DecisionLevel) -> List[Dict]:
+        # Placeholder for fetching historical performance from memory system
+        # In a real implementation, this would call the Memory API
+        print(f"Fetching historical performance for {decision_level.name} from memory...")
+        return [] # Return empty list for now
+
+
+
+
+class SelfAssessmentModule:
+    def __init__(self, confidence_manager: ConfidenceManager, memory_api_client):
+        self.confidence_manager = confidence_manager
+        self.memory_api_client = memory_api_client
+
+    async def assess_action_outcome(self, action: AutonomousAction, actual_outcome: Dict[str, Any]):
+        # This is a simplified assessment. In a real system, this would involve more complex logic
+        # to determine success/failure and the degree of success.
+        is_successful = actual_outcome.get("success", False)
+        
+        # Update confidence based on outcome
+        if is_successful:
+            await self.confidence_manager.update_threshold(action.decision_level, 1.0) # Assume 100% success for now
+        else:
+            await self.confidence_manager.update_threshold(action.decision_level, 0.0) # Assume 0% success for now
+
+        # Store outcome in memory (placeholder)
+        print(f"Assessed action {action.action_id}: Successful = {is_successful}")
+        # await self.memory_api_client.store_assessment(action.action_id, is_successful, actual_outcome)
+
+
