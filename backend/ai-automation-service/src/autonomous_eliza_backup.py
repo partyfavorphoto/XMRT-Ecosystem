@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Autonomous ElizaOS System - Complete Version
+Autonomous ElizaOS System
 Fully autonomous AI agent for complete DAO management
 Prepared for GPT-5 integration and production deployment
 """
@@ -18,6 +18,8 @@ import openai
 from web3 import Web3
 import requests
 from dotenv import load_dotenv
+from eliza_memory_integration import XMRTElizaMemoryManager
+from github_client import GitHubClient
 
 load_dotenv()
 
@@ -103,18 +105,10 @@ class AutonomousElizaOS:
         
         self.is_running = False
         self.last_health_check = datetime.now()
-        
-        # Initialize GitHub client if credentials are available
-        try:
-            from github_client import GitHubClient
-            self.github_client = GitHubClient(
-                token=os.getenv("GITHUB_PAT"),
-                owner=os.getenv("GITHUB_USERNAME", "DevGruGold"),
-                repo_name="XMRT-Ecosystem"
-            )
-        except Exception as e:
-            self.logger.warning(f"GitHub client initialization failed: {e}")
-            self.github_client = None
+        self.memory_manager = XMRTElizaMemoryManager(config={})
+        self.confidence_manager = ConfidenceManager(memory_api_client=self.memory_manager)
+        self.self_assessment_module = SelfAssessmentModule(confidence_manager=self.confidence_manager, memory_api_client=self.memory_manager)
+        self.github_client = GitHubClient(token=os.getenv("GITHUB_PAT"), owner=os.getenv("GITHUB_USERNAME"), repo_name="XMRT-Ecosystem")
         
         self.logger.info("🤖 Autonomous ElizaOS System Initialized")
     
@@ -134,7 +128,6 @@ class AutonomousElizaOS:
         """Start fully autonomous DAO management"""
         self.logger.info("🚀 Starting Autonomous ElizaOS Operations")
         self.is_running = True
-        self.start_time = time.time()
         
         # Start parallel autonomous processes
         tasks = [
@@ -159,7 +152,7 @@ class AutonomousElizaOS:
                 for proposal in proposals:
                     analysis = await self.analyze_proposal_with_ai(proposal)
                     
-                    if analysis["confidence"] > self.autonomy_config["confidence_threshold"]:
+                    if analysis["confidence"] > self.confidence_manager.get_threshold(DecisionLevel.AUTONOMOUS):
                         action = AutonomousAction(
                             action_id=f"gov_{proposal['id']}_{int(time.time())}",
                             capability=AgentCapability.GOVERNANCE,
@@ -192,7 +185,7 @@ class AutonomousElizaOS:
                     action = AutonomousAction(
                         action_id=f"treasury_{int(time.time())}",
                         capability=AgentCapability.TREASURY,
-                        decision_level=DecisionLevel.AUTONOMOUS if optimization["value"] < self.autonomy_config["max_autonomous_value"] and optimization["confidence"] > self.autonomy_config["confidence_threshold"] else DecisionLevel.ADVISORY,
+                        decision_level=DecisionLevel.AUTONOMOUS if optimization["value"] < self.autonomy_config["max_autonomous_value"] and optimization["confidence"] > self.confidence_manager.get_threshold(DecisionLevel.AUTONOMOUS) else DecisionLevel.ADVISORY,
                         description=optimization["description"],
                         parameters=optimization["parameters"],
                         confidence_score=optimization["confidence"],
@@ -312,6 +305,7 @@ class AutonomousElizaOS:
                         
                         self.executed_actions.append(action)
                         self.logger.info(f"✅ Executed autonomous action: {action.description}")
+                        await self.self_assessment_module.assess_action_outcome(action, result)
                     
                     elif action.decision_level == DecisionLevel.EMERGENCY:
                         await self.execute_emergency_action(action)
@@ -406,21 +400,23 @@ class AutonomousElizaOS:
         """Helper to call OpenAI API with retry logic and model fallback"""
         for model in [self.ai_config["model"]] + self.ai_config["backup_models"]:
             try:
-                client = openai.OpenAI(
+                client = openai.AsyncOpenAI(
                     api_key=self.ai_config["api_key"],
                     base_url=self.ai_config["api_base"]
                 )
-                chat_completion = client.chat.completions.create(
+                chat_completion = await client.chat.completions.create(
                     model=model,
                     messages=[{"role": "user", "content": prompt}],
                     temperature=self.ai_config["temperature"],
                     max_tokens=max_tokens,
                 )
                 return chat_completion.choices[0].message.content
-            except Exception as e:
+            except openai.APIError as e:
                 self.logger.warning(f"OpenAI API error with {model}: {e}. Retrying with next model...")
                 await asyncio.sleep(5)  # Wait before retrying
-        
+            except Exception as e:
+                self.logger.error(f"Unexpected error calling OpenAI API with {model}: {e}")
+                break
         self.logger.error("All OpenAI models failed. Cannot complete AI operation.")
         return "{}"
 
@@ -482,13 +478,110 @@ class AutonomousElizaOS:
             self.logger.error(f"Failed to parse AI response for analytics insights: {response}")
             return {"actionable_recommendations": []}
     
-    # GitHub Integration Methods
+    # Placeholder methods for blockchain/external integrations
+    async def fetch_active_proposals(self) -> List[Dict]:
+        """Fetch active governance proposals"""
+        # TODO: Implement actual blockchain integration
+        return []
+    
+    async def get_treasury_status(self) -> Dict[str, Any]:
+        """Get current treasury status"""
+        # TODO: Implement actual treasury monitoring
+        return {"balance": 1000000, "assets": []}
+    
+    async def monitor_community_channels(self) -> Dict[str, Any]:
+        """Monitor community channels for messages"""
+        # TODO: Implement actual community monitoring
+        return {"messages": []}
+    
+    async def security_threat_scan(self) -> Dict[str, Any]:
+        """Scan for security threats"""
+        # TODO: Implement actual security monitoring
+        return {"threats_detected": False}
+    
+    async def generate_dao_analytics(self) -> Dict[str, Any]:
+        """Generate comprehensive DAO analytics"""
+        # TODO: Implement actual analytics generation
+        return {"metrics": {}, "trends": {}}
+    
+    async def request_human_approval(self, action: AutonomousAction):
+        """Request human approval for advisory actions"""
+        self.logger.info(f"👤 Human approval requested for: {action.description}")
+        # TODO: Implement actual human approval system
+    
+    async def notify_emergency_action(self, action: AutonomousAction, result: Dict[str, Any]):
+        """Notify about emergency actions taken"""
+        self.logger.warning(f"📢 Emergency action notification: {action.description} - Result: {result}")
+        # TODO: Implement actual notification system
+
+# Global instance for autonomous operations
+autonomous_eliza = AutonomousElizaOS()
+
+async def main():
+    """Main entry point for autonomous ElizaOS"""
+    autonomous_eliza.start_time = time.time()
+    await autonomous_eliza.start_autonomous_operations()
+
+if __name__ == "__main__":
+    asyncio.run(main())
+
+
+class ConfidenceManager:
+    def __init__(self, memory_api_client):
+        self.memory_api_client = memory_api_client
+        self.confidence_thresholds = {
+            DecisionLevel.AUTONOMOUS: 0.85,  # Initial threshold
+            DecisionLevel.ADVISORY: 0.60,
+            DecisionLevel.EMERGENCY: 0.95
+        }
+
+    def get_threshold(self, decision_level):
+        return self.confidence_thresholds.get(decision_level, 0.75)
+
+    async def update_threshold(self, decision_level: DecisionLevel, success_rate: float):
+        # This is a simplified update logic. In a real system, this would be more complex.
+        # For example, it could use a moving average or a more sophisticated learning algorithm.
+        current_threshold = self.confidence_thresholds.get(decision_level, 0.75)
+        if success_rate > current_threshold:
+            self.confidence_thresholds[decision_level] = min(1.0, current_threshold + 0.01)
+        elif success_rate < current_threshold:
+            self.confidence_thresholds[decision_level] = max(0.0, current_threshold - 0.01)
+        print(f"Updated {decision_level.name} confidence threshold to {self.confidence_thresholds[decision_level]:.2f}")
+
+    async def get_historical_performance(self, decision_level: DecisionLevel) -> List[Dict]:
+        # Placeholder for fetching historical performance from memory system
+        # In a real implementation, this would call the Memory API
+        print(f"Fetching historical performance for {decision_level.name} from memory...")
+        return [] # Return empty list for now
+
+
+
+
+class SelfAssessmentModule:
+    def __init__(self, confidence_manager: ConfidenceManager, memory_api_client):
+        self.confidence_manager = confidence_manager
+        self.memory_api_client = memory_api_client
+
+    async def assess_action_outcome(self, action: AutonomousAction, actual_outcome: Dict[str, Any]):
+        # This is a simplified assessment. In a real system, this would involve more complex logic
+        # to determine success/failure and the degree of success.
+        is_successful = actual_outcome.get("success", False)
+        
+        # Update confidence based on outcome
+        if is_successful:
+            await self.confidence_manager.update_threshold(action.decision_level, 1.0) # Assume 100% success for now
+        else:
+            await self.confidence_manager.update_threshold(action.decision_level, 0.0) # Assume 0% success for now
+
+        # Store outcome in memory (placeholder)
+        print(f"Assessed action {action.action_id}: Successful = {is_successful}")
+        # await self.memory_api_client.store_assessment(action.action_id, is_successful, actual_outcome)
+
+
+
+
     async def propose_code_change(self, file_path: str, new_content: str, description: str, branch_name: str, commit_message: str):
         """Proposes a code change by creating a new branch, committing the change, and opening a PR."""
-        if not self.github_client:
-            self.logger.error("GitHub client not available")
-            return False
-            
         try:
             if not self.github_client.create_branch(branch_name, base_branch="main"):
                 self.logger.error(f"Failed to create branch {branch_name}.")
@@ -516,10 +609,6 @@ class AutonomousElizaOS:
 
     async def implement_code_change(self, file_path: str, new_content: str, commit_message: str):
         """Directly implements a code change to the main branch (use with extreme caution)."""
-        if not self.github_client:
-            self.logger.error("GitHub client not available")
-            return False
-            
         try:
             # This method should only be used for very low-risk, highly confident changes
             # and ideally with additional safeguards (e.g., human approval for direct commits).
@@ -532,12 +621,15 @@ class AutonomousElizaOS:
             self.logger.error(f"Error implementing code change directly: {e}")
             return False
 
+    async def manage_pull_request(self, pr_number: int, action: str, comment: Optional[str] = None):
+        """Manages a pull request (e.g., add comment, merge, close)."""
+        # Placeholder for PR management logic using github_client
+        self.logger.info(f"Managing PR {pr_number} with action: {action}")
+        # Example: if action == "comment": self.github_client.comment_on_pr(pr_number, comment)
+        return True
+
     async def manage_issue(self, issue_number: int, action: str, comment: Optional[str] = None):
         """Manages a GitHub issue (e.g., add comment, close)."""
-        if not self.github_client:
-            self.logger.error("GitHub client not available")
-            return False
-            
         try:
             if action == "comment" and comment:
                 return self.github_client.comment_on_issue(issue_number, comment)
@@ -549,63 +641,5 @@ class AutonomousElizaOS:
         except Exception as e:
             self.logger.error(f"Error managing issue {issue_number}: {e}")
             return False
-    
-    # Placeholder methods for blockchain/external integrations
-    async def fetch_active_proposals(self) -> List[Dict]:
-        """Fetch active governance proposals"""
-        # TODO: Implement actual blockchain integration
-        return []
-    
-    async def get_treasury_status(self) -> Dict[str, Any]:
-        """Get current treasury status"""
-        # TODO: Implement actual treasury monitoring
-        return {"balance": 1000000, "assets": []}
-    
-    async def monitor_community_channels(self) -> Dict[str, Any]:
-        """Monitor community channels for messages"""
-        # TODO: Implement actual community monitoring
-        return {"messages": []}
-    
-    async def security_threat_scan(self) -> Dict[str, Any]:
-        """Scan for security threats"""
-        # TODO: Implement actual security monitoring
-        return {"threats_detected": False, "threats": []}
-    
-    async def generate_dao_analytics(self) -> Dict[str, Any]:
-        """Generate comprehensive DAO analytics"""
-        # TODO: Implement actual analytics generation
-        return {"metrics": {}, "trends": {}}
-    
-    async def request_human_approval(self, action: AutonomousAction):
-        """Request human approval for advisory actions"""
-        self.logger.info(f"👤 Human approval requested for: {action.description}")
-        # TODO: Implement actual human approval system
-    
-    async def notify_emergency_action(self, action: AutonomousAction, result: Dict[str, Any]):
-        """Notify about emergency actions taken"""
-        self.logger.warning(f"📢 Emergency action notification: {action.description} - Result: {result}")
-        # TODO: Implement actual notification system
-    
-    def get_system_status(self) -> Dict[str, Any]:
-        """Get comprehensive system status"""
-        return {
-            "is_running": self.is_running,
-            "uptime": time.time() - self.start_time if hasattr(self, 'start_time') else 0,
-            "actions_executed": len(self.executed_actions),
-            "queue_size": len(self.action_queue),
-            "capabilities": {cap.value: status for cap, status in self.capabilities.items()},
-            "ai_model": self.ai_config["model"],
-            "last_health_check": self.last_health_check.isoformat(),
-            "dao_state": self.dao_state
-        }
 
-# Global instance for autonomous operations
-autonomous_eliza = AutonomousElizaOS()
-
-async def main():
-    """Main entry point for autonomous ElizaOS"""
-    await autonomous_eliza.start_autonomous_operations()
-
-if __name__ == "__main__":
-    asyncio.run(main())
 
