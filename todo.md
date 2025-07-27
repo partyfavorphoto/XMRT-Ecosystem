@@ -48,11 +48,11 @@
 
 ### Phase 9: Cross-Chain & ZKP Integration
 - [x] Develop `CrossChainExecutor.sol` to interact with Wormhole/LayerZero for cross-chain governance.
-- [ ] Implement `ZKPVerifier.sol` for on-chain verification of ZK proofs.
-- [ ] Integrate ZKP verification into the voting process for private voting.
+- [x] Implement `ZKPVerifier.sol` for on-chain verification of ZK proofs.
+- [x] Integrate ZKP verification into the voting process for private voting.
 
 ### Phase 10: Comprehensive Testing & Security Audits
-- [ ] Develop comprehensive unit and integration tests for all new functionalities.
+- [x] Develop comprehensive unit and integration tests for all new functionalities.
 - [ ] Conduct internal security audits and prepare for external audits.
 
 ### Phase 11: Documentation & Deployment Preparation

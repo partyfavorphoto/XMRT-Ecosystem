@@ -420,6 +420,51 @@ contract DAO_Governance is
     function getVotingPowerUsed(uint256 proposalId, address voter) external view returns (uint256) {
         return proposals[proposalId].votingPower[voter];
     }
-}
+
+    /**
+     * @dev Get proposals with pagination to avoid gas limit issues
+     * @param offset Starting index for pagination
+     * @param limit Maximum number of proposals to return
+     */
+    function getProposalsPaginated(uint256 offset, uint256 limit) 
+        external 
+        view 
+        returns (
+            uint256[] memory ids,
+            address[] memory proposers,
+            string[] memory descriptions,
+            ProposalState[] memory states
+        ) 
+    {
+        require(limit > 0 && limit <= 100, "Invalid limit");
+        require(offset < proposalCount, "Offset out of bounds");
+        
+        uint256 end = offset + limit;
+        if (end > proposalCount) {
+            end = proposalCount;
+        }
+        
+        uint256 length = end - offset;
+        ids = new uint256[](length);
+        proposers = new address[](length);
+        descriptions = new string[](length);
+        states = new ProposalState[](length);
+        
+        for (uint256 i = 0; i < length; i++) {
+            uint256 proposalId = offset + i + 1; // Proposals start from ID 1
+            Proposal storage proposal = proposals[proposalId];
+            ids[i] = proposalId;
+            proposers[i] = proposal.proposer;
+            descriptions[i] = proposal.description;
+            states[i] = getProposalState(proposalId);
+        }
+    }
+
+    /**
+     * @dev Get total number of proposals
+     */
+    function getProposalCount() external view returns (uint256) {
+        return proposalCount;
+    }
 }
 
