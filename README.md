@@ -269,3 +269,20 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## 🤖 Automated Eliza.py Rewrite
 - 2025-07-24 17:52 UTC
 - Overwrote src/routes/eliza.py with clean, working ElizaBot (CI unblock).
+
+
+## Recent Smart Contract Enhancements
+
+### AIAgentRegistry.sol
+- **Purpose**: Introduced a dedicated `AIAgentRegistry.sol` contract for comprehensive AI agent management. This contract centralizes the registration, role assignment, status tracking, and reputation system for AI agents within the DAO.
+- **Features**: 
+  - Dynamic role management for AI agents.
+  - Tracking of actions executed and last action time for each agent.
+  - Introduction of a reputation score for AI agents, allowing for more nuanced governance decisions.
+  - Functions for activating/deactivating agents and updating their information.
+
+### Governance.sol Integration
+- **Update**: The main `Governance.sol` contract has been updated to integrate with the new `AIAgentRegistry.sol`. This refactors the AI agent management logic to the dedicated registry contract, streamlining `Governance.sol` and improving modularity.
+- **Benefit**: Enhances the robustness and scalability of AI agent management within the XMRT DAO ecosystem.
+
+

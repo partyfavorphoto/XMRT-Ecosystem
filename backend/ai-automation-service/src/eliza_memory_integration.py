@@ -568,3 +568,55 @@ async def main():
 if __name__ == "__main__":
     asyncio.run(main())
 
+
+
+    async def store_performance_metric(self, metric_name: str, value: float, timestamp: datetime, metadata: Optional[Dict] = None) -> bool:
+        """Stores a performance metric in memory."""
+        context = MemoryContext(
+            user_id="system", # System-level metric
+            session_id="performance_monitoring",
+            timestamp=timestamp,
+            content=f"Performance metric {metric_name}: {value}",
+            context_type="performance_metric",
+            importance_score=0.8, # High importance for performance data
+            metadata={"metric_name": metric_name, "value": value, **(metadata or {})}
+        )
+        return await self.store_memory(context)
+
+    async def retrieve_performance_metrics(self, metric_name: str, start_time: Optional[datetime] = None, end_time: Optional[datetime] = None) -> List[MemoryContext]:
+        """Retrieves performance metrics from memory."""
+        query = f"Performance metric {metric_name}"
+        memories = await self.retrieve_relevant_memories(query, user_id="system", limit=100) # Adjust limit as needed
+        
+        filtered_memories = []
+        for mem in memories:
+            if mem.context_type == "performance_metric" and mem.metadata.get("metric_name") == metric_name:
+                if (start_time is None or mem.timestamp >= start_time) and \
+                   (end_time is None or mem.timestamp <= end_time):
+                    filtered_memories.append(mem)
+        return filtered_memories
+
+    async def store_contextual_information(self, context_type: str, content: str, importance_score: float, metadata: Optional[Dict] = None) -> bool:
+        """Stores general contextual information."""
+        context = MemoryContext(
+            user_id="system", # System-level context
+            session_id="contextual_information",
+            timestamp=datetime.now(),
+            content=content,
+            context_type=context_type,
+            importance_score=importance_score,
+            metadata=metadata
+        )
+        return await self.store_memory(context)
+
+    async def retrieve_contextual_information(self, context_type: str, query: str, limit: int = 10) -> List[MemoryContext]:
+        """Retrieves general contextual information."""
+        memories = await self.retrieve_relevant_memories(query, user_id="system", limit=limit)
+        
+        filtered_memories = []
+        for mem in memories:
+            if mem.context_type == context_type:
+                filtered_memories.append(mem)
+        return filtered_memories
+
+
