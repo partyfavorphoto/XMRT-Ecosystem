@@ -21,6 +21,340 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+class ConfidenceManager:
+    """Dynamic confidence adjustment based on historical performance"""
+    
+    def __init__(self, memory_api_client=None):
+        self.memory_api_client = memory_api_client
+        self.confidence_thresholds = {
+            DecisionLevel.AUTONOMOUS: 0.85,  # Initial threshold
+            DecisionLevel.ADVISORY: 0.60,
+            DecisionLevel.EMERGENCY: 0.95
+        }
+        self.performance_history = {}
+        self.adjustment_factor = 0.01
+        self.min_threshold = 0.5
+        self.max_threshold = 0.99
+    
+    def get_threshold(self, decision_level: DecisionLevel) -> float:
+        """Get current confidence threshold for decision level"""
+        return self.confidence_thresholds.get(decision_level, 0.75)
+    
+    def update_threshold(self, decision_level: DecisionLevel, success_rate: float):
+        """Update threshold based on recent success rate"""
+        current_threshold = self.confidence_thresholds[decision_level]
+        
+        if success_rate > 0.95 and current_threshold > self.min_threshold:
+            # Lower threshold if performing very well
+            new_threshold = max(self.min_threshold, current_threshold - self.adjustment_factor)
+        elif success_rate < 0.70 and current_threshold < self.max_threshold:
+            # Raise threshold if performing poorly
+            new_threshold = min(self.max_threshold, current_threshold + (self.adjustment_factor * 2))
+        else:
+            new_threshold = current_threshold
+        
+        self.confidence_thresholds[decision_level] = new_threshold
+        
+        logging.info(f"Updated {decision_level.value} threshold: {current_threshold:.3f} -> {new_threshold:.3f} (success rate: {success_rate:.3f})")
+    
+    def record_decision_outcome(self, decision_level: DecisionLevel, success: bool, action_id: str = None):
+        """Record outcome of a decision for learning"""
+        if decision_level not in self.performance_history:
+            self.performance_history[decision_level] = []
+        
+        outcome = {
+            'success': success,
+            'timestamp': datetime.now(),
+            'action_id': action_id
+        }
+        
+        self.performance_history[decision_level].append(outcome)
+        
+        # Keep only last 100 outcomes per decision level
+        if len(self.performance_history[decision_level]) > 100:
+            self.performance_history[decision_level] = self.performance_history[decision_level][-100:]
+        
+        # Calculate recent success rate and update threshold
+        recent_outcomes = self.performance_history[decision_level][-20:]  # Last 20 decisions
+        if len(recent_outcomes) >= 10:  # Only adjust after sufficient data
+            success_rate = sum(1 for outcome in recent_outcomes if outcome['success']) / len(recent_outcomes)
+            self.update_threshold(decision_level, success_rate)
+        
+        # Store in memory if available
+        if self.memory_api_client:
+            try:
+                # This would integrate with the memory system
+                pass
+            except Exception as e:
+                logging.warning(f"Failed to store decision outcome in memory: {e}")
+    
+    def get_performance_stats(self) -> Dict[str, Any]:
+        """Get performance statistics for all decision levels"""
+        stats = {}
+        for level, outcomes in self.performance_history.items():
+            if outcomes:
+                total = len(outcomes)
+                successes = sum(1 for outcome in outcomes if outcome['success'])
+                success_rate = successes / total
+                
+                stats[level.value] = {
+                    'total_decisions': total,
+                    'success_rate': success_rate,
+                    'current_threshold': self.confidence_thresholds[level],
+                    'recent_decisions': len([o for o in outcomes if o['timestamp'] > datetime.now() - timedelta(hours=24)])
+                }
+        
+        return stats
+
+class DecisionEvaluator:
+    """Multi-criteria decision analysis for complex scenarios"""
+    
+    def __init__(self):
+        self.criteria_weights = {
+            "financial_impact": 0.3,
+            "security_risk": 0.4,
+            "community_sentiment": 0.2,
+            "regulatory_compliance": 0.1
+        }
+        self.criteria_descriptions = {
+            "financial_impact": "Potential financial gain or loss",
+            "security_risk": "Security implications and vulnerabilities",
+            "community_sentiment": "Community acceptance and support",
+            "regulatory_compliance": "Legal and regulatory considerations"
+        }
+    
+    def evaluate_options(self, options: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """Evaluate multiple options using weighted criteria"""
+        evaluated_options = []
+        
+        for option in options:
+            score = 0
+            criteria_scores = {}
+            
+            for criterion, weight in self.criteria_weights.items():
+                criterion_value = option.get(criterion, 0.5)  # Default to neutral
+                weighted_score = criterion_value * weight
+                score += weighted_score
+                criteria_scores[criterion] = {
+                    'raw_score': criterion_value,
+                    'weighted_score': weighted_score,
+                    'weight': weight
+                }
+            
+            evaluated_option = {
+                "option": option.get("name", "Unknown Option"),
+                "total_score": score,
+                "criteria_breakdown": criteria_scores,
+                "recommendation": self._get_recommendation(score),
+                "risk_level": self._assess_risk_level(option),
+                "confidence": min(0.95, score + 0.1)  # Confidence based on score
+            }
+            
+            evaluated_options.append(evaluated_option)
+        
+        # Sort by total score (highest first)
+        return sorted(evaluated_options, key=lambda x: x["total_score"], reverse=True)
+    
+    def _get_recommendation(self, score: float) -> str:
+        """Get recommendation based on total score"""
+        if score >= 0.8:
+            return "Strongly Recommended"
+        elif score >= 0.6:
+            return "Recommended"
+        elif score >= 0.4:
+            return "Neutral"
+        elif score >= 0.2:
+            return "Not Recommended"
+        else:
+            return "Strongly Not Recommended"
+    
+    def _assess_risk_level(self, option: Dict[str, Any]) -> str:
+        """Assess overall risk level of an option"""
+        security_risk = option.get("security_risk", 0.5)
+        financial_impact = option.get("financial_impact", 0.5)
+        
+        # Higher security risk or extreme financial impact increases risk
+        if security_risk > 0.8 or financial_impact > 0.9 or financial_impact < 0.1:
+            return "high"
+        elif security_risk > 0.6 or financial_impact > 0.7 or financial_impact < 0.3:
+            return "medium"
+        else:
+            return "low"
+    
+    def update_criteria_weights(self, new_weights: Dict[str, float]):
+        """Update criteria weights (must sum to 1.0)"""
+        total_weight = sum(new_weights.values())
+        if abs(total_weight - 1.0) > 0.01:
+            raise ValueError(f"Criteria weights must sum to 1.0, got {total_weight}")
+        
+        self.criteria_weights.update(new_weights)
+        logging.info(f"Updated criteria weights: {self.criteria_weights}")
+    
+    def explain_evaluation(self, evaluated_option: Dict[str, Any]) -> str:
+        """Generate human-readable explanation of evaluation"""
+        explanation = f"Option '{evaluated_option['option']}' received a total score of {evaluated_option['total_score']:.3f}\n\n"
+        explanation += "Criteria breakdown:\n"
+        
+        for criterion, details in evaluated_option['criteria_breakdown'].items():
+            description = self.criteria_descriptions.get(criterion, criterion)
+            explanation += f"- {description}: {details['raw_score']:.3f} (weight: {details['weight']:.1%}, contribution: {details['weighted_score']:.3f})\n"
+        
+        explanation += f"\nOverall recommendation: {evaluated_option['recommendation']}\n"
+        explanation += f"Risk level: {evaluated_option['risk_level']}\n"
+        explanation += f"Confidence: {evaluated_option['confidence']:.3f}"
+        
+        return explanation
+
+class DecisionExplainer:
+    """Explainable AI module for generating human-readable decision explanations"""
+    
+    def __init__(self):
+        self.explanation_templates = {
+            "governance": "Governance Decision: {action}\n\nReasoning:\n{reasoning}\n\nCriteria Analysis:\n{criteria}\n\nConfidence: {confidence:.1%}\nRisk Level: {risk}\n\nThis decision was made autonomously based on the analysis above.",
+            "treasury": "Treasury Decision: {action}\n\nFinancial Analysis:\n{reasoning}\n\nRisk Assessment:\n{criteria}\n\nConfidence: {confidence:.1%}\nRisk Level: {risk}\n\nThis financial decision follows established treasury management protocols.",
+            "security": "Security Response: {action}\n\nThreat Analysis:\n{reasoning}\n\nSecurity Measures:\n{criteria}\n\nConfidence: {confidence:.1%}\nRisk Level: {risk}\n\nThis security action was taken to protect the DAO ecosystem.",
+            "community": "Community Action: {action}\n\nCommunity Context:\n{reasoning}\n\nEngagement Strategy:\n{criteria}\n\nConfidence: {confidence:.1%}\nRisk Level: {risk}\n\nThis response aims to maintain positive community relations.",
+            "default": "Decision: {action}\n\nAnalysis:\n{reasoning}\n\nKey Factors:\n{criteria}\n\nConfidence: {confidence:.1%}\nRisk Level: {risk}\n\nThis decision was made using autonomous AI analysis."
+        }
+    
+    def generate_explanation(self, decision_context: Dict[str, Any]) -> str:
+        """Generate comprehensive explanation for a decision"""
+        try:
+            action = decision_context.get('action', 'Unknown Action')
+            capability = decision_context.get('capability', 'default')
+            confidence = decision_context.get('confidence', 0.0)
+            risk = decision_context.get('risk_assessment', 'unknown')
+            
+            # Build reasoning section
+            reasoning = self._build_reasoning(decision_context)
+            
+            # Build criteria analysis
+            criteria = self._build_criteria_analysis(decision_context)
+            
+            # Select appropriate template
+            template_key = capability.lower() if isinstance(capability, str) else 'default'
+            if hasattr(capability, 'value'):
+                template_key = capability.value
+            
+            template = self.explanation_templates.get(template_key, self.explanation_templates['default'])
+            
+            # Generate explanation
+            explanation = template.format(
+                action=action,
+                reasoning=reasoning,
+                criteria=criteria,
+                confidence=confidence,
+                risk=risk
+            )
+            
+            # Add timestamp and metadata
+            timestamp = decision_context.get('timestamp', datetime.now())
+            explanation += f"\n\nGenerated: {timestamp.strftime('%Y-%m-%d %H:%M:%S UTC')}"
+            
+            if decision_context.get('action_id'):
+                explanation += f"\nAction ID: {decision_context['action_id']}"
+            
+            return explanation
+            
+        except Exception as e:
+            logging.error(f"Failed to generate explanation: {e}")
+            return f"Decision explanation unavailable due to error: {str(e)}"
+    
+    def _build_reasoning(self, context: Dict[str, Any]) -> str:
+        """Build the reasoning section of the explanation"""
+        reasoning_parts = []
+        
+        # Primary goal
+        if context.get('goal'):
+            reasoning_parts.append(f"• Primary objective: {context['goal']}")
+        
+        # Key inputs
+        if context.get('inputs'):
+            reasoning_parts.append("• Key inputs considered:")
+            for input_key, input_value in context['inputs'].items():
+                reasoning_parts.append(f"  - {input_key}: {input_value}")
+        
+        # Analysis results
+        if context.get('analysis'):
+            analysis = context['analysis']
+            if isinstance(analysis, dict):
+                reasoning_parts.append("• Analysis results:")
+                for key, value in analysis.items():
+                    if key not in ['confidence', 'risk']:
+                        reasoning_parts.append(f"  - {key}: {value}")
+        
+        # Decision logic
+        if context.get('decision_logic'):
+            reasoning_parts.append(f"• Decision logic: {context['decision_logic']}")
+        
+        return "\n".join(reasoning_parts) if reasoning_parts else "No detailed reasoning available."
+    
+    def _build_criteria_analysis(self, context: Dict[str, Any]) -> str:
+        """Build the criteria analysis section"""
+        criteria_parts = []
+        
+        # Multi-criteria evaluation
+        if context.get('evaluation'):
+            evaluation = context['evaluation']
+            if isinstance(evaluation, dict) and 'criteria_breakdown' in evaluation:
+                criteria_parts.append("• Multi-criteria analysis:")
+                for criterion, details in evaluation['criteria_breakdown'].items():
+                    if isinstance(details, dict):
+                        score = details.get('raw_score', 'N/A')
+                        weight = details.get('weight', 'N/A')
+                        criteria_parts.append(f"  - {criterion}: {score} (weight: {weight})")
+                    else:
+                        criteria_parts.append(f"  - {criterion}: {details}")
+        
+        # Risk factors
+        if context.get('risk_factors'):
+            criteria_parts.append("• Risk factors:")
+            for factor in context['risk_factors']:
+                criteria_parts.append(f"  - {factor}")
+        
+        # Constraints
+        if context.get('constraints'):
+            criteria_parts.append("• Constraints considered:")
+            for constraint in context['constraints']:
+                criteria_parts.append(f"  - {constraint}")
+        
+        # Alternative options
+        if context.get('alternatives'):
+            criteria_parts.append("• Alternative options evaluated:")
+            for alt in context['alternatives']:
+                criteria_parts.append(f"  - {alt}")
+        
+        return "\n".join(criteria_parts) if criteria_parts else "Standard decision criteria applied."
+    
+    def generate_summary_explanation(self, decision_context: Dict[str, Any]) -> str:
+        """Generate a brief summary explanation"""
+        action = decision_context.get('action', 'Unknown Action')
+        confidence = decision_context.get('confidence', 0.0)
+        risk = decision_context.get('risk_assessment', 'unknown')
+        
+        summary = f"Eliza decided to {action} with {confidence:.1%} confidence (risk: {risk})"
+        
+        if decision_context.get('primary_reason'):
+            summary += f" because {decision_context['primary_reason']}"
+        
+        return summary
+    
+    def store_explanation(self, explanation: str, action_id: str, memory_client=None) -> bool:
+        """Store explanation in memory system"""
+        try:
+            if memory_client:
+                # This would integrate with the memory system
+                # memory_client.store(type="explanation", content=explanation, action_id=action_id)
+                pass
+            
+            # Also log the explanation
+            logging.info(f"Decision explanation for {action_id}: {explanation}")
+            return True
+            
+        except Exception as e:
+            logging.error(f"Failed to store explanation: {e}")
+            return False
+
 class AgentCapability(Enum):
     GOVERNANCE = "governance"
     TREASURY = "treasury"
@@ -66,6 +400,11 @@ class AutonomousElizaOS:
             "api_base": os.getenv("OPENAI_API_BASE", "https://api.openai.com/v1"),
             "backup_models": ["gpt-4", "gpt-3.5-turbo"],  # Fallback models
         }
+        
+        # Initialize enhanced decision-making components
+        self.confidence_manager = ConfidenceManager()
+        self.decision_evaluator = DecisionEvaluator()
+        self.decision_explainer = DecisionExplainer()
         
         # Autonomous Decision Making Configuration
         self.autonomy_config = {
@@ -146,15 +485,43 @@ class AutonomousElizaOS:
                 for proposal in proposals:
                     analysis = await self.analyze_proposal_with_ai(proposal)
                     
-                    if analysis["confidence"] > self.autonomy_config["confidence_threshold"]:
+                    # Use dynamic confidence threshold
+                    required_confidence = self.confidence_manager.get_threshold(DecisionLevel.AUTONOMOUS)
+                    
+                    if analysis["confidence"] > required_confidence:
+                        # Evaluate using multi-criteria decision analysis
+                        options = [{
+                            "name": f"Support Proposal {proposal['id']}",
+                            "financial_impact": analysis.get("financial_impact", 0.5),
+                            "security_risk": analysis.get("security_risk", 0.5),
+                            "community_sentiment": analysis.get("community_sentiment", 0.5),
+                            "regulatory_compliance": analysis.get("regulatory_compliance", 0.8)
+                        }, {
+                            "name": f"Oppose Proposal {proposal['id']}",
+                            "financial_impact": 1.0 - analysis.get("financial_impact", 0.5),
+                            "security_risk": 0.2,  # Lower risk to oppose
+                            "community_sentiment": 1.0 - analysis.get("community_sentiment", 0.5),
+                            "regulatory_compliance": 0.9
+                        }]
+                        
+                        evaluated_options = self.decision_evaluator.evaluate_options(options)
+                        best_option = evaluated_options[0]
+                        
+                        decision_level = DecisionLevel.AUTONOMOUS if best_option["risk_level"] == "low" else DecisionLevel.ADVISORY
+                        
                         action = AutonomousAction(
                             action_id=f"gov_{proposal['id']}_{int(time.time())}",
                             capability=AgentCapability.GOVERNANCE,
-                            decision_level=DecisionLevel.AUTONOMOUS if analysis["risk"] == "low" else DecisionLevel.ADVISORY,
-                            description=f"Governance action for proposal {proposal['id']}",
-                            parameters={"proposal_id": proposal["id"], "recommendation": analysis["recommendation"]},
-                            confidence_score=analysis["confidence"],
-                            risk_assessment=analysis["risk"]
+                            decision_level=decision_level,
+                            description=f"Governance action: {best_option['option']}",
+                            parameters={
+                                "proposal_id": proposal["id"], 
+                                "recommendation": best_option['recommendation'],
+                                "evaluation": best_option,
+                                "analysis": analysis
+                            },
+                            confidence_score=best_option["confidence"],
+                            risk_assessment=best_option["risk_level"]
                         )
                         
                         await self.queue_autonomous_action(action)
@@ -346,17 +713,59 @@ class AutonomousElizaOS:
             # Implementation would depend on the specific action
             # This is a framework for autonomous execution
             
+            # Simulate action execution (replace with actual implementation)
+            success = True  # This would be determined by actual execution
+            
             result = {
-                "success": True,
+                "success": success,
                 "action_id": action.action_id,
                 "executed_at": datetime.now().isoformat(),
-                "result": "Action executed successfully"
+                "result": "Action executed successfully" if success else "Action failed"
             }
+            
+            # Generate explanation for the decision
+            decision_context = {
+                "action": action.description,
+                "capability": action.capability,
+                "confidence": action.confidence_score,
+                "risk_assessment": action.risk_assessment,
+                "action_id": action.action_id,
+                "timestamp": datetime.now(),
+                "goal": f"Execute {action.capability.value} action",
+                "inputs": action.parameters,
+                "analysis": action.parameters.get("analysis", {}),
+                "evaluation": action.parameters.get("evaluation", {}),
+                "decision_logic": f"Autonomous execution with {action.confidence_score:.1%} confidence"
+            }
+            
+            explanation = self.decision_explainer.generate_explanation(decision_context)
+            
+            # Store explanation
+            self.decision_explainer.store_explanation(explanation, action.action_id)
+            
+            # Add explanation to result
+            result["explanation"] = explanation
+            result["explanation_summary"] = self.decision_explainer.generate_summary_explanation(decision_context)
+            
+            # Record the outcome for learning
+            self.confidence_manager.record_decision_outcome(
+                action.decision_level, 
+                success, 
+                action.action_id
+            )
             
             return result
             
         except Exception as e:
             self.logger.error(f"Failed to execute autonomous action {action.action_id}: {e}")
+            
+            # Record failure
+            self.confidence_manager.record_decision_outcome(
+                action.decision_level, 
+                False, 
+                action.action_id
+            )
+            
             return {"success": False, "error": str(e)}
     
     async def execute_emergency_action(self, action: AutonomousAction):
