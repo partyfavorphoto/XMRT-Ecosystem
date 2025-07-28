@@ -363,6 +363,9 @@ class AgentCapability(Enum):
     SECURITY = "security"
     ANALYTICS = "analytics"
     DEPLOYMENT = "deployment"
+    GITHUB_INTEGRATION = "github_integration"
+    CODE_ANALYSIS = "code_analysis"
+    REPOSITORY_MANAGEMENT = "repository_management"
 
 class DecisionLevel(Enum):
     AUTONOMOUS = "autonomous"  # ElizaOS decides and executes
@@ -390,6 +393,27 @@ class AutonomousElizaOS:
     def __init__(self):
         self.logger = logging.getLogger(__name__)
         self.setup_logging()
+        
+        # GitHub Integration Setup
+        self.github_token = os.getenv("GITHUB_PAT")
+        self.github_username = os.getenv("GITHUB_USERNAME", "DevGruGold")
+        self.github_email = os.getenv("GITHUB_EMAIL", "joeyleepcs@gmail.com")
+        
+        # Initialize GitHub integration if credentials are available
+        self.github_integration = None
+        if self.github_token:
+            try:
+                from github_integration import GitHubIntegration
+                self.github_integration = GitHubIntegration(
+                    self.github_token, 
+                    self.github_username, 
+                    self.github_email
+                )
+                self.logger.info("🔗 GitHub integration initialized successfully")
+            except Exception as e:
+                self.logger.warning(f"GitHub integration failed: {e}")
+        else:
+            self.logger.warning("GitHub PAT not found. GitHub integration disabled.")
         
         # AI Model Configuration (GPT-5 Ready)
         self.ai_config = {
@@ -437,7 +461,10 @@ class AutonomousElizaOS:
             AgentCapability.CROSS_CHAIN: True,
             AgentCapability.SECURITY: True,
             AgentCapability.ANALYTICS: True,
-            AgentCapability.DEPLOYMENT: True
+            AgentCapability.DEPLOYMENT: True,
+            AgentCapability.GITHUB_INTEGRATION: True,
+            AgentCapability.CODE_ANALYSIS: True,
+            AgentCapability.REPOSITORY_MANAGEMENT: True
         }
         
         self.is_running = False
@@ -470,6 +497,7 @@ class AutonomousElizaOS:
             self.autonomous_security_monitor(),
             self.autonomous_analytics_engine(),
             self.autonomous_decision_executor(),
+            self.autonomous_github_monitor(),
             self.health_monitor()
         ]
         
@@ -879,6 +907,107 @@ class AutonomousElizaOS:
         except json.JSONDecodeError:
             self.logger.error(f"Failed to parse AI response for analytics insights: {response}")
             return {"actionable_recommendations": []}
+    
+    async def autonomous_github_monitor(self):
+        """Autonomous GitHub repository monitoring and improvement"""
+        while self.is_running:
+            try:
+                if not self.github_integration:
+                    await asyncio.sleep(3600)  # Check every hour if GitHub integration is disabled
+                    continue
+                
+                # Get list of repositories to monitor
+                repositories = self._get_monitored_repositories()
+                
+                for repo_name in repositories:
+                    try:
+                        # Perform autonomous repository improvement
+                        improvement_result = await self.github_integration.autonomous_repository_improvement(repo_name)
+                        
+                        if "error" not in improvement_result:
+                            # Create autonomous actions for executed improvements
+                            for executed_action in improvement_result.get("executed_actions", []):
+                                action = AutonomousAction(
+                                    action_id=f"github_{repo_name}_{int(time.time())}",
+                                    capability=AgentCapability.GITHUB_INTEGRATION,
+                                    decision_level=DecisionLevel.AUTONOMOUS,
+                                    description=f"GitHub improvement: {executed_action['action'].title}",
+                                    parameters={
+                                        "repository": repo_name,
+                                        "action_type": executed_action['action'].action_type,
+                                        "result": executed_action['result']
+                                    },
+                                    confidence_score=executed_action['action'].confidence_score,
+                                    risk_assessment="low"
+                                )
+                                
+                                action.status = "executed"
+                                action.execution_time = datetime.now()
+                                self.executed_actions.append(action)
+                                
+                                self.logger.info(f"✅ GitHub autonomous action completed: {action.description}")
+                        
+                        # Wait between repository analyses to avoid rate limits
+                        await asyncio.sleep(300)  # 5 minutes between repos
+                        
+                    except Exception as e:
+                        self.logger.error(f"Error in autonomous GitHub monitoring for {repo_name}: {e}")
+                        continue
+                
+                # Wait before next monitoring cycle (24 hours)
+                await asyncio.sleep(86400)
+                
+            except Exception as e:
+                self.logger.error(f"Error in autonomous GitHub monitor: {e}")
+                await asyncio.sleep(3600)  # Wait 1 hour on error
+    
+    def _get_monitored_repositories(self) -> List[str]:
+        """Get list of repositories to monitor for autonomous improvements"""
+        # Default to XMRT-Ecosystem repository
+        default_repos = ["DevGruGold/XMRT-Ecosystem"]
+        
+        # Could be extended to read from configuration or environment variables
+        monitored_repos = os.getenv("GITHUB_MONITORED_REPOS", ",".join(default_repos))
+        
+        return [repo.strip() for repo in monitored_repos.split(",") if repo.strip()]
+    
+    async def execute_github_improvement(self, repository: str, improvement_type: str = "comprehensive") -> Dict[str, Any]:
+        """
+        Execute GitHub improvement on demand
+        This method can be called by other systems or APIs to trigger improvements
+        """
+        if not self.github_integration:
+            return {"error": "GitHub integration not available"}
+        
+        try:
+            if improvement_type == "comprehensive":
+                result = await self.github_integration.autonomous_repository_improvement(repository)
+            elif improvement_type == "analysis_only":
+                result = await self.github_integration.analyze_repository(repository)
+            else:
+                return {"error": f"Unknown improvement type: {improvement_type}"}
+            
+            # Record the improvement action
+            action = AutonomousAction(
+                action_id=f"github_manual_{repository}_{int(time.time())}",
+                capability=AgentCapability.GITHUB_INTEGRATION,
+                decision_level=DecisionLevel.AUTONOMOUS,
+                description=f"Manual GitHub improvement: {improvement_type} for {repository}",
+                parameters={"repository": repository, "improvement_type": improvement_type, "result": result},
+                confidence_score=0.9,
+                risk_assessment="low"
+            )
+            
+            action.status = "executed"
+            action.execution_time = datetime.now()
+            self.executed_actions.append(action)
+            
+            self.logger.info(f"🎯 Manual GitHub improvement executed for {repository}")
+            return result
+            
+        except Exception as e:
+            self.logger.error(f"Manual GitHub improvement failed for {repository}: {e}")
+            return {"error": str(e)}
     
     # Placeholder methods for blockchain/external integrations
     async def fetch_active_proposals(self) -> List[Dict]:
