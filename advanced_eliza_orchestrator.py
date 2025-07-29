@@ -71,7 +71,7 @@ if not GITHUB_TOKEN:
 # ELIZA MISSION DEFINITION
 ELIZA_MISSION = {
     "primary_mission": "Sentinel of Progress: Continuous Self-Improvement & XMRT Ecosystem Enhancement",
-    "version": "5.1-sentinel-of-progress-fix", # Updated version number
+    "version": "5.2-sentinel-of-progress-commit-fix", # Updated version number
     "bootstrap_timestamp": datetime.now().isoformat(),
     "focus_areas": [
         "Repository Improvement (Code Quality, Security, Performance)",
@@ -129,7 +129,8 @@ class ElizaCoreAgent:
             self.all_user_repos = []
 
     def _commit_to_github(self, repo_full_name, filename, content, message, author_name='Eliza Autonomous', author_email='eliza@xmrt.io'):
-        """Handles committing a file to a specified GitHub repository with proper authoring."""
+        """Handles committing a file to a specified GitHub repository with proper authoring.
+           Intelligently uses create_file or update_file."""
         if not self.github_client:
             logging.warning(f"⚠️ Skipping commit to {repo_full_name}/{filename}: GitHub client not initialized.")
             return False
@@ -137,37 +138,53 @@ class ElizaCoreAgent:
         try:
             repo = self.github_client.get_repo(repo_full_name)
             
-            # Ensure the author is Eliza Autonomous and the committer is DevGruGold
             eliza_author = InputGitAuthor(author_name, author_email)
             
-            # Get existing file SHA if it exists, for updating
-            sha = None
-            try:
-                contents = repo.get_contents(filename, ref=repo.default_branch)
-                sha = contents.sha
-                logging.info(f"📄 Updating existing file: {filename} (SHA: {sha[:7]})")
-            except Exception as e:
-                # If file not found (404), create it. Other errors should still be logged.
-                if "404" not in str(e): 
-                    logging.error(f"❌ Error checking for existing file {filename}: {e}")
+            file_exists = False
+            existing_file_sha = None
             
-            repo.create_file(
-                path=filename,
-                message=message,
-                content=content,
-                branch=repo.default_branch,
-                sha=sha, # Only provide SHA if updating, otherwise it's None
-                author=eliza_author # Sets Eliza as the author
-            )
+            try:
+                # Attempt to get contents to check if file exists and get its SHA
+                contents = repo.get_contents(filename, ref=repo.default_branch)
+                existing_file_sha = contents.sha
+                file_exists = True
+                logging.info(f"📄 File {filename} exists. Preparing to update.")
+            except github.UnknownObjectException: # PyGithub specific exception for 404 Not Found
+                file_exists = False
+                logging.info(f"📄 File {filename} does not exist. Preparing to create.")
+            except Exception as e: # Catch other potential errors during get_contents
+                logging.error(f"❌ Unexpected error checking for file {filename}: {e}")
+                return False # Abort commit if we can't determine file status
+            
+            if file_exists:
+                # Use update_file if the file already exists (requires SHA)
+                repo.update_file(
+                    path=filename,
+                    message=message,
+                    content=content,
+                    sha=existing_file_sha, # SHA is REQUIRED for update_file
+                    branch=repo.default_branch,
+                    author=eliza_author
+                )
+                logging.info(f"✅ Updated {filename} in {repo_full_name}")
+            else:
+                # Use create_file if the file does not exist (DO NOT pass SHA)
+                repo.create_file(
+                    path=filename,
+                    message=message,
+                    content=content,
+                    branch=repo.default_branch,
+                    author=eliza_author
+                )
+                logging.info(f"✅ Created {filename} in {repo_full_name}")
             
             with eliza_state.lock:
                 eliza_state.total_commits_made += 1
                 eliza_state.files_created_count += 1
                 eliza_state.github_operations_count += 1
-            logging.info(f"✅ Committed {filename} to {repo_full_name}")
             return True
         except Exception as e:
-            logging.error(f"❌ GitHub commit failed for {repo_full_name}/{filename}: {e}")
+            logging.error(f"❌ GitHub commit failed for {repo_full_name}/{filename}: {e}", exc_info=True) # Add exc_info for full traceback
             return False
 
     def _execute_self_improvement(self, current_cycle):
@@ -599,8 +616,8 @@ HTML_DASHBOARD = '''
                 document.getElementById('discussion-posts').textContent = data.discussion_posts_created;
 
                 document.getElementById('self-improvements').textContent = data.self_improvements_count;
-                document.getElementById('tools-discovered').textContent = data.tools_discovered_count;
-                document.getElementById('utilities-built').textContent = data.utilities_built_count;
+                document.getElementById('tools_discovered').textContent = data.tools_discovered_count;
+                document.getElementById('utilities_built').textContent = data.utilities_built_count;
                 document.getElementById('learning-sessions').textContent = data.learning_sessions_count;
 
                 document.getElementById('total-commits').textContent = data.total_commits_made;
