@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# XMRT Eliza Orchestrator - Phase 3 Lite: Simplified AI
+# XMRT Eliza Orchestrator - Phase 3 Lite with Web Chat Interface
 
 import os
 import sys
@@ -14,7 +14,7 @@ import logging
 
 # Phase 3 Lite imports - simplified
 try:
-    from flask import Flask, jsonify, request
+    from flask import Flask, jsonify, request, render_template_string, send_from_directory
     import requests
     from dotenv import load_dotenv
     import psutil
@@ -29,7 +29,7 @@ except ImportError as e:
     print(f"⚠️ Phase 3 Lite import issue: {e}")
     # Fallback to Phase 2
     try:
-        from flask import Flask, jsonify, request
+        from flask import Flask, jsonify, request, render_template_string
         import requests
         from dotenv import load_dotenv
         import psutil
@@ -76,6 +76,432 @@ system_metrics_history = []
 error_log = []
 health_checks = []
 ai_interactions = []
+
+# Web Chat Interface HTML Template
+CHAT_INTERFACE_HTML = '''
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>XMRT Eliza - AI Chat Interface</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .chat-container {
+            width: 90%;
+            max-width: 800px;
+            height: 90vh;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        
+        .chat-header {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+            position: relative;
+        }
+        
+        .chat-header h1 {
+            font-size: 24px;
+            margin-bottom: 5px;
+        }
+        
+        .chat-header .subtitle {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+        
+        .status-indicator {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 12px;
+            height: 12px;
+            background: #4CAF50;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+        
+        .chat-messages {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            background: #f8f9fa;
+        }
+        
+        .message {
+            margin-bottom: 15px;
+            display: flex;
+            align-items: flex-start;
+        }
+        
+        .message.user {
+            justify-content: flex-end;
+        }
+        
+        .message.eliza {
+            justify-content: flex-start;
+        }
+        
+        .message-content {
+            max-width: 70%;
+            padding: 12px 16px;
+            border-radius: 18px;
+            font-size: 14px;
+            line-height: 1.4;
+        }
+        
+        .message.user .message-content {
+            background: #007bff;
+            color: white;
+            border-bottom-right-radius: 4px;
+        }
+        
+        .message.eliza .message-content {
+            background: white;
+            color: #333;
+            border: 1px solid #e0e0e0;
+            border-bottom-left-radius: 4px;
+        }
+        
+        .message-meta {
+            font-size: 11px;
+            opacity: 0.7;
+            margin-top: 4px;
+        }
+        
+        .ai-indicator {
+            display: inline-block;
+            background: #4CAF50;
+            color: white;
+            font-size: 10px;
+            padding: 2px 6px;
+            border-radius: 10px;
+            margin-left: 8px;
+        }
+        
+        .chat-input-container {
+            padding: 20px;
+            background: white;
+            border-top: 1px solid #e0e0e0;
+        }
+        
+        .chat-input-form {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .chat-input {
+            flex: 1;
+            padding: 12px 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 25px;
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+        
+        .chat-input:focus {
+            border-color: #007bff;
+        }
+        
+        .send-button {
+            padding: 12px 20px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.3s;
+        }
+        
+        .send-button:hover {
+            background: #0056b3;
+        }
+        
+        .send-button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        
+        .typing-indicator {
+            display: none;
+            padding: 10px 16px;
+            font-style: italic;
+            color: #666;
+            font-size: 13px;
+        }
+        
+        .welcome-message {
+            text-align: center;
+            padding: 40px 20px;
+            color: #666;
+        }
+        
+        .welcome-message h3 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+        
+        .system-info {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            font-size: 12px;
+            opacity: 0.8;
+        }
+        
+        @media (max-width: 600px) {
+            .chat-container {
+                width: 100%;
+                height: 100vh;
+                border-radius: 0;
+            }
+            
+            .message-content {
+                max-width: 85%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="chat-container">
+        <div class="chat-header">
+            <div class="system-info">
+                <div id="version">Loading...</div>
+                <div id="ai-status">Checking AI...</div>
+            </div>
+            <h1>🤖 XMRT Eliza</h1>
+            <div class="subtitle">AI-Powered Conversational Assistant</div>
+            <div class="status-indicator" id="status-indicator"></div>
+        </div>
+        
+        <div class="chat-messages" id="chat-messages">
+            <div class="welcome-message">
+                <h3>Welcome to XMRT Eliza! 👋</h3>
+                <p>I'm your AI assistant with advanced reasoning capabilities.</p>
+                <p>Ask me about AI, blockchain, XMRT ecosystem, or anything else!</p>
+            </div>
+        </div>
+        
+        <div class="typing-indicator" id="typing-indicator">
+            Eliza is thinking...
+        </div>
+        
+        <div class="chat-input-container">
+            <form class="chat-input-form" id="chat-form">
+                <input 
+                    type="text" 
+                    class="chat-input" 
+                    id="message-input" 
+                    placeholder="Type your message here..." 
+                    autocomplete="off"
+                    maxlength="2000"
+                >
+                <button type="submit" class="send-button" id="send-button">Send</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        class ElizaChat {
+            constructor() {
+                this.sessionId = 'web_session_' + Date.now();
+                this.messagesContainer = document.getElementById('chat-messages');
+                this.messageInput = document.getElementById('message-input');
+                this.sendButton = document.getElementById('send-button');
+                this.chatForm = document.getElementById('chat-form');
+                this.typingIndicator = document.getElementById('typing-indicator');
+                
+                this.initializeEventListeners();
+                this.loadSystemInfo();
+                this.messageInput.focus();
+            }
+            
+            initializeEventListeners() {
+                this.chatForm.addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    this.sendMessage();
+                });
+                
+                this.messageInput.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        this.sendMessage();
+                    }
+                });
+            }
+            
+            async loadSystemInfo() {
+                try {
+                    const response = await fetch('/health');
+                    const data = await response.json();
+                    
+                    document.getElementById('version').textContent = `v${data.version || 'unknown'}`;
+                    
+                    // Check AI status
+                    const aiResponse = await fetch('/ai/status');
+                    const aiData = await aiResponse.json();
+                    
+                    const aiConnected = aiData.openai_connected;
+                    document.getElementById('ai-status').textContent = aiConnected ? 'AI: Connected' : 'AI: Fallback Mode';
+                    
+                    // Update status indicator color
+                    const indicator = document.getElementById('status-indicator');
+                    indicator.style.background = aiConnected ? '#4CAF50' : '#FF9800';
+                    
+                } catch (error) {
+                    console.error('Failed to load system info:', error);
+                    document.getElementById('version').textContent = 'v1.4.1-ai-lite';
+                    document.getElementById('ai-status').textContent = 'AI: Unknown';
+                }
+            }
+            
+            async sendMessage() {
+                const message = this.messageInput.value.trim();
+                if (!message) return;
+                
+                // Add user message to chat
+                this.addMessage(message, 'user');
+                
+                // Clear input and show typing
+                this.messageInput.value = '';
+                this.setLoading(true);
+                
+                try {
+                    const response = await fetch('/chat', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            message: message,
+                            session_id: this.sessionId
+                        })
+                    });
+                    
+                    if (response.ok) {
+                        const data = await response.json();
+                        
+                        // Add Eliza's response
+                        this.addMessage(data.response, 'eliza', {
+                            ai_powered: data.ai_powered,
+                            category: data.category,
+                            confidence: data.confidence,
+                            response_time: data.response_time,
+                            tokens_used: data.tokens_used,
+                            model_used: data.model_used
+                        });
+                        
+                    } else {
+                        this.addMessage('Sorry, I encountered an error. Please try again.', 'eliza');
+                    }
+                    
+                } catch (error) {
+                    console.error('Chat error:', error);
+                    this.addMessage('Connection error. Please check your internet connection.', 'eliza');
+                } finally {
+                    this.setLoading(false);
+                    this.messageInput.focus();
+                }
+            }
+            
+            addMessage(content, sender, metadata = {}) {
+                // Remove welcome message if it exists
+                const welcomeMessage = this.messagesContainer.querySelector('.welcome-message');
+                if (welcomeMessage) {
+                    welcomeMessage.remove();
+                }
+                
+                const messageDiv = document.createElement('div');
+                messageDiv.className = `message ${sender}`;
+                
+                const contentDiv = document.createElement('div');
+                contentDiv.className = 'message-content';
+                contentDiv.textContent = content;
+                
+                messageDiv.appendChild(contentDiv);
+                
+                // Add metadata for Eliza messages
+                if (sender === 'eliza' && Object.keys(metadata).length > 0) {
+                    const metaDiv = document.createElement('div');
+                    metaDiv.className = 'message-meta';
+                    
+                    let metaText = '';
+                    if (metadata.ai_powered) {
+                        metaText += `<span class="ai-indicator">AI</span>`;
+                    }
+                    if (metadata.response_time) {
+                        metaText += ` ${(metadata.response_time * 1000).toFixed(0)}ms`;
+                    }
+                    if (metadata.confidence) {
+                        metaText += ` • ${(metadata.confidence * 100).toFixed(0)}% confidence`;
+                    }
+                    if (metadata.tokens_used) {
+                        metaText += ` • ${metadata.tokens_used} tokens`;
+                    }
+                    
+                    metaDiv.innerHTML = metaText;
+                    messageDiv.appendChild(metaDiv);
+                }
+                
+                this.messagesContainer.appendChild(messageDiv);
+                this.scrollToBottom();
+            }
+            
+            setLoading(loading) {
+                this.sendButton.disabled = loading;
+                this.messageInput.disabled = loading;
+                this.typingIndicator.style.display = loading ? 'block' : 'none';
+                
+                if (loading) {
+                    this.sendButton.textContent = 'Sending...';
+                    this.scrollToBottom();
+                } else {
+                    this.sendButton.textContent = 'Send';
+                }
+            }
+            
+            scrollToBottom() {
+                this.messagesContainer.scrollTop = this.messagesContainer.scrollHeight;
+            }
+        }
+        
+        // Initialize chat when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            new ElizaChat();
+        });
+    </script>
+</body>
+</html>
+'''
 
 class AIConfig(BaseModel):
     """Configuration for AI features"""
@@ -395,7 +821,7 @@ def log_error(error_type: str, error_message: str, context: Dict = None):
         'type': error_type,
         'message': error_message,
         'context': context or {},
-        'phase': '3-lite'
+        'phase': '3-lite-web'
     }
     
     error_log.append(error_entry)
@@ -419,11 +845,10 @@ def not_found(error):
         'error': 'Endpoint not found',
         'message': 'The requested endpoint does not exist',
         'available_endpoints': [
-            '/health', '/status', '/chat', '/api/chat', '/message', '/sessions', 
-            '/metrics', '/system/health', '/ai/status', '/ai/metrics'
+            '/', '/chat', '/health', '/ai/status', '/metrics'
         ],
         'timestamp': datetime.now().isoformat(),
-        'phase': '3-lite'
+        'phase': '3-lite-web'
     }), 404
 
 @app.errorhandler(500)
@@ -434,16 +859,21 @@ def internal_error(error):
         'message': 'An unexpected error occurred, but the system recovered',
         'timestamp': datetime.now().isoformat(),
         'support': 'Check /system/health for system status',
-        'phase': '3-lite'
+        'phase': '3-lite-web'
     }), 500
+
+@app.route('/')
+def web_chat_interface():
+    """Serve the web chat interface"""
+    return render_template_string(CHAT_INTERFACE_HTML)
 
 @app.route('/health')
 def health_check():
     return jsonify({
         'status': 'healthy',
         'service': 'xmrt-eliza',
-        'version': '1.4.1-ai-lite',
-        'phase': '3-lite',
+        'version': '1.4.2-web-chat',
+        'phase': '3-lite-web',
         'timestamp': datetime.now().isoformat(),
         'uptime_seconds': int((datetime.now() - start_time).total_seconds()),
         'total_requests': request_count,
@@ -451,31 +881,8 @@ def health_check():
         'conversation_count': len(conversation_memory),
         'ai_interactions': len(ai_interactions),
         'ai_available': PHASE3_LITE_READY and ai_engine.openai_client is not None,
-        'monitoring_active': system_monitor.monitoring_active
-    })
-
-@app.route('/')
-def root():
-    return jsonify({
-        'message': 'XMRT Eliza - Phase 3 Lite: Simplified AI Integration (Build Fixed)!',
-        'status': 'operational',
-        'version': '1.4.1-ai-lite',
-        'phase': '3-lite',
-        'features': {
-            'simplified_ai': PHASE3_LITE_READY,
-            'openai_integration': ai_engine.openai_client is not None,
-            'enhanced_reasoning': True,
-            'system_monitoring': True,
-            'conversation_analytics': True,
-            'token_estimation': True,
-            'fallback_modes': True,
-            'build_optimized': True
-        },
-        'endpoints': [
-            '/health', '/status', '/chat', '/api/chat', '/message', '/sessions',
-            '/metrics', '/system/health', '/system/metrics', '/ai/status', 
-            '/ai/metrics', '/conversation/history', '/conversation/stats'
-        ]
+        'monitoring_active': system_monitor.monitoring_active,
+        'web_interface': True
     })
 
 @app.route('/chat', methods=['POST'])
@@ -563,8 +970,8 @@ def chat():
             'model_used': eliza_response.get('model_used'),
             'tokens_used': eliza_response.get('tokens_used', 0),
             'eliza_uptime': context['uptime_seconds'],
-            'version': '1.4.1-ai-lite',
-            'phase': '3-lite'
+            'version': '1.4.2-web-chat',
+            'phase': '3-lite-web'
         })
         
     except Exception as e:
@@ -574,16 +981,8 @@ def chat():
             'message': 'An error occurred, but the system recovered gracefully',
             'timestamp': datetime.now().isoformat(),
             'support': 'Try rephrasing your message or check /system/health',
-            'phase': '3-lite'
+            'phase': '3-lite-web'
         }), 500
-
-@app.route('/api/chat', methods=['POST'])
-def api_chat():
-    return chat()
-
-@app.route('/message', methods=['POST'])
-def message():
-    return chat()
 
 @app.route('/ai/status')
 def ai_status():
@@ -605,83 +1004,8 @@ def ai_status():
             'langchain_removed': True,
             'lightweight_mode': True
         },
+        'web_interface': True,
         'timestamp': datetime.now().isoformat()
-    })
-
-@app.route('/ai/metrics')
-def ai_metrics():
-    """AI-specific metrics"""
-    if not ai_interactions:
-        return jsonify({
-            'message': 'No AI interactions yet',
-            'ai_available': PHASE3_LITE_READY,
-            'timestamp': datetime.now().isoformat()
-        })
-    
-    # Calculate AI metrics
-    total_tokens = sum(i.get('input_tokens', 0) + i.get('output_tokens', 0) for i in ai_interactions)
-    avg_response_time = sum(i['response_time'] for i in ai_interactions) / len(ai_interactions)
-    
-    category_counts = {}
-    for interaction in ai_interactions:
-        category = interaction['category']
-        category_counts[category] = category_counts.get(category, 0) + 1
-    
-    return jsonify({
-        'total_interactions': len(ai_interactions),
-        'total_tokens_used': total_tokens,
-        'average_response_time': avg_response_time,
-        'category_distribution': category_counts,
-        'model_usage': {
-            'primary_model': ai_engine.config.model_name,
-            'total_requests': len(ai_interactions)
-        },
-        'recent_activity': ai_interactions[-10:] if len(ai_interactions) >= 10 else ai_interactions,
-        'lite_mode': True,
-        'timestamp': datetime.now().isoformat()
-    })
-
-@app.route('/system/health')
-def system_health():
-    """Enhanced system health with AI metrics"""
-    metrics = system_monitor.get_system_metrics()
-    
-    return jsonify({
-        'overall_health': 'healthy',
-        'system_metrics': metrics,
-        'ai_health': {
-            'available': PHASE3_LITE_READY,
-            'connected': ai_engine.openai_client is not None,
-            'interactions_count': len(ai_interactions),
-            'avg_response_time': sum(i['response_time'] for i in ai_interactions[-10:]) / min(10, len(ai_interactions)) if ai_interactions else 0,
-            'lite_mode': True
-        },
-        'service_info': {
-            'version': '1.4.1-ai-lite',
-            'phase': '3-lite',
-            'uptime_seconds': int((datetime.now() - start_time).total_seconds()),
-            'total_requests': request_count,
-            'active_sessions': len(chat_sessions),
-            'total_conversations': len(conversation_memory)
-        }
-    })
-
-@app.route('/system/metrics')
-def system_metrics():
-    """Enhanced system metrics"""
-    metrics = system_monitor.get_system_metrics()
-    
-    return jsonify({
-        'current_metrics': metrics,
-        'history_available': len(system_metrics_history),
-        'monitoring_active': system_monitor.monitoring_active,
-        'thresholds': system_monitor.alert_thresholds,
-        'ai_integration': {
-            'available': PHASE3_LITE_READY,
-            'active_interactions': len(ai_interactions),
-            'total_tokens_used': sum(i.get('input_tokens', 0) + i.get('output_tokens', 0) for i in ai_interactions),
-            'lite_mode': True
-        }
     })
 
 @app.route('/metrics')
@@ -699,8 +1023,8 @@ def service_metrics():
     
     return jsonify({
         'service': 'xmrt-eliza',
-        'version': '1.4.1-ai-lite',
-        'phase': '3-lite',
+        'version': '1.4.2-web-chat',
+        'phase': '3-lite-web',
         'uptime_seconds': uptime_seconds,
         'uptime_human': str(timedelta(seconds=uptime_seconds)),
         'total_requests': request_count,
@@ -709,105 +1033,29 @@ def service_metrics():
         'ai_statistics': ai_stats,
         'error_count': len(error_log),
         'requests_per_minute': round(request_count / max(1, uptime_seconds / 60), 2),
+        'web_interface_enabled': True,
         'timestamp': datetime.now().isoformat()
     })
-
-@app.route('/sessions')
-def sessions():
-    return jsonify({
-        'active_sessions': len(chat_sessions),
-        'total_conversations': len(conversation_memory),
-        'sessions': {
-            session_id: {
-                'message_count': session['message_count'],
-                'last_activity': session['last_activity'],
-                'avg_response_time': session.get('avg_response_time', 0),
-                'ai_responses': session.get('ai_responses', 0),
-                'ai_usage_rate': session.get('ai_responses', 0) / max(1, session['message_count'])
-            }
-            for session_id, session in chat_sessions.items()
-        }
-    })
-
-@app.route('/conversation/history')
-def conversation_history():
-    limit = request.args.get('limit', 20, type=int)
-    limit = min(limit, 100)
-    
-    return jsonify({
-        'conversations': conversation_memory[-limit:],
-        'total_conversations': len(conversation_memory),
-        'ai_powered_count': len([c for c in conversation_memory[-limit:] if c.get('ai_powered')]),
-        'limit': limit
-    })
-
-@app.route('/conversation/stats')
-def conversation_stats():
-    ai_powered_count = len([c for c in conversation_memory if c.get('ai_powered')])
-    total_tokens = sum(c.get('tokens_used', 0) for c in conversation_memory)
-    
-    return jsonify({
-        'total_conversations': len(conversation_memory),
-        'ai_powered_conversations': ai_powered_count,
-        'ai_usage_rate': ai_powered_count / max(1, len(conversation_memory)),
-        'total_tokens_used': total_tokens,
-        'average_tokens_per_conversation': total_tokens / max(1, ai_powered_count),
-        'categories': {
-            category: len([c for c in conversation_memory if c.get('category') == category])
-            for category in set(c.get('category', 'unknown') for c in conversation_memory)
-        },
-        'lite_mode': True
-    })
-
-@app.route('/status')
-def status():
-    return jsonify({
-        'service': 'xmrt-eliza',
-        'status': 'running',
-        'version': '1.4.1-ai-lite',
-        'phase': '3-lite',
-        'uptime_seconds': int((datetime.now() - start_time).total_seconds()),
-        'total_requests': request_count,
-        'python_version': sys.version,
-        'ai_features': {
-            'openai_integration': ai_engine.openai_client is not None,
-            'simplified_mode': True,
-            'enhanced_reasoning': True,
-            'token_estimation': True,
-            'conversation_context': True,
-            'fallback_modes': True,
-            'build_optimized': True
-        },
-        'chat_features': {
-            'active_sessions': len(chat_sessions),
-            'total_conversations': len(conversation_memory),
-            'ai_conversations': len([c for c in conversation_memory if c.get('ai_powered')]),
-            'enhanced_patterns': len(ai_engine.enhanced_patterns),
-            'robust_error_handling': True
-        }
-    })
-
-@app.route('/api/health')
-def api_health():
-    return health_check()
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 10000))
     
-    print(f"🚀 Starting XMRT Eliza Phase 3 Lite: Simplified AI System")
-    print(f"🤖 Version: 1.4.1-ai-lite")
+    print(f"🚀 Starting XMRT Eliza Phase 3 Lite: Web Chat Interface")
+    print(f"🌐 Version: 1.4.2-web-chat")
     print(f"🔧 Port: {port}")
     print(f"🧠 AI Integration: {'Active' if PHASE3_LITE_READY else 'Fallback Mode'}")
     print(f"🔗 OpenAI: {'Connected' if ai_engine.openai_client else 'API Key Required'}")
     print(f"📊 System monitoring: {'Active' if system_monitor.monitoring_active else 'Limited'}")
+    print(f"🌐 Web Interface: Enabled")
     print(f"⚡ Build optimized: Removed tiktoken and complex dependencies")
     print(f"⏰ Start time: {start_time}")
     
     # Log startup
-    logger.info("XMRT Eliza Phase 3 Lite starting", 
-                version="1.4.1-ai-lite",
+    logger.info("XMRT Eliza Phase 3 Lite Web starting", 
+                version="1.4.2-web-chat",
                 ai_available=PHASE3_LITE_READY,
                 openai_connected=ai_engine.openai_client is not None,
-                lite_mode=True)
+                lite_mode=True,
+                web_interface=True)
     
     app.run(host='0.0.0.0', port=port, debug=False)
