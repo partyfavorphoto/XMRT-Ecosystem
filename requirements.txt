@@ -1,3 +1,9 @@
-# Ultra-minimal requirements for Render deployment
+# Phase 2: Robust System Monitoring
 flask==3.0.3
 gunicorn==22.0.0
+requests==2.32.3
+python-dotenv==1.0.1
+psutil==6.0.0
+orjson==3.10.6
+python-dateutil==2.9.0.post0
+structlog==24.2.0
