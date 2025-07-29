@@ -1,4 +1,4 @@
-# Phase 2: Robust System Monitoring
+# Phase 3: Advanced AI Features
 flask==3.0.3
 gunicorn==22.0.0
 requests==2.32.3
@@ -7,3 +7,8 @@ psutil==6.0.0
 orjson==3.10.6
 python-dateutil==2.9.0.post0
 structlog==24.2.0
+openai==1.35.13
+langchain==0.2.11
+langchain-openai==0.1.19
+pydantic==2.8.2
+tiktoken==0.7.0
