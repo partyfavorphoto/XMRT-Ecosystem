@@ -90,7 +90,7 @@ commits_made = 0
 # Configuration
 MAIN_CHATBOT_URL = "https://xmrt-io.onrender.com"
 GITHUB_USERNAME = "DevGruGold"
-GITHUB_TOKEN = os.getenv('GITHUB_TOKEN)
+GITHUB_TOKEN = os.getenv('GITHUB_TOKEN')
 
 # Web Chat Interface HTML Template (same as before - keeping it concise)
 CHAT_INTERFACE_HTML = '''
