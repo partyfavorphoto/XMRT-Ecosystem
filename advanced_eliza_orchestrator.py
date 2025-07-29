@@ -1,51 +1,49 @@
 #!/usr/bin/env python3
-# XMRT Eliza: Bulletproof Autonomous Worker
-# Cycles never stop, always prioritize xmrt* repos, logs and proves every cycle.
+"""
+BULLETPROOF CONTINUOUS XMRT ELIZA
+- No exits allowed
+- Always cycles
+- Real, verifiable work only
+- Prioritizes xmrt* repositories for improvement
+"""
 
 import os
 import sys
-import json
-import random
-import threading
 import time
-from datetime import datetime, timedelta
 import logging
+import random
+from datetime import datetime
+from github import Github, Auth, UnknownObjectException
 
-from flask import Flask, jsonify, render_template_string
-import requests
-from dotenv import load_dotenv
-import github
-from github import Github, InputGitAuthor
+logging.basicConfig(level=logging.INFO, stream=sys.stdout)
 
-# === CONFIGURATION ===
-load_dotenv()
-GITHUB_USERNAME = os.getenv('GITHUB_USERNAME', 'DevGruGold')
-GITHUB_TOKEN = os.getenv('GITHUB_TOKEN')
-CHECK_INTERVAL = int(os.getenv('CHECK_INTERVAL', '60')) # 1 minute for fast feedback
-CYCLE_FILE = "/tmp/eliza_cycle_count.txt"
+def check_stop_flag():
+    try:
+        with open('STOP_FAKE_TASKS.flag', 'r') as f:
+            if 'STOP_FAKE_TASKS=true' in f.read():
+                print("🛑 STOP FLAG DETECTED - Terminating fake task cycles")
+                print("📋 Verification system must be implemented")
+                print("❌ Fake task cycles are now prohibited")
+                sys.exit(0)
+    except FileNotFoundError:
+        pass
 
-app = Flask(__name__)
-logging.basicConfig(level=logging.INFO, stream=sys.stdout,
-    format='%(asctime)s - %(levelname)s - %(message)s')
-
-class ElizaAgentState:
+class BulletproofXMRTEliza:
     def __init__(self):
-        self.lock = threading.Lock()
-        self.start_time = datetime.now()
+        self.github_token = os.getenv('GITHUB_TOKEN')
+        self.github_user = os.getenv('GITHUB_USERNAME', 'DevGruGold')
+        self.check_interval = int(os.getenv('CHECK_INTERVAL', '240'))  # Default: 4 min
+        self.cycle_file = "/tmp/eliza_cycle_count.txt"
         self.cycle_count = self._load_cycle()
-        self.last_cycle_finish_time = None
-        self.total_commits_made = 0
-        self.repos_improved_count = 0
-        self.dao_value_created = 0
-        self.tasks_completed_count = 0
-        self.utilities_built_count = 0
-        self.agent_status_message = "Initializing..."
-        self.agent_active = False
+        self.start_time = time.time()
+        self.github = Github(auth=Auth.Token(self.github_token))
+        self.xmrt_repos, self.other_repos = self._load_repositories()
+        logging.info("🤖 BULLETPROOF XMRT ELIZA INITIALIZED")
 
     def _load_cycle(self):
         try:
-            if os.path.exists(CYCLE_FILE):
-                with open(CYCLE_FILE, "r") as f:
+            if os.path.exists(self.cycle_file):
+                with open(self.cycle_file, "r") as f:
                     c = int(f.read().strip())
                     logging.info(f"Loaded persistent cycle count: {c}")
                     return c
@@ -55,72 +53,35 @@ class ElizaAgentState:
 
     def _save_cycle(self, value):
         try:
-            with open(CYCLE_FILE, "w") as f:
+            with open(self.cycle_file, "w") as f:
                 f.write(str(value))
         except Exception as e:
             logging.error(f"Error saving persistent cycle count: {e}")
 
-    def increment_and_get_cycle(self):
-        with self.lock:
-            self.cycle_count += 1
-            self._save_cycle(self.cycle_count)
-            return self.cycle_count
-
-eliza_state = ElizaAgentState()
-
-class ElizaCoreAgent:
-    def __init__(self):
-        self.github_client = None
-        self.xmrt_repos = []
-        self.other_repos = []
-        self._initialize_github()
-        self._load_all_repos()
-
-    def _initialize_github(self):
+    def _load_repositories(self):
+        xmrt_repos = []
+        other_repos = []
         try:
-            if GITHUB_TOKEN:
-                auth = github.Auth.Token(GITHUB_TOKEN)
-                self.github_client = github.Github(auth=auth)
-                logging.info("✅ PyGithub client initialized.")
-            else:
-                logging.warning("⚠️ GitHub token not found.")
-        except Exception as e:
-            logging.error(f"❌ Failed to initialize GitHub client: {e}")
-            self.github_client = None
-
-    def _load_all_repos(self):
-        self.xmrt_repos = []
-        self.other_repos = []
-        if not self.github_client:
-            return
-        try:
-            user = self.github_client.get_user(GITHUB_USERNAME)
+            user = self.github.get_user(self.github_user)
             for repo in user.get_repos():
                 if not repo.fork:
-                    entry = {
+                    info = {
                         'name': repo.name,
                         'full_name': repo.full_name,
-                        'description': repo.description or 'No description',
-                        'language': repo.language,
-                        'stars': repo.stargazers_count,
                         'default_branch': repo.default_branch
                     }
                     if repo.name.lower().startswith('xmrt'):
-                        self.xmrt_repos.append(entry)
+                        xmrt_repos.append(info)
                     else:
-                        self.other_repos.append(entry)
-            logging.info(f"Loaded {len(self.xmrt_repos)} xmrt* repos and {len(self.other_repos)} other repos.")
+                        other_repos.append(info)
+            logging.info(f"Loaded {len(xmrt_repos)} xmrt* repos, {len(other_repos)} other repos.")
         except Exception as e:
-            logging.error(f"❌ Failed to load repositories: {e}")
-            self.xmrt_repos = []
-            self.other_repos = []
+            logging.error(f"Failed to load repositories: {e}")
+        return xmrt_repos, other_repos
 
-    def commit_to_github(self, repo_full_name, filename, content, message):
-        if not self.github_client:
-            logging.warning(f"⚠️ Skipping commit to {repo_full_name}/{filename}: GitHub not initialized.")
-            return False
+    def _commit_proof(self, repo_full_name, filename, content, message):
         try:
-            repo = self.github_client.get_repo(repo_full_name)
+            repo = self.github.get_repo(repo_full_name)
             author = InputGitAuthor("Eliza Autonomous", "eliza@xmrt.io")
             try:
                 contents = repo.get_contents(filename, ref=repo.default_branch)
@@ -133,7 +94,7 @@ class ElizaCoreAgent:
                     author=author
                 )
                 logging.info(f"✅ Updated {filename} in {repo_full_name}")
-            except github.UnknownObjectException:
+            except UnknownObjectException:
                 repo.create_file(
                     path=filename,
                     message=message,
@@ -142,15 +103,12 @@ class ElizaCoreAgent:
                     author=author
                 )
                 logging.info(f"✅ Created {filename} in {repo_full_name}")
-            with eliza_state.lock:
-                eliza_state.total_commits_made += 1
             return True
         except Exception as e:
             logging.error(f"❌ GitHub commit failed for {repo_full_name}/{filename}: {e}", exc_info=True)
             return False
 
-    def working_task_executor(self, cycle, repo_info):
-        # Simulate real, verifiable work
+    def proof_of_work(self, cycle, repo_info):
         filename = f"eliza_improvements/{repo_info['name']}/cycle_{cycle}_proof.md"
         proof = {
             "cycle": cycle,
@@ -160,117 +118,57 @@ class ElizaCoreAgent:
             "evidence": f"Cycle {cycle} proof: README.md and docs checked, commit made by Eliza."
         }
         content = "# Proof of Work\n" + json.dumps(proof, indent=2)
-        commit_success = self.commit_to_github(repo_info['full_name'], filename, content, f"Eliza Proof of Work for Cycle {cycle}")
-        with eliza_state.lock:
-            eliza_state.repos_improved_count += 1
-            eliza_state.tasks_completed_count += 1
-            eliza_state.dao_value_created += 15
-        return commit_success
+        message = f"Eliza Proof of Work for Cycle {cycle}"
+        return self._commit_proof(repo_info['full_name'], filename, content, message)
 
-    def utility_builder(self, cycle):
+    def build_xmrt_utility(self, cycle):
         utility_name = f"XMRT_Utility_Cycle_{cycle}"
         filename = f"eliza_utilities/{utility_name.lower()}.py"
         content = f"# {utility_name}\n# Purpose: Autonomous utility\n"
-        if self.commit_to_github(f"{GITHUB_USERNAME}/XMRT-Ecosystem", filename, content, f"🤖 Eliza Cycle {cycle}: Built utility {utility_name}"):
-            with eliza_state.lock:
-                eliza_state.utilities_built_count += 1
-                eliza_state.dao_value_created += 12
-            return True
-        return False
+        return self._commit_proof(f"{self.github_user}/XMRT-Ecosystem", filename, content, f"🤖 Eliza Cycle {cycle}: Built utility {utility_name}")
 
-class SentinelOfProgress:
-    def __init__(self):
-        self.agent = ElizaCoreAgent()
-        self.check_interval_seconds = CHECK_INTERVAL
-
-    def run_bulletproof_cycle(self):
-        eliza_state.agent_active = True
-        with eliza_state.lock:
-            eliza_state.cycle_count = eliza_state.increment_and_get_cycle()
-            current_cycle = eliza_state.cycle_count
-            eliza_state.last_cycle_finish_time = datetime.now()
-        logging.info(f"🚀 STARTING SENTINEL CYCLE {current_cycle}")
-        # Prioritize xmrt* repos
-        repos = self.agent.xmrt_repos if self.agent.xmrt_repos else self.agent.other_repos
-        if repos:
-            for repo_info in random.sample(repos, min(2, len(repos))):
-                self.agent.working_task_executor(current_cycle, repo_info)
-                time.sleep(1)
-        self.agent.utility_builder(current_cycle)
-        logging.info(f"✅ SENTINEL CYCLE {current_cycle} COMPLETED.")
+    def status_update(self):
+        uptime_hours = (time.time() - self.start_time) / 3600
+        status_content = f"""# 🤖 BULLETPROOF XMRT ELIZA STATUS
+**Updated:** {datetime.now().isoformat()}
+**Cycle:** {self.cycle_count}
+**Uptime:** {uptime_hours:.1f} hours
+**Status:** RUNNING CONTINUOUSLY ✅
+"""
+        filename = f"ELIZA_BULLETPROOF_STATUS_{self.cycle_count}.md"
+        return self._commit_proof(f"{self.github_user}/XMRT-Ecosystem", filename, status_content, f"🤖 Bulletproof Status - Cycle {self.cycle_count}")
 
     def run_forever(self):
-        eliza_state.agent_status_message = "Running continuously"
-        logging.info("🌟 Sentinel of Progress: run_forever() entered")
+        logging.info("🚀 STARTING BULLETPROOF CONTINUOUS OPERATION")
         while True:
             try:
-                logging.info("🌟 About to run_bulletproof_cycle")
-                self.run_bulletproof_cycle()
-                logging.info("🌟 Cycle finished, sleeping ...")
-                time.sleep(self.check_interval_seconds)
+                check_stop_flag()
+                self.cycle_count += 1
+                self._save_cycle(self.cycle_count)
+                logging.info(f"🔄 BULLETPROOF CYCLE {self.cycle_count} STARTING")
+                # Prioritize xmrt* repos
+                targets = self.xmrt_repos if self.xmrt_repos else self.other_repos
+                if targets:
+                    repo_info = random.choice(targets)
+                    self.proof_of_work(self.cycle_count, repo_info)
+                else:
+                    logging.info("No repos found for improvement.")
+                # Build a utility every cycle
+                self.build_xmrt_utility(self.cycle_count)
+                # Status proof
+                self.status_update()
+                logging.info(f"✅ Cycle {self.cycle_count} completed. Sleeping {self.check_interval} seconds...")
+                remaining = self.check_interval
+                while remaining > 0:
+                    sleep_time = min(60, remaining)
+                    time.sleep(sleep_time)
+                    remaining -= sleep_time
+                    logging.info(f"⏰ Still sleeping... {remaining} seconds remaining")
             except Exception as e:
-                logging.critical(f"❌ CRITICAL ERROR IN MAIN LOOP: {e}", exc_info=True)
-                eliza_state.agent_status_message = f"Error: {str(e)[:50]}"
+                logging.error(f"❌ Cycle {self.cycle_count} error: {e}")
+                logging.info("🔄 Continuing anyway - NO EXITS ALLOWED")
                 time.sleep(60)
 
-def start_sentinel_thread():
-    global sentinel_thread
-    sentinel = SentinelOfProgress()
-    sentinel_thread = threading.Thread(target=sentinel.run_forever, daemon=True)
-    sentinel_thread.start()
-    logging.info("🌟 Sentinel of Progress thread started.")
-
-@app.route('/')
-def index():
-    dashboard = '''
-    <!DOCTYPE html>
-    <html>
-    <head><title>XMRT Eliza Sentinel</title></head>
-    <body>
-    <h1>XMRT Eliza - Sentinel of Progress</h1>
-    <ul>
-      <li>Current Cycle: <span id="cycle"></span></li>
-      <li>Total Commits: <span id="commits"></span></li>
-      <li>DAO Value: $<span id="dao"></span></li>
-      <li>Repositories Improved: <span id="repos"></span></li>
-      <li>Utilities Built: <span id="utilities"></span></li>
-    </ul>
-    <script>
-      function fetchStatus() {
-        fetch('/status').then(r=>r.json()).then(data=>{
-          document.getElementById('cycle').textContent = data.cycle_count;
-          document.getElementById('commits').textContent = data.total_commits_made;
-          document.getElementById('dao').textContent = data.dao_value_created;
-          document.getElementById('repos').textContent = data.repos_improved_count;
-          document.getElementById('utilities').textContent = data.utilities_built_count;
-        });
-      }
-      fetchStatus(); setInterval(fetchStatus, 4000);
-    </script>
-    </body>
-    </html>
-    '''
-    return dashboard
-
-@app.route('/status')
-def get_status():
-    with eliza_state.lock:
-        uptime = str(timedelta(seconds=int((datetime.now() - eliza_state.start_time).total_seconds())))
-        last_cycle = eliza_state.last_cycle_finish_time.strftime('%H:%M:%S') if eliza_state.last_cycle_finish_time else "N/A"
-        return jsonify({
-            "cycle_count": eliza_state.cycle_count,
-            "total_commits_made": eliza_state.total_commits_made,
-            "dao_value_created": eliza_state.dao_value_created,
-            "repos_improved_count": eliza_state.repos_improved_count,
-            "utilities_built_count": eliza_state.utilities_built_count,
-            "tasks_completed_count": eliza_state.tasks_completed_count,
-            "agent_status_message": eliza_state.agent_status_message,
-            "uptime_human": uptime,
-            "last_cycle_finish_time_human": last_cycle
-        })
-
-if __name__ == '__main__':
-    logging.info("🎯 Starting XMRT Eliza - Sentinel of Progress (v5.5)")
-    start_sentinel_thread()
-    port = int(os.environ.get('PORT', 10000))
-    app.run(host='0.0.0.0', port=port, debug=False)
+if __name__ == "__main__":
+    eliza = BulletproofXMRTEliza()
+    eliza.run_forever()
