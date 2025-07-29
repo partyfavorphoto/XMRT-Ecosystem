@@ -2,20 +2,9 @@ services:
   - type: web
     name: xmrt-eliza
     env: python
-    buildCommand: |
-      pip install --upgrade pip setuptools wheel
-      pip install --no-cache-dir -r requirements.txt
-    startCommand: python advanced_eliza_orchestrator.py --log-level INFO
+    buildCommand: pip install -r requirements.txt
+    startCommand: python advanced_eliza_orchestrator.py
     plan: starter
     region: oregon
     branch: main
     healthCheckPath: /health
-    envVars:
-      - key: PYTHON_VERSION
-        value: 3.11.9
-      - key: PIP_NO_CACHE_DIR
-        value: 1
-      - key: PYTHONUNBUFFERED
-        value: 1
-      - key: FLASK_ENV
-        value: production
