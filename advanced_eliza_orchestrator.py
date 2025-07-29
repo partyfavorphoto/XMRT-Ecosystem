@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
-# XMRT Eliza Orchestrator - SENTINEL OF PROGRESS: BULLETPROOF CYCLES & MULTI-REPO OPERATIONS
-# Version 5.4: Fully working, bulletproof, and ready for XMRT DAO
+# XMRT Eliza Orchestrator - Worker: Prioritize xmrt* Repos, Bulletproof Cycles
 
 import os
 import sys
@@ -21,7 +20,6 @@ from github import Github, InputGitAuthor
 load_dotenv()
 GITHUB_USERNAME = os.getenv('GITHUB_USERNAME', 'DevGruGold')
 GITHUB_TOKEN = os.getenv('GITHUB_TOKEN')
-MAIN_CHATBOT_URL = os.getenv('MAIN_CHATBOT_URL', "https://xmrt-io.onrender.com")
 CHECK_INTERVAL = int(os.getenv('CHECK_INTERVAL', '240')) # 4 minutes
 CYCLE_FILE = "/tmp/eliza_cycle_count.txt"
 
@@ -29,7 +27,6 @@ app = Flask(__name__)
 logging.basicConfig(level=logging.INFO, stream=sys.stdout,
                     format='%(asctime)s - %(levelname)s - %(message)s')
 
-# === STATE ===
 class ElizaAgentState:
     def __init__(self):
         self.lock = threading.Lock()
@@ -44,7 +41,6 @@ class ElizaAgentState:
         self.tools_discovered_count = 0
         self.utilities_built_count = 0
         self.discussion_posts_created = 0
-        self.chatbot_communications_count = 0
         self.files_created_count = 0
         self.github_operations_count = 0
         self.agent_status_message = "Initializing..."
@@ -76,11 +72,11 @@ class ElizaAgentState:
 
 eliza_state = ElizaAgentState()
 
-# === ELIZA AGENT CORE ===
 class ElizaCoreAgent:
     def __init__(self):
         self.github_client = None
-        self.all_user_repos = []
+        self.xmrt_repos = []
+        self.other_repos = []
         self._initialize_github()
         self._load_all_repos()
 
@@ -97,38 +93,40 @@ class ElizaCoreAgent:
             self.github_client = None
 
     def _load_all_repos(self):
+        self.xmrt_repos = []
+        self.other_repos = []
         if not self.github_client:
             return
         try:
             user = self.github_client.get_user(GITHUB_USERNAME)
-            self.all_user_repos = []
             for repo in user.get_repos():
                 if not repo.fork:
-                    self.all_user_repos.append({
+                    entry = {
                         'name': repo.name,
                         'full_name': repo.full_name,
                         'description': repo.description or 'No description',
                         'language': repo.language,
                         'stars': repo.stargazers_count,
-                        'size': repo.size,
-                        'updated': repo.updated_at.isoformat(),
                         'default_branch': repo.default_branch
-                    })
-            logging.info(f"🔍 Loaded {len(self.all_user_repos)} repositories for improvement.")
+                    }
+                    if repo.name.lower().startswith('xmrt'):
+                        self.xmrt_repos.append(entry)
+                    else:
+                        self.other_repos.append(entry)
+            logging.info(f"Loaded {len(self.xmrt_repos)} xmrt* repos and {len(self.other_repos)} other repos.")
         except Exception as e:
             logging.error(f"❌ Failed to load repositories: {e}")
-            self.all_user_repos = []
+            self.xmrt_repos = []
+            self.other_repos = []
 
     def _commit_to_github(self, repo_full_name, filename, content, message):
         if not self.github_client:
             logging.warning(f"⚠️ Skipping commit to {repo_full_name}/{filename}: GitHub not initialized.")
             return False
-
         try:
             repo = self.github_client.get_repo(repo_full_name)
             author = InputGitAuthor("Eliza Autonomous", "eliza@xmrt.io")
             try:
-                # Try to get the file; if it exists, update it
                 contents = repo.get_contents(filename, ref=repo.default_branch)
                 repo.update_file(
                     path=filename,
@@ -159,55 +157,34 @@ class ElizaCoreAgent:
 
     def _execute_self_improvement(self, cycle):
         improvements = []
-        improvement_areas = ["code_readability", "performance_tuning", "error_resilience"]
         for _ in range(random.randint(1, 2)):
-            area = random.choice(improvement_areas)
-            improvements.append({"area": area, "description": f"Optimized {area}", "cycle": cycle})
+            area = random.choice(["code_quality", "performance", "docs"])
+            improvements.append({"area": area, "description": f"Improved {area}", "cycle": cycle})
         with eliza_state.lock:
             eliza_state.self_improvements_count += len(improvements)
-            eliza_state.dao_value_created += len(improvements) * 5
+            eliza_state.dao_value_created += len(improvements) * 4
         return improvements
 
-    def _execute_tool_discovery(self, cycle):
-        discovered_tools = []
-        tool_categories = ["DeFi", "Privacy Tech", "DAO", "AI", "Analytics"]
-        for _ in range(random.randint(1, 2)):
-            cat = random.choice(tool_categories)
-            discovered_tools.append({
-                "name": f"XMRT_{cat}_Tool_{cycle}",
-                "category": cat,
-                "description": f"Discovered a {cat} tool.",
-                "potential_use": f"Enhance {cat} capabilities.",
-                "cycle": cycle
-            })
-        with eliza_state.lock:
-            eliza_state.tools_discovered_count += len(discovered_tools)
-            eliza_state.dao_value_created += len(discovered_tools) * 10
-        return discovered_tools
-
-    def _execute_utility_building(self, discovered_tools, cycle):
-        if not discovered_tools:
-            return 0
-        tool = random.choice(discovered_tools)
-        utility_name = f"XMRT_Utility_{tool['name']}_v{cycle}"
-        filename = f"eliza_utilities/{utility_name.lower()}.py"
-        content = f"# {utility_name}\n# Purpose: {tool['potential_use']}\n"
-        if self._commit_to_github(f"{GITHUB_USERNAME}/XMRT-Ecosystem", filename, content, f"🤖 Eliza Cycle {cycle}: Built utility {utility_name}"):
-            with eliza_state.lock:
-                eliza_state.utilities_built_count += 1
-                eliza_state.dao_value_created += 20
-            return 1
-        return 0
-
-    def _execute_repository_improvement(self, repo_info, cycle):
-        improvement_type = random.choice(["documentation_enhancement", "security_review", "performance_suggestions"])
-        filename = f"eliza_improvements/{repo_info['name']}/{improvement_type}_{cycle}.md"
-        content = f"# Autonomous Improvement Report - Cycle {cycle}\nRepository: {repo_info['name']}\n"
-        if self._commit_to_github(repo_info['full_name'], filename, content, f"🤖 Eliza Cycle {cycle}: {improvement_type} for {repo_info['name']}"):
+    def _execute_repo_improvement(self, repo_info, cycle):
+        imp_type = random.choice(["docs", "security", "performance"])
+        filename = f"eliza_improvements/{repo_info['name']}/{imp_type}_{cycle}.md"
+        content = f"# Eliza Improvement Cycle {cycle}\nRepository: {repo_info['name']}\nType: {imp_type}\n"
+        if self._commit_to_github(repo_info['full_name'], filename, content, f"🤖 Eliza Cycle {cycle}: {imp_type} for {repo_info['name']}"):
             with eliza_state.lock:
                 eliza_state.repos_improved_count += 1
                 eliza_state.tasks_completed_count += 1
-                eliza_state.dao_value_created += 30
+                eliza_state.dao_value_created += 15
+            return True
+        return False
+
+    def _execute_utility_building(self, cycle):
+        utility_name = f"XMRT_Utility_Cycle_{cycle}"
+        filename = f"eliza_utilities/{utility_name.lower()}.py"
+        content = f"# {utility_name}\n# Purpose: Autonomous utility\n"
+        if self._commit_to_github(f"{GITHUB_USERNAME}/XMRT-Ecosystem", filename, content, f"🤖 Eliza Cycle {cycle}: Built utility {utility_name}"):
+            with eliza_state.lock:
+                eliza_state.utilities_built_count += 1
+                eliza_state.dao_value_created += 12
             return True
         return False
 
@@ -234,26 +211,10 @@ class ElizaCoreAgent:
             repo.create_discussion(title=title, body=body, category=cat)
             with eliza_state.lock:
                 eliza_state.discussion_posts_created += 1
-                eliza_state.dao_value_created += 50
+                eliza_state.dao_value_created += 25
             return True
         except Exception as e:
             logging.warning(f"Failed to create discussion post: {e}")
-            return False
-
-    def _coordinate_with_chatbot(self, cycle):
-        try:
-            payload = {
-                "orchestrator_status": "active",
-                "cycle": cycle,
-                "total_commits": eliza_state.total_commits_made,
-                "dao_value": eliza_state.dao_value_created,
-                "timestamp": datetime.now().isoformat()
-            }
-            response = requests.post(f"{MAIN_CHATBOT_URL}/orchestrator_update", json=payload, timeout=10)
-            with eliza_state.lock:
-                eliza_state.chatbot_communications_count += 1
-            return response.status_code == 200
-        except Exception:
             return False
 
 # === MAIN BULLETPROOF LOOP ===
@@ -268,27 +229,35 @@ class SentinelOfProgress:
             eliza_state.cycle_count = eliza_state.increment_and_get_cycle()
             current_cycle = eliza_state.cycle_count
             eliza_state.last_cycle_finish_time = datetime.now()
-        improvements = self.agent._execute_self_improvement(current_cycle)
-        discovered_tools = self.agent._execute_tool_discovery(current_cycle)
-        self.agent._execute_utility_building(discovered_tools, current_cycle)
-        if self.agent.all_user_repos:
-            for repo_info in random.sample(self.agent.all_user_repos, min(2, len(self.agent.all_user_repos))):
-                self.agent._execute_repository_improvement(repo_info, current_cycle)
+        logging.info(f"🚀 STARTING SENTINEL CYCLE {current_cycle}")
+        self.agent._execute_self_improvement(current_cycle)
+        # Prioritize xmrt* repos
+        repos = self.agent.xmrt_repos if self.agent.xmrt_repos else self.agent.other_repos
+        if repos:
+            # Pick 2 repos per cycle if available
+            for repo_info in random.sample(repos, min(2, len(repos))):
+                self.agent._execute_repo_improvement(repo_info, current_cycle)
                 time.sleep(1)
+        self.agent._execute_utility_building(current_cycle)
         self.agent._create_discussion_post(current_cycle)
-        self.agent._coordinate_with_chatbot(current_cycle)
+        logging.info(f"✅ SENTINEL CYCLE {current_cycle} COMPLETED.")
 
     def run_forever(self):
         eliza_state.agent_status_message = "Running continuously"
+        logging.info("🌟 Sentinel of Progress: run_forever() entered")
         while True:
             try:
+                logging.info("🌟 About to run_bulletproof_cycle")
                 self.run_bulletproof_cycle()
+                logging.info("🌟 Cycle finished, sleeping ...")
                 time.sleep(self.check_interval_seconds)
             except Exception as e:
+                logging.critical(f"❌ CRITICAL ERROR IN MAIN LOOP: {e}", exc_info=True)
                 eliza_state.agent_status_message = f"Error: {str(e)[:50]}"
                 time.sleep(60)
 
 def start_sentinel_thread():
+    global sentinel_thread
     sentinel = SentinelOfProgress()
     sentinel_thread = threading.Thread(target=sentinel.run_forever, daemon=True)
     sentinel_thread.start()
