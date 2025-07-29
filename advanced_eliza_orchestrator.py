@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# XMRT Eliza Orchestrator - Phase 3: Advanced AI Features
+# XMRT Eliza Orchestrator - Phase 3 Lite: Simplified AI
 
 import os
 import sys
@@ -12,7 +12,7 @@ from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Any, Union
 import logging
 
-# Phase 3 imports with fallbacks
+# Phase 3 Lite imports - simplified
 try:
     from flask import Flask, jsonify, request
     import requests
@@ -23,13 +23,10 @@ try:
     from dateutil import parser as date_parser
     from pydantic import BaseModel, Field
     import openai
-    from langchain.schema import BaseMessage, HumanMessage, AIMessage, SystemMessage
-    from langchain_openai import ChatOpenAI
-    import tiktoken
-    PHASE3_READY = True
-    print("✅ Phase 3: Advanced AI dependencies loaded successfully")
+    PHASE3_LITE_READY = True
+    print("✅ Phase 3 Lite: Simplified AI dependencies loaded successfully")
 except ImportError as e:
-    print(f"⚠️ Phase 3 import issue: {e}")
+    print(f"⚠️ Phase 3 Lite import issue: {e}")
     # Fallback to Phase 2
     try:
         from flask import Flask, jsonify, request
@@ -38,7 +35,7 @@ except ImportError as e:
         import psutil
         import orjson
         import structlog
-        PHASE3_READY = False
+        PHASE3_LITE_READY = False
         print("🔄 Running in Phase 2 compatibility mode")
     except ImportError:
         print("❌ Critical dependencies missing")
@@ -48,7 +45,7 @@ except ImportError as e:
 load_dotenv()
 
 # Configure structured logging
-if PHASE3_READY:
+if PHASE3_LITE_READY:
     structlog.configure(
         processors=[
             structlog.stdlib.filter_by_level,
@@ -88,15 +85,13 @@ class AIConfig(BaseModel):
     temperature: float = Field(default=0.7)
     fallback_mode: bool = Field(default=True)
 
-class AdvancedAIEngine:
-    """Advanced AI engine with OpenAI and LangChain integration"""
+class SimplifiedAIEngine:
+    """Simplified AI engine with OpenAI integration (no tiktoken)"""
     
     def __init__(self):
-        self.ai_available = PHASE3_READY
+        self.ai_available = PHASE3_LITE_READY
         self.config = AIConfig()
         self.openai_client = None
-        self.langchain_llm = None
-        self.tokenizer = None
         
         # Initialize AI services
         self._initialize_ai_services()
@@ -105,48 +100,48 @@ class AdvancedAIEngine:
         self.enhanced_patterns = {
             'ai_technical': {
                 'patterns': ['ai', 'artificial intelligence', 'machine learning', 'neural network', 'gpt', 'openai'],
-                'ai_prompt': "You are XMRT Eliza, an advanced AI with deep knowledge of artificial intelligence, machine learning, and AI systems. Provide insightful, technical responses about AI topics while maintaining a conversational tone."
+                'ai_prompt': "You are XMRT Eliza, an advanced AI with deep knowledge of artificial intelligence and technology. Provide insightful, technical responses while maintaining a conversational tone."
             },
             'xmrt_ecosystem': {
                 'patterns': ['xmrt', 'dao', 'governance', 'blockchain', 'defi', 'crypto', 'token'],
-                'ai_prompt': "You are XMRT Eliza, an AI assistant for the XMRT ecosystem. You understand decentralized governance, blockchain technology, and DAO operations. Provide helpful insights about the XMRT ecosystem."
+                'ai_prompt': "You are XMRT Eliza, an AI assistant for the XMRT ecosystem. You understand decentralized governance and blockchain technology. Provide helpful insights about XMRT."
             },
             'complex_reasoning': {
                 'patterns': ['analyze', 'explain', 'compare', 'evaluate', 'strategy', 'solution'],
-                'ai_prompt': "You are XMRT Eliza, equipped with advanced reasoning capabilities. Provide thoughtful analysis, clear explanations, and strategic insights. Break down complex topics into understandable components."
+                'ai_prompt': "You are XMRT Eliza with advanced reasoning capabilities. Provide thoughtful analysis and clear explanations. Break down complex topics systematically."
             },
             'creative_thinking': {
                 'patterns': ['create', 'design', 'innovative', 'brainstorm', 'idea', 'creative'],
-                'ai_prompt': "You are XMRT Eliza, with enhanced creative thinking abilities. Generate innovative ideas, creative solutions, and original concepts. Think outside the box while remaining practical."
+                'ai_prompt': "You are XMRT Eliza with enhanced creative thinking. Generate innovative ideas and creative solutions while remaining practical."
             },
             'problem_solving': {
                 'patterns': ['problem', 'issue', 'challenge', 'troubleshoot', 'debug', 'fix'],
-                'ai_prompt': "You are XMRT Eliza, an expert problem solver. Analyze issues systematically, identify root causes, and provide step-by-step solutions. Be methodical and thorough."
+                'ai_prompt': "You are XMRT Eliza, an expert problem solver. Analyze issues systematically and provide step-by-step solutions."
             }
         }
         
-        # Fallback patterns (from Phase 2)
+        # Fallback patterns
         self.fallback_patterns = {
             'greeting': {
                 'patterns': ['hello', 'hi', 'hey', 'greetings'],
                 'responses': [
-                    "Hello! I'm XMRT Eliza with advanced AI capabilities. How can I assist you today?",
-                    "Hi there! I'm equipped with enhanced AI features. What would you like to explore?",
-                    "Greetings! My advanced AI systems are ready to help. What's on your mind?"
+                    "Hello! I'm XMRT Eliza with AI capabilities. How can I assist you today?",
+                    "Hi there! I'm equipped with intelligent features. What would you like to explore?",
+                    "Greetings! My AI systems are ready to help. What's on your mind?"
                 ]
             },
             'default': {
                 'patterns': [],
                 'responses': [
-                    "I'm processing your message with my advanced AI systems. Can you tell me more?",
-                    "That's interesting. My AI capabilities are analyzing your input. Please elaborate.",
-                    "I'm using my enhanced reasoning to understand your perspective. What else would you like to discuss?"
+                    "I'm processing your message with my AI systems. Can you tell me more?",
+                    "That's interesting. My intelligent systems are analyzing your input. Please elaborate.",
+                    "I'm using my reasoning capabilities to understand. What else would you like to discuss?"
                 ]
             }
         }
     
     def _initialize_ai_services(self):
-        """Initialize OpenAI and LangChain services"""
+        """Initialize OpenAI services (simplified)"""
         if not self.ai_available:
             logger.info("AI services not available - running in fallback mode")
             return
@@ -159,17 +154,6 @@ class AdvancedAIEngine:
                 # Initialize OpenAI client
                 self.openai_client = openai.OpenAI(api_key=api_key)
                 
-                # Initialize LangChain LLM
-                self.langchain_llm = ChatOpenAI(
-                    api_key=api_key,
-                    model_name=self.config.model_name,
-                    temperature=self.config.temperature,
-                    max_tokens=self.config.max_tokens
-                )
-                
-                # Initialize tokenizer
-                self.tokenizer = tiktoken.encoding_for_model(self.config.model_name)
-                
                 logger.info("AI services initialized successfully", model=self.config.model_name)
                 print(f"🤖 AI Engine: OpenAI {self.config.model_name} ready")
                 
@@ -181,11 +165,10 @@ class AdvancedAIEngine:
             logger.error("AI services initialization failed", error=str(e))
             print(f"⚠️ AI Engine: Initialization failed - {str(e)}")
     
-    def count_tokens(self, text: str) -> int:
-        """Count tokens in text"""
-        if self.tokenizer:
-            return len(self.tokenizer.encode(text))
-        return len(text.split())  # Rough estimate
+    def estimate_tokens(self, text: str) -> int:
+        """Rough token estimation without tiktoken"""
+        # Rough estimation: ~4 characters per token
+        return len(text) // 4
     
     def determine_ai_category(self, message: str) -> Optional[str]:
         """Determine if message should use AI processing"""
@@ -201,8 +184,8 @@ class AdvancedAIEngine:
         
         return None
     
-    async def generate_ai_response(self, message: str, category: str, context: Dict) -> Dict[str, Any]:
-        """Generate response using AI services"""
+    def generate_ai_response(self, message: str, category: str, context: Dict) -> Dict[str, Any]:
+        """Generate response using OpenAI (simplified)"""
         start_time = time.time()
         
         try:
@@ -225,7 +208,7 @@ class AdvancedAIEngine:
             
             # Add recent conversation history if available
             if context.get('recent_history'):
-                for hist_msg in context['recent_history'][-3:]:  # Last 3 exchanges
+                for hist_msg in context['recent_history'][-2:]:  # Last 2 exchanges
                     messages.insert(-1, {"role": "user", "content": hist_msg.get('user_message', '')})
                     messages.insert(-1, {"role": "assistant", "content": hist_msg.get('eliza_response', '')})
             
@@ -239,12 +222,16 @@ class AdvancedAIEngine:
             
             ai_response = response.choices[0].message.content
             
+            # Estimate tokens used
+            input_tokens = self.estimate_tokens(message)
+            output_tokens = self.estimate_tokens(ai_response)
+            
             # Track AI interaction
             ai_interaction = {
                 'timestamp': datetime.now().isoformat(),
                 'category': category,
-                'input_tokens': self.count_tokens(message),
-                'output_tokens': self.count_tokens(ai_response),
+                'input_tokens': input_tokens,
+                'output_tokens': output_tokens,
                 'model': self.config.model_name,
                 'response_time': time.time() - start_time
             }
@@ -263,7 +250,7 @@ class AdvancedAIEngine:
                 'response_time': time.time() - start_time,
                 'ai_powered': True,
                 'model_used': self.config.model_name,
-                'tokens_used': ai_interaction['input_tokens'] + ai_interaction['output_tokens']
+                'tokens_used': input_tokens + output_tokens
             }
             
         except Exception as e:
@@ -278,24 +265,24 @@ class AdvancedAIEngine:
         # Enhanced fallback responses based on category
         enhanced_responses = {
             'ai_technical': [
-                "I'd love to discuss AI with you! While I'm currently in enhanced mode, I can share insights about artificial intelligence, machine learning, and the future of AI systems. What specific aspect interests you?",
-                "AI is fascinating! I'm equipped with advanced reasoning capabilities. What would you like to explore about artificial intelligence or machine learning?",
-                "That's a great AI question! My enhanced systems are designed to help with technical discussions. Can you tell me more about what you're working on?"
+                "I'd love to discuss AI with you! While I'm in enhanced mode, I can share insights about artificial intelligence and technology. What specific aspect interests you?",
+                "AI is fascinating! I'm equipped with advanced reasoning capabilities. What would you like to explore about AI or technology?",
+                "That's a great technical question! My enhanced systems are designed for these discussions. Can you tell me more?"
             ],
             'xmrt_ecosystem': [
-                "The XMRT ecosystem is built for the future of decentralized governance! I'm designed to help with DAO operations and blockchain questions. What aspects of XMRT interest you?",
-                "XMRT represents innovation in decentralized systems! I can help with governance, tokenomics, and DAO strategies. What would you like to know?",
-                "I'm part of the XMRT ecosystem and understand its vision for decentralized governance. How can I help with your XMRT questions?"
+                "The XMRT ecosystem is built for decentralized governance! I'm designed to help with DAO operations and blockchain questions. What aspects interest you?",
+                "XMRT represents innovation in decentralized systems! I can help with governance and tokenomics. What would you like to know?",
+                "I'm part of the XMRT ecosystem and understand decentralized governance. How can I help with your XMRT questions?"
             ],
             'complex_reasoning': [
-                "That requires some analytical thinking! My enhanced reasoning systems are processing your question. Let me break this down systematically for you.",
-                "Excellent question for analysis! I'm equipped with advanced problem-solving capabilities. Let me work through this step by step.",
-                "I love complex challenges! My enhanced AI architecture is designed for this kind of reasoning. What specific aspect should we focus on first?"
+                "That requires analytical thinking! My enhanced reasoning systems are processing your question. Let me work through this systematically.",
+                "Excellent question for analysis! I'm equipped with problem-solving capabilities. Let me break this down step by step.",
+                "I love complex challenges! My AI architecture is designed for reasoning. What specific aspect should we focus on?"
             ],
             'default': [
-                "I'm listening with my enhanced AI capabilities. While I'm currently in advanced fallback mode, I can provide thoughtful responses. Tell me more!",
-                "That's interesting! My enhanced systems are analyzing your input. I'm designed to handle complex conversations - please elaborate.",
-                "My advanced AI features are processing your message. Even in enhanced mode, I can provide meaningful insights. What else would you like to explore?"
+                "I'm listening with my AI capabilities. While in enhanced mode, I can provide thoughtful responses. Tell me more!",
+                "That's interesting! My intelligent systems are analyzing your input. Please elaborate on what you're thinking.",
+                "My AI features are processing your message. I'm designed for meaningful conversations - what else would you like to explore?"
             ]
         }
         
@@ -313,7 +300,7 @@ class AdvancedAIEngine:
             'enhancement_level': 'advanced'
         }
     
-    async def generate_response(self, message: str, context: Dict) -> Dict[str, Any]:
+    def generate_response(self, message: str, context: Dict) -> Dict[str, Any]:
         """Main response generation with AI integration"""
         
         # Determine if we should use AI
@@ -321,7 +308,7 @@ class AdvancedAIEngine:
         
         if ai_category and self.openai_client:
             # Use AI for advanced response
-            return await self.generate_ai_response(message, ai_category, context)
+            return self.generate_ai_response(message, ai_category, context)
         else:
             # Use enhanced fallback
             start_time = time.time()
@@ -329,10 +316,10 @@ class AdvancedAIEngine:
             return self._generate_fallback_response(message, category, context, start_time)
 
 class SystemMonitor:
-    """Enhanced system monitoring with AI metrics"""
+    """System monitoring with AI metrics"""
     
     def __init__(self):
-        self.monitoring_active = PHASE3_READY or True  # Always active now
+        self.monitoring_active = True
         self.last_check = datetime.now()
         self.alert_thresholds = {
             'cpu_percent': 80.0,
@@ -343,17 +330,17 @@ class SystemMonitor:
         }
         
     def get_system_metrics(self) -> Dict[str, Any]:
-        """Get comprehensive system metrics including AI stats"""
+        """Get system metrics including AI stats"""
         try:
             # Standard system metrics
-            cpu_percent = psutil.cpu_percent(interval=0.1) if self.monitoring_active else 0
-            memory = psutil.virtual_memory() if self.monitoring_active else type('obj', (object,), {'percent': 0, 'total': 0, 'available': 0, 'used': 0})()
-            disk = psutil.disk_usage('/') if self.monitoring_active else type('obj', (object,), {'total': 1, 'used': 0, 'free': 1})()
+            cpu_percent = psutil.cpu_percent(interval=0.1)
+            memory = psutil.virtual_memory()
+            disk = psutil.disk_usage('/')
             
             # AI-specific metrics
             ai_metrics = {
                 'total_ai_interactions': len(ai_interactions),
-                'ai_available': PHASE3_READY and ai_engine.openai_client is not None,
+                'ai_available': PHASE3_LITE_READY and ai_engine.openai_client is not None,
                 'recent_ai_response_time': 0,
                 'total_tokens_used': 0
             }
@@ -362,8 +349,6 @@ class SystemMonitor:
                 recent_interactions = ai_interactions[-10:]
                 ai_metrics['recent_ai_response_time'] = sum(i['response_time'] for i in recent_interactions) / len(recent_interactions)
                 ai_metrics['total_tokens_used'] = sum(i.get('input_tokens', 0) + i.get('output_tokens', 0) for i in ai_interactions)
-                ai_metrics['most_used_category'] = max(set(i['category'] for i in recent_interactions), 
-                                                     key=lambda x: sum(1 for i in recent_interactions if i['category'] == x))
             
             metrics = {
                 'timestamp': datetime.now().isoformat(),
@@ -399,9 +384,9 @@ class SystemMonitor:
             logger.error("System metrics collection failed", error=str(e))
             return {'error': str(e), 'timestamp': datetime.now().isoformat()}
 
-# Initialize enhanced systems
+# Initialize systems
 system_monitor = SystemMonitor()
-ai_engine = AdvancedAIEngine()
+ai_engine = SimplifiedAIEngine()
 
 def log_error(error_type: str, error_message: str, context: Dict = None):
     """Enhanced error logging"""
@@ -410,7 +395,7 @@ def log_error(error_type: str, error_message: str, context: Dict = None):
         'type': error_type,
         'message': error_message,
         'context': context or {},
-        'phase': 3
+        'phase': '3-lite'
     }
     
     error_log.append(error_entry)
@@ -435,10 +420,10 @@ def not_found(error):
         'message': 'The requested endpoint does not exist',
         'available_endpoints': [
             '/health', '/status', '/chat', '/api/chat', '/message', '/sessions', 
-            '/metrics', '/system/health', '/ai/status', '/ai/metrics', '/ai/models'
+            '/metrics', '/system/health', '/ai/status', '/ai/metrics'
         ],
         'timestamp': datetime.now().isoformat(),
-        'phase': 3
+        'phase': '3-lite'
     }), 404
 
 @app.errorhandler(500)
@@ -449,55 +434,53 @@ def internal_error(error):
         'message': 'An unexpected error occurred, but the system recovered',
         'timestamp': datetime.now().isoformat(),
         'support': 'Check /system/health for system status',
-        'phase': 3
+        'phase': '3-lite'
     }), 500
 
 @app.route('/health')
 def health_check():
-    health_status = system_monitor.get_system_metrics()
-    
     return jsonify({
         'status': 'healthy',
         'service': 'xmrt-eliza',
-        'version': '1.4.0-advanced-ai',
-        'phase': 3,
+        'version': '1.4.1-ai-lite',
+        'phase': '3-lite',
         'timestamp': datetime.now().isoformat(),
         'uptime_seconds': int((datetime.now() - start_time).total_seconds()),
         'total_requests': request_count,
         'chat_sessions': len(chat_sessions),
         'conversation_count': len(conversation_memory),
         'ai_interactions': len(ai_interactions),
-        'ai_available': PHASE3_READY and ai_engine.openai_client is not None,
+        'ai_available': PHASE3_LITE_READY and ai_engine.openai_client is not None,
         'monitoring_active': system_monitor.monitoring_active
     })
 
 @app.route('/')
 def root():
     return jsonify({
-        'message': 'XMRT Eliza - Phase 3: Advanced AI with OpenAI & LangChain Integration!',
+        'message': 'XMRT Eliza - Phase 3 Lite: Simplified AI Integration (Build Fixed)!',
         'status': 'operational',
-        'version': '1.4.0-advanced-ai',
-        'phase': 3,
+        'version': '1.4.1-ai-lite',
+        'phase': '3-lite',
         'features': {
-            'advanced_ai': PHASE3_READY,
+            'simplified_ai': PHASE3_LITE_READY,
             'openai_integration': ai_engine.openai_client is not None,
-            'langchain_support': PHASE3_READY,
             'enhanced_reasoning': True,
             'system_monitoring': True,
             'conversation_analytics': True,
-            'token_counting': True,
-            'fallback_modes': True
+            'token_estimation': True,
+            'fallback_modes': True,
+            'build_optimized': True
         },
         'endpoints': [
             '/health', '/status', '/chat', '/api/chat', '/message', '/sessions',
             '/metrics', '/system/health', '/system/metrics', '/ai/status', 
-            '/ai/metrics', '/ai/models', '/conversation/history', '/conversation/stats'
+            '/ai/metrics', '/conversation/history', '/conversation/stats'
         ]
     })
 
 @app.route('/chat', methods=['POST'])
 def chat():
-    """Enhanced chat endpoint with AI integration"""
+    """Enhanced chat endpoint with simplified AI integration"""
     try:
         data = request.get_json()
         
@@ -539,8 +522,8 @@ def chat():
             'recent_history': recent_history
         }
         
-        # Generate response using AI engine
-        eliza_response = await ai_engine.generate_response(message, context)
+        # Generate response using simplified AI engine
+        eliza_response = ai_engine.generate_response(message, context)
         
         # Track AI usage
         if eliza_response.get('ai_powered'):
@@ -565,7 +548,7 @@ def chat():
         }
         conversation_memory.append(conversation_entry)
         
-        if len(conversation_memory) > 500:  # Increased capacity for AI conversations
+        if len(conversation_memory) > 500:
             conversation_memory.pop(0)
         
         return jsonify({
@@ -580,8 +563,8 @@ def chat():
             'model_used': eliza_response.get('model_used'),
             'tokens_used': eliza_response.get('tokens_used', 0),
             'eliza_uptime': context['uptime_seconds'],
-            'version': '1.4.0-advanced-ai',
-            'phase': 3
+            'version': '1.4.1-ai-lite',
+            'phase': '3-lite'
         })
         
     except Exception as e:
@@ -591,7 +574,7 @@ def chat():
             'message': 'An error occurred, but the system recovered gracefully',
             'timestamp': datetime.now().isoformat(),
             'support': 'Try rephrasing your message or check /system/health',
-            'phase': 3
+            'phase': '3-lite'
         }), 500
 
 @app.route('/api/chat', methods=['POST'])
@@ -606,9 +589,9 @@ def message():
 def ai_status():
     """AI system status endpoint"""
     return jsonify({
-        'ai_available': PHASE3_READY,
+        'ai_available': PHASE3_LITE_READY,
         'openai_connected': ai_engine.openai_client is not None,
-        'langchain_ready': PHASE3_READY,
+        'simplified_mode': True,
         'model_name': ai_engine.config.model_name,
         'total_ai_interactions': len(ai_interactions),
         'recent_interactions': len([i for i in ai_interactions if datetime.fromisoformat(i['timestamp']) > datetime.now() - timedelta(hours=1)]),
@@ -616,6 +599,11 @@ def ai_status():
             'max_tokens': ai_engine.config.max_tokens,
             'temperature': ai_engine.config.temperature,
             'fallback_mode': ai_engine.config.fallback_mode
+        },
+        'build_optimizations': {
+            'tiktoken_removed': True,
+            'langchain_removed': True,
+            'lightweight_mode': True
         },
         'timestamp': datetime.now().isoformat()
     })
@@ -626,7 +614,7 @@ def ai_metrics():
     if not ai_interactions:
         return jsonify({
             'message': 'No AI interactions yet',
-            'ai_available': PHASE3_READY,
+            'ai_available': PHASE3_LITE_READY,
             'timestamp': datetime.now().isoformat()
         })
     
@@ -649,6 +637,7 @@ def ai_metrics():
             'total_requests': len(ai_interactions)
         },
         'recent_activity': ai_interactions[-10:] if len(ai_interactions) >= 10 else ai_interactions,
+        'lite_mode': True,
         'timestamp': datetime.now().isoformat()
     })
 
@@ -661,14 +650,15 @@ def system_health():
         'overall_health': 'healthy',
         'system_metrics': metrics,
         'ai_health': {
-            'available': PHASE3_READY,
+            'available': PHASE3_LITE_READY,
             'connected': ai_engine.openai_client is not None,
             'interactions_count': len(ai_interactions),
-            'avg_response_time': sum(i['response_time'] for i in ai_interactions[-10:]) / min(10, len(ai_interactions)) if ai_interactions else 0
+            'avg_response_time': sum(i['response_time'] for i in ai_interactions[-10:]) / min(10, len(ai_interactions)) if ai_interactions else 0,
+            'lite_mode': True
         },
         'service_info': {
-            'version': '1.4.0-advanced-ai',
-            'phase': 3,
+            'version': '1.4.1-ai-lite',
+            'phase': '3-lite',
             'uptime_seconds': int((datetime.now() - start_time).total_seconds()),
             'total_requests': request_count,
             'active_sessions': len(chat_sessions),
@@ -687,9 +677,10 @@ def system_metrics():
         'monitoring_active': system_monitor.monitoring_active,
         'thresholds': system_monitor.alert_thresholds,
         'ai_integration': {
-            'available': PHASE3_READY,
+            'available': PHASE3_LITE_READY,
             'active_interactions': len(ai_interactions),
-            'total_tokens_used': sum(i.get('input_tokens', 0) + i.get('output_tokens', 0) for i in ai_interactions)
+            'total_tokens_used': sum(i.get('input_tokens', 0) + i.get('output_tokens', 0) for i in ai_interactions),
+            'lite_mode': True
         }
     })
 
@@ -702,13 +693,14 @@ def service_metrics():
         'total_ai_interactions': len(ai_interactions),
         'ai_response_rate': len([c for c in conversation_memory if c.get('ai_powered')]) / max(1, len(conversation_memory)),
         'total_tokens_used': sum(i.get('input_tokens', 0) + i.get('output_tokens', 0) for i in ai_interactions),
-        'avg_ai_response_time': sum(i['response_time'] for i in ai_interactions) / max(1, len(ai_interactions))
+        'avg_ai_response_time': sum(i['response_time'] for i in ai_interactions) / max(1, len(ai_interactions)),
+        'lite_mode': True
     }
     
     return jsonify({
         'service': 'xmrt-eliza',
-        'version': '1.4.0-advanced-ai',
-        'phase': 3,
+        'version': '1.4.1-ai-lite',
+        'phase': '3-lite',
         'uptime_seconds': uptime_seconds,
         'uptime_human': str(timedelta(seconds=uptime_seconds)),
         'total_requests': request_count,
@@ -763,7 +755,8 @@ def conversation_stats():
         'categories': {
             category: len([c for c in conversation_memory if c.get('category') == category])
             for category in set(c.get('category', 'unknown') for c in conversation_memory)
-        }
+        },
+        'lite_mode': True
     })
 
 @app.route('/status')
@@ -771,18 +764,19 @@ def status():
     return jsonify({
         'service': 'xmrt-eliza',
         'status': 'running',
-        'version': '1.4.0-advanced-ai',
-        'phase': 3,
+        'version': '1.4.1-ai-lite',
+        'phase': '3-lite',
         'uptime_seconds': int((datetime.now() - start_time).total_seconds()),
         'total_requests': request_count,
         'python_version': sys.version,
         'ai_features': {
             'openai_integration': ai_engine.openai_client is not None,
-            'langchain_support': PHASE3_READY,
-            'advanced_reasoning': True,
-            'token_counting': True,
+            'simplified_mode': True,
+            'enhanced_reasoning': True,
+            'token_estimation': True,
             'conversation_context': True,
-            'fallback_modes': True
+            'fallback_modes': True,
+            'build_optimized': True
         },
         'chat_features': {
             'active_sessions': len(chat_sessions),
@@ -800,22 +794,20 @@ def api_health():
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 10000))
     
-    print(f"🚀 Starting XMRT Eliza Phase 3: Advanced AI System")
-    print(f"🤖 Version: 1.4.0-advanced-ai")
+    print(f"🚀 Starting XMRT Eliza Phase 3 Lite: Simplified AI System")
+    print(f"🤖 Version: 1.4.1-ai-lite")
     print(f"🔧 Port: {port}")
-    print(f"🧠 AI Integration: {'Active' if PHASE3_READY else 'Fallback Mode'}")
+    print(f"🧠 AI Integration: {'Active' if PHASE3_LITE_READY else 'Fallback Mode'}")
     print(f"🔗 OpenAI: {'Connected' if ai_engine.openai_client else 'API Key Required'}")
     print(f"📊 System monitoring: {'Active' if system_monitor.monitoring_active else 'Limited'}")
+    print(f"⚡ Build optimized: Removed tiktoken and complex dependencies")
     print(f"⏰ Start time: {start_time}")
     
     # Log startup
-    logger.info("XMRT Eliza Phase 3 starting", 
-                version="1.4.0-advanced-ai",
-                ai_available=PHASE3_READY,
-                openai_connected=ai_engine.openai_client is not None)
-    
-    # Create event loop for async AI operations
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
+    logger.info("XMRT Eliza Phase 3 Lite starting", 
+                version="1.4.1-ai-lite",
+                ai_available=PHASE3_LITE_READY,
+                openai_connected=ai_engine.openai_client is not None,
+                lite_mode=True)
     
     app.run(host='0.0.0.0', port=port, debug=False)
