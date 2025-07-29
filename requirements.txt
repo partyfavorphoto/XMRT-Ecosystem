@@ -1,4 +1,6 @@
-# Phase 3 Lite: AI Features without build issues
+# XMRT Eliza Orchestrator: Sentinel of Progress Dependencies
+# Ensure all required libraries are installed for full functionality.
+
 flask==3.0.3
 gunicorn==22.0.0
 requests==2.32.3
@@ -9,3 +11,4 @@ python-dateutil==2.9.0.post0
 structlog==24.2.0
 openai==1.35.13
 pydantic==2.8.2
+PyGithub==2.3.0  # Added for GitHub API interactions
