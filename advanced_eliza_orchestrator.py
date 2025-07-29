@@ -95,7 +95,7 @@ class ElizaCoreAgent:
         try:
             if GITHUB_TOKEN:
                 # FIXED: Use github.Auth.Token and github.Github
-                auth = github.Auth.Token(self.github_token)
+                auth = github.Auth.Token(GITHUB_TOKEN) # Use the correct GITHUB_TOKEN variable
                 self.github_client = github.Github(auth=auth)
                 logging.info("✅ PyGithub client initialized with github.Auth.Token.")
             else:
@@ -636,6 +636,15 @@ HTML_DASHBOARD = '''
 
 # === MAIN APPLICATION ENTRY POINT ===
 
+# FIXED: Moved start_sentinel_thread definition BEFORE its call in __main__
+# This ensures the function is defined before it's used.
+def start_sentinel_thread():
+    """Starts the SentinelOfProgress in a separate daemon thread."""
+    sentinel = SentinelOfProgress()
+    sentinel_thread = threading.Thread(target=sentinel.run_forever, daemon=True)
+    sentinel_thread.start()
+    logging.info("🌟 Sentinel of Progress thread started.")
+
 if __name__ == '__main__':
     logging.info("🎯" + "=" * 80)
     logging.info("🚀 STARTING XMRT ELIZA - SENTINEL OF PROGRESS")
@@ -650,7 +659,7 @@ if __name__ == '__main__':
     logging.info("🎯" + "=" * 80)
 
     # Start the core agent's continuous operation in a separate thread
-    start_sentinel_thread()
+    start_sentinel_thread() # This call will now find the definition above
     
     # Start the Flask web server
     port = int(os.environ.get('PORT', 10000))
