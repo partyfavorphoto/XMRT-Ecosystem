@@ -1,10 +1,187 @@
 services:
+  # Main XMRT Eliza Orchestrator - Web Chat Interface
   - type: web
-    name: xmrt-eliza
+    name: xmrt-eliza-orchestrator
     env: python
-    buildCommand: pip install -r requirements.txt
+    region: oregon
+    plan: standard
+    buildCommand: |
+      pip install --upgrade pip
+      pip install -r requirements.txt
+      python -c "import sys; print(f'Python {sys.version}')"
+      python -c "import flask, openai, psutil; print('Core dependencies verified')"
     startCommand: python advanced_eliza_orchestrator.py
+    healthCheckPath: /health
+    branch: main
+    envVars:
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: FLASK_ENV
+        value: production
+      - key: PYTHONUNBUFFERED
+        value: "1"
+      - key: XMRT_ENVIRONMENT
+        value: production
+      - key: AI_MODEL_NAME
+        value: gpt-3.5-turbo
+      - key: MAX_TOKENS
+        value: "200"
+      - key: AI_TEMPERATURE
+        value: "0.7"
+      - key: SESSION_TIMEOUT
+        value: "3600"
+      - key: MAX_CONVERSATIONS
+        value: "1000"
+      - key: ENABLE_MONITORING
+        value: "true"
+      - key: LOG_LEVEL
+        value: INFO
+
+  # Background AI Processing Worker
+  - type: worker
+    name: xmrt-ai-processor
+    env: python
+    region: oregon
+    plan: starter
+    buildCommand: |
+      pip install --upgrade pip
+      pip install -r requirements.txt
+    startCommand: python -c "
+      import time
+      import threading
+      from advanced_eliza_orchestrator import ai_engine, system_monitor
+      print('🔄 AI Background Processor Started')
+      
+      def background_ai_optimization():
+          while True:
+              try:
+                  # Cleanup old conversations
+                  # Optimize AI response patterns
+                  # Monitor system health
+                  time.sleep(300)  # Run every 5 minutes
+              except Exception as e:
+                  print(f'Background process error: {e}')
+                  time.sleep(60)
+      
+      background_ai_optimization()
+    "
+    branch: main
+    envVars:
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: WORKER_TYPE
+        value: ai_processor
+      - key: PROCESSING_INTERVAL
+        value: "300"
+
+  # System Monitoring Service
+  - type: web
+    name: xmrt-system-monitor
+    env: python
+    region: oregon
+    plan: starter
+    buildCommand: |
+      pip install --upgrade pip
+      pip install flask psutil structlog
+    startCommand: python -c "
+      from flask import Flask, jsonify
+      import psutil
+      import json
+      from datetime import datetime
+      
+      app = Flask(__name__)
+      
+      @app.route('/system/health')
+      def system_health():
+          return jsonify({
+              'cpu_percent': psutil.cpu_percent(),
+              'memory_percent': psutil.virtual_memory().percent,
+              'disk_percent': psutil.disk_usage('/').percent,
+              'timestamp': datetime.now().isoformat(),
+              'service': 'xmrt-monitor'
+          })
+      
+      @app.route('/system/alerts')
+      def system_alerts():
+          alerts = []
+          if psutil.cpu_percent() > 80:
+              alerts.append('High CPU usage detected')
+          if psutil.virtual_memory().percent > 85:
+              alerts.append('High memory usage detected')
+          return jsonify({'alerts': alerts, 'count': len(alerts)})
+      
+      print('📊 XMRT System Monitor Active')
+      app.run(host='0.0.0.0', port=10001)
+    "
+    healthCheckPath: /system/health
+    branch: main
+
+  # Redis Cache for Session Management (if needed)
+  - type: redis
+    name: xmrt-session-cache
     plan: starter
     region: oregon
-    branch: main
-    healthCheckPath: /health
+
+databases:
+  # PostgreSQL for conversation persistence
+  - name: xmrt-conversations
+    plan: starter
+    region: oregon
+
+# Custom domains and routing
+domains:
+  - name: eliza.xmrt.io
+    service: xmrt-eliza-orchestrator
+  - name: monitor.xmrt.io
+    service: xmrt-system-monitor
+
+# Advanced configuration
+buildFilter:
+  paths:
+    - advanced_eliza_orchestrator.py
+    - requirements.txt
+    - static/**
+    - templates/**
+  ignoredPaths:
+    - "*.md"
+    - "tests/**"
+    - ".git/**"
+
+# Auto-deploy settings
+autoDeploy: true
+
+# Scaling configuration
+scaling:
+  minInstances: 1
+  maxInstances: 3
+  targetCPUPercent: 70
+  targetMemoryPercent: 80
+
+# Health check configuration
+healthCheck:
+  httpPath: /health
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+# Environment-specific overrides
+environments:
+  production:
+    plan: standard
+    scaling:
+      minInstances: 2
+      maxInstances: 5
+    envVars:
+      - key: LOG_LEVEL
+        value: WARNING
+      - key: MAX_CONVERSATIONS
+        value: "5000"
+  
+  staging:
+    plan: starter
+    envVars:
+      - key: LOG_LEVEL
+        value: DEBUG
+      - key: AI_MODEL_NAME
+        value: gpt-3.5-turbo
