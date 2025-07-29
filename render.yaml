@@ -5,7 +5,7 @@ services:
     buildCommand: |
       pip install --upgrade pip setuptools wheel
       pip install --no-cache-dir -r requirements.txt
-    startCommand: python health_app.py
+    startCommand: python advanced_eliza_orchestrator.py --log-level INFO
     plan: starter
     region: oregon
     branch: main
@@ -17,3 +17,5 @@ services:
         value: 1
       - key: PYTHONUNBUFFERED
         value: 1
+      - key: FLASK_ENV
+        value: production
