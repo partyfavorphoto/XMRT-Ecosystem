@@ -1,14 +1,108 @@
 # XMRT Eliza Orchestrator: Sentinel of Progress Dependencies
 # Ensure all required libraries are installed for full functionality.
 
+# Web Framework & API (existing)
 flask==3.0.3
 gunicorn==22.0.0
+
+# HTTP & Networking (existing)
 requests==2.32.3
+
+# Environment & Configuration (existing)
 python-dotenv==1.0.1
+
+# System Utilities (existing)
 psutil==6.0.0
+
+# JSON Processing (existing)
 orjson==3.10.6
+
+# Date/Time Utilities (existing)
 python-dateutil==2.9.0.post0
+
+# Structured Logging (existing)
 structlog==24.2.0
+
+# OpenAI Integration (existing)
 openai==1.35.13
+
+# Data Processing (existing)
 pydantic==2.8.2
-PyGithub==2.3.0  # Added for GitHub API interactions
+
+# GitHub API Integration (existing)
+PyGithub==2.3.0
+# Added for GitHub API interactions
+
+# Enhanced API Framework for Orchestration
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+python-multipart==0.0.6
+
+# WebSocket Support for Real-time Communication
+websockets==12.0
+
+# Advanced HTTP Client
+httpx==0.25.2
+
+# Enhanced JSON Processing
+ujson==5.8.0
+
+# Configuration Management
+pyyaml==6.0.1
+toml==0.10.2
+
+# Process Management & System Monitoring
+supervisor==4.2.5
+
+# Database Support (Optional)
+sqlite3-utils==3.35.2
+sqlalchemy==2.0.23
+
+# Async Support
+asyncio-throttle==1.0.2
+aiofiles==23.2.1
+
+# Enhanced Logging & Monitoring
+loguru==0.7.2
+prometheus-client==0.19.0
+
+# Security & Authentication
+cryptography==41.0.8
+passlib[bcrypt]==1.7.4
+
+# Task Scheduling & Queue Management
+celery==5.3.4
+redis==5.0.1
+
+# Data Validation & Serialization
+marshmallow==3.20.1
+cerberus==1.3.5
+
+# Enhanced Error Handling & Debugging
+sentry-sdk==1.38.0
+rich==13.7.0
+
+# File System Monitoring
+watchdog==3.0.0
+
+# Network & Protocol Support
+paramiko==3.3.1
+fabric==3.2.2
+
+# Advanced Data Structures
+sortedcontainers==2.4.0
+cachetools==5.3.2
+
+# Testing & Quality Assurance (Development)
+pytest==7.4.3
+pytest-asyncio==0.21.1
+black==23.11.0
+flake8==6.1.0
+
+# Documentation Generation
+mkdocs==1.5.3
+mkdocs-material==9.4.8
+
+# Performance Monitoring
+memory-profiler==0.61.0
+py-spy==0.3.14
