@@ -1,88 +1,52 @@
-# XMRT Eliza Orchestrator: Sentinel of Progress Dependencies
-# Optimized for Render deployment with conflict resolution
+# XMRT Eliza Orchestrator: Bulletproof Production Dependencies
+# Minimal stable versions tested for Render compatibility
 
-# Core Web Framework & API
-flask==2.3.3
-fastapi==0.104.1
-uvicorn[standard]==0.24.0
-gunicorn==21.2.0
-python-multipart==0.0.6
+# Core Web Framework
+fastapi==0.68.0
+uvicorn==0.15.0
 
-# HTTP & Networking
-requests==2.31.0
-httpx==0.25.2
+# HTTP & Networking  
+requests==2.28.0
+httpx==0.24.0
 
 # Environment & Configuration
-python-dotenv==1.0.1
-pyyaml==6.0.1
-toml==0.10.2
+python-dotenv==0.19.0
 
-# System Utilities & Monitoring
-psutil==5.9.6
-loguru==0.7.2
-structlog==24.1.0
-rich==13.6.0
+# Data Processing & Validation
+pydantic==1.10.0
 
-# JSON Processing (compatible versions)
-orjson==3.9.10
-ujson==5.8.0
+# GitHub API Integration
+PyGithub==1.55
+
+# System Utilities
+psutil==5.9.0
+
+# JSON Processing (simple version)
+# Removed orjson and ujson - causing Rust compilation issues
 
 # Date/Time Utilities
 python-dateutil==2.8.2
 
-# AI & Language Models
-openai==1.12.0
-
-# Data Processing & Validation
-pydantic==2.5.3
-marshmallow==3.20.1
-cerberus==1.3.5
-
-# GitHub API Integration
-PyGithub==1.59.1
-
-# WebSocket & Real-time Communication
-websockets==11.0.3
-
-# Database Support (conflict resolved)
-sqlalchemy==2.0.23
+# AI Integration (stable version)
+openai==0.27.0
 
 # Async Support
-aiofiles==23.2.1
-asyncio-throttle==1.0.2
+aiofiles==0.8.0
 
-# Caching & Performance
-redis==4.6.0
-cachetools==5.3.2
+# Basic logging
+# Removed loguru, structlog - using built-in logging
 
-# Security & Authentication (compatible versions)
-cryptography==41.0.7
-passlib==1.7.4
+# WebSocket Support
+websockets==10.4
 
-# Task Management
-celery==5.3.4
+# Database (minimal)
+sqlalchemy==1.4.41
 
-# Enhanced Data Structures
-sortedcontainers==2.4.0
+# Caching (stable version)
+redis==4.3.4
 
-# File System Monitoring
-watchdog==3.0.0
+# Security (minimal)
+# Removed cryptography and passlib - causing compilation issues
 
-# Network & Protocol Support
-paramiko==3.3.1
-fabric==3.2.2
-
-# Monitoring & Debugging
-sentry-sdk==1.38.0
-prometheus-client==0.19.0
-memory-profiler==0.61.0
-
-# Development Tools (production compatible)
-pytest==7.4.3
-pytest-asyncio==0.21.1
-black==23.9.1
-flake8==6.1.0
-
-# Documentation (lightweight)
-mkdocs==1.5.3
-mkdocs-material==9.4.8
+# Basic utilities only
+python-multipart==0.0.5
