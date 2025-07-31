@@ -1,0 +1,56 @@
+services:
+  # XMRT AI Automation Service - Main Service
+  - type: web
+    name: xmrt-ai-automation-service
+    env: python
+    region: oregon
+    plan: standard
+    buildCommand: "pip install -r requirements_fixed.txt"
+    startCommand: "python main.py"
+    healthCheckPath: /health
+    branch: main
+    autoDeploy: true
+    scaling:
+      minInstances: 1
+      maxInstances: 3
+      targetCPUPercent: 70
+      targetMemoryPercent: 80
+    envVars:
+      - key: OPENAI_API_KEY
+        sync: false # Set as a secret in the dashboard
+      - key: WEB3_RPC_URL
+        sync: false # Add this secret in the dashboard
+      - key: PYTHONUNBUFFERED
+        value: "1"
+      - key: LOG_LEVEL
+        value: "INFO"
+      - key: AUTOMATION_ENABLED
+        value: "true"
+      - key: TREASURY_MONITORING_INTERVAL
+        value: "900" # 15 minutes
+      - key: GOVERNANCE_CHECK_INTERVAL
+        value: "300" # 5 minutes
+      - key: COMMUNITY_MONITOR_INTERVAL
+        value: "60" # 1 minute
+
+  # Redis Cache for Agent State
+  - type: redis
+    name: xmrt-automation-cache
+    plan: starter
+    region: oregon
+    maxmemoryPolicy: allkeys-lru
+
+# Build filter
+buildFilter:
+  paths:
+    - main.py
+    - src/**
+    - requirements_fixed.txt
+  ignoredPaths:
+    - "*.md"
+    - "tests/**"
+    - ".git/**"
+    - "docs/**"
+    - "render.yaml"
+    - "requirements.txt"
+

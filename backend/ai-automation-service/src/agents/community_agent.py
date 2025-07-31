@@ -188,7 +188,7 @@ class CommunityAgent:
 
         support_keywords = [
             'help', 'issue', 'problem', 'error', 'bug', 'support',
-            'how to', 'can't', 'unable', 'not working', 'broken'
+            'how to', 'can\'t', 'unable', 'not working', 'broken'
         ]
 
         for message in messages:

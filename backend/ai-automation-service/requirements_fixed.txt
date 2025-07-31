@@ -1,0 +1,51 @@
+# XMRT AI Automation Service - Production Dependencies
+# Cleaned and optimized for deployment
+
+# Core Web Framework
+fastapi==0.68.0
+uvicorn==0.15.0
+
+# HTTP & Networking  
+requests==2.28.0
+httpx==0.24.0
+
+# Environment & Configuration
+python-dotenv==0.19.0
+
+# Data Processing & Validation
+pydantic==1.10.0
+
+# GitHub API Integration
+PyGithub==1.55
+
+# System Utilities
+psutil==5.9.0
+
+# Date/Time Utilities
+python-dateutil==2.8.2
+
+# AI Integration
+openai==0.27.0
+
+# Async Support
+aiofiles==0.8.0
+
+# WebSocket Support
+websockets==10.4
+
+# Database
+sqlalchemy==1.4.41
+
+# Caching
+redis==4.5.0
+
+# Blockchain Integration
+web3==6.0.0
+eth-account==0.8.0
+
+# Task Scheduling
+schedule==1.2.0
+
+# Additional utilities
+numpy==1.24.0
+
