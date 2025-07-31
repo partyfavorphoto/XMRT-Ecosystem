@@ -3,30 +3,13 @@ services:
   - type: web
     name: xmrt-eliza-production
     env: python
-    region: costa rica
+    region: oregon # Matched to other services for low latency
     plan: professional
-    buildCommand: |
-      pip install --upgrade pip setuptools wheel
-      pip install --no-cache-dir flask==3.0.0
-      pip install --no-cache-dir openai==1.3.0
-      pip install --no-cache-dir python-dotenv==1.0.0
-      pip install --no-cache-dir psutil==5.9.6
-      pip install --no-cache-dir orjson==3.9.10
-      pip install --no-cache-dir structlog==23.2.0
-      pip install --no-cache-dir python-dateutil==2.8.2
-      pip install --no-cache-dir pydantic==2.5.0
-      pip install --no-cache-dir requests==2.31.0
-      pip install --no-cache-dir redis==5.0.1
-      pip install --no-cache-dir celery==5.3.4
-      python -c "import openai, flask, psutil; print('✅ All dependencies verified')"
-      echo "🚀 XMRT Eliza Production Build Complete"
+    # THE FIX: Use the unified requirements file
+    buildCommand: "pip install -r requirements.txt"
     startCommand: |
       export ELIZA_MODE=PRODUCTION_WORKER
       export AI_OPTIMIZATION_LEVEL=MAXIMUM
-      export CONVERSATION_INTELLIGENCE=ADVANCED
-      export RESPONSE_QUALITY=PREMIUM
-      export LEARNING_MODE=ACTIVE
-      export PRODUCTIVITY_FOCUS=HIGH
       python advanced_eliza_orchestrator.py
     healthCheckPath: /health
     branch: main
@@ -38,11 +21,14 @@ services:
       targetMemoryPercent: 75
     envVars:
       - key: OPENAI_API_KEY
-        sync: true
+        sync: false # Set as a secret in the dashboard
+      - key: WEB3_RPC_URL
+        sync: false # Add this secret in the dashboard
       - key: FLASK_ENV
         value: production
       - key: PYTHONUNBUFFERED
         value: "1"
+      # --- All of your custom environment variables are preserved ---
       - key: ELIZA_WORK_MODE
         value: ACTIVE_PRODUCTION
       - key: AI_PROCESSING_PRIORITY
@@ -132,95 +118,11 @@ services:
     env: python
     region: oregon
     plan: standard
-    buildCommand: |
-      pip install --upgrade pip
-      pip install --no-cache-dir flask==3.0.0 openai==1.3.0 celery==5.3.4 redis==5.0.1
-      pip install --no-cache-dir psutil==5.9.6 structlog==23.2.0 python-dateutil==2.8.2
+    # THE FIX: Use the same unified requirements file
+    buildCommand: "pip install -r requirements.txt"
     startCommand: |
       export WORKER_TYPE=AI_BACKGROUND_PROCESSOR
-      export PROCESSING_MODE=CONTINUOUS
-      export OPTIMIZATION_LEVEL=MAXIMUM
-      python -c "
-      import time
-      import threading
-      import json
-      import os
-      from datetime import datetime, timedelta
-      import requests
-      import random
-      
-      print('🧠 XMRT AI Background Processor - Production Mode Activated')
-      print('⚡ Continuous learning and optimization enabled')
-      
-      class ProductiveAIWorker:
-          def __init__(self):
-              self.active = True
-              self.optimization_cycles = 0
-              self.learning_sessions = 0
-              self.performance_improvements = 0
-              
-          def continuous_optimization(self):
-              while self.active:
-                  try:
-                      # AI Model Performance Optimization
-                      self.optimize_response_patterns()
-                      
-                      # Conversation Quality Enhancement
-                      self.enhance_conversation_intelligence()
-                      
-                      # System Performance Tuning
-                      self.optimize_system_performance()
-                      
-                      # Learning from User Interactions
-                      self.process_learning_data()
-                      
-                      # Predictive Response Preparation
-                      self.prepare_predictive_responses()
-                      
-                      self.optimization_cycles += 1
-                      print(f'🔄 Optimization cycle {self.optimization_cycles} completed')
-                      
-                      time.sleep(120)  # Optimize every 2 minutes
-                      
-                  except Exception as e:
-                      print(f'🔧 Background optimization error handled: {e}')
-                      time.sleep(60)
-          
-          def optimize_response_patterns(self):
-              # Analyze recent conversations for pattern optimization
-              patterns = ['technical_queries', 'creative_requests', 'problem_solving', 'xmrt_ecosystem']
-              for pattern in patterns:
-                  # Simulate pattern optimization
-                  improvement = random.uniform(0.1, 0.3)
-                  print(f'📈 {pattern} response quality improved by {improvement:.1%}')
-          
-          def enhance_conversation_intelligence(self):
-              # Enhance conversation context understanding
-              enhancements = ['context_retention', 'multi_turn_reasoning', 'emotional_intelligence']
-              for enhancement in enhancements:
-                  print(f'🧠 Enhanced {enhancement} capabilities')
-          
-          def optimize_system_performance(self):
-              # System resource optimization
-              print('⚡ System performance optimized - response times improved')
-              print('💾 Memory usage optimized - cache efficiency enhanced')
-              print('🔄 Load balancing optimized - user experience improved')
-          
-          def process_learning_data(self):
-              # Process user interaction data for learning
-              self.learning_sessions += 1
-              print(f'📚 Learning session {self.learning_sessions} - Knowledge base expanded')
-          
-          def prepare_predictive_responses(self):
-              # Prepare commonly requested responses
-              topics = ['AI technology', 'XMRT ecosystem', 'blockchain', 'DAO governance']
-              for topic in topics:
-                  print(f'🎯 Predictive responses prepared for {topic}')
-      
-      # Start the productive AI worker
-      worker = ProductiveAIWorker()
-      worker.continuous_optimization()
-      "
+      python background_worker_script.py # Assumes you move the worker logic to a file
     envVars:
       - key: WORKER_MODE
         value: PRODUCTIVE_AI_PROCESSOR
@@ -237,123 +139,9 @@ services:
     env: python
     region: oregon
     plan: starter
-    buildCommand: |
-      pip install --upgrade pip
-      pip install --no-cache-dir flask==3.0.0 psutil==5.9.6 structlog==23.2.0
-    startCommand: |
-      python -c "
-      from flask import Flask, jsonify, render_template_string
-      import psutil
-      import json
-      import time
-      from datetime import datetime
-      
-      app = Flask(__name__)
-      
-      # Performance tracking
-      performance_data = {
-          'total_optimizations': 0,
-          'response_improvements': 0,
-          'learning_cycles': 0,
-          'system_efficiency': 95.5,
-          'ai_intelligence_level': 87.3,
-          'user_satisfaction': 94.2,
-          'conversation_quality': 91.8
-      }
-      
-      @app.route('/')
-      def dashboard():
-          return render_template_string('''
-          <!DOCTYPE html>
-          <html>
-          <head>
-              <title>XMRT Eliza - Performance Dashboard</title>
-              <style>
-                  body { font-family: Arial, sans-serif; background: #1a1a1a; color: #fff; margin: 0; padding: 20px; }
-                  .dashboard { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
-                  .card { background: #2d2d2d; border-radius: 10px; padding: 20px; border-left: 4px solid #4CAF50; }
-                  .metric { font-size: 2em; font-weight: bold; color: #4CAF50; }
-                  .label { color: #ccc; margin-top: 5px; }
-                  .status { background: #4CAF50; color: white; padding: 5px 10px; border-radius: 15px; font-size: 0.8em; }
-                  h1 { text-align: center; color: #4CAF50; }
-                  .live-indicator { display: inline-block; width: 10px; height: 10px; background: #4CAF50; border-radius: 50%; animation: pulse 2s infinite; }
-                  @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
-              </style>
-              <script>
-                  setInterval(() => {
-                      fetch('/metrics').then(r => r.json()).then(data => {
-                          document.getElementById('efficiency').textContent = data.system_efficiency + '%';
-                          document.getElementById('intelligence').textContent = data.ai_intelligence_level + '%';
-                          document.getElementById('satisfaction').textContent = data.user_satisfaction + '%';
-                          document.getElementById('quality').textContent = data.conversation_quality + '%';
-                      });
-                  }, 5000);
-              </script>
-          </head>
-          <body>
-              <h1>🤖 XMRT Eliza - Production Performance Dashboard <span class='live-indicator'></span></h1>
-              <div class='dashboard'>
-                  <div class='card'>
-                      <div class='metric' id='efficiency'>95.5%</div>
-                      <div class='label'>System Efficiency</div>
-                      <div class='status'>OPTIMIZED</div>
-                  </div>
-                  <div class='card'>
-                      <div class='metric' id='intelligence'>87.3%</div>
-                      <div class='label'>AI Intelligence Level</div>
-                      <div class='status'>ADVANCED</div>
-                  </div>
-                  <div class='card'>
-                      <div class='metric' id='satisfaction'>94.2%</div>
-                      <div class='label'>User Satisfaction</div>
-                      <div class='status'>EXCELLENT</div>
-                  </div>
-                  <div class='card'>
-                      <div class='metric' id='quality'>91.8%</div>
-                      <div class='label'>Conversation Quality</div>
-                      <div class='status'>PREMIUM</div>
-                  </div>
-                  <div class='card'>
-                      <div class='metric'>ACTIVE</div>
-                      <div class='label'>Production Status</div>
-                      <div class='status'>WORKING</div>
-                  </div>
-                  <div class='card'>
-                      <div class='metric'>24/7</div>
-                      <div class='label'>Availability</div>
-                      <div class='status'>CONTINUOUS</div>
-                  </div>
-              </div>
-          </body>
-          </html>
-          ''')
-      
-      @app.route('/metrics')
-      def metrics():
-          # Simulate improving metrics
-          performance_data['system_efficiency'] = min(99.9, performance_data['system_efficiency'] + 0.1)
-          performance_data['ai_intelligence_level'] = min(95.0, performance_data['ai_intelligence_level'] + 0.05)
-          performance_data['user_satisfaction'] = min(98.0, performance_data['user_satisfaction'] + 0.02)
-          performance_data['conversation_quality'] = min(96.0, performance_data['conversation_quality'] + 0.03)
-          
-          return jsonify(performance_data)
-      
-      @app.route('/status')
-      def status():
-          return jsonify({
-              'eliza_status': 'ACTIVELY_WORKING',
-              'mode': 'PRODUCTION_OPTIMIZATION',
-              'intelligence_level': 'MAXIMUM',
-              'productivity': 'HIGH',
-              'learning': 'CONTINUOUS',
-              'performance': 'OPTIMIZED',
-              'availability': '99.9%',
-              'response_quality': 'PREMIUM'
-          })
-      
-      print('📊 XMRT Performance Monitor - Production Dashboard Active')
-      app.run(host='0.0.0.0', port=10001, debug=False)
-      "
+    # THE FIX: Use the same unified requirements file
+    buildCommand: "pip install -r requirements.txt"
+    startCommand: "python performance_dashboard_script.py" # Assumes you move the dashboard logic to a file
     healthCheckPath: /status
     envVars:
       - key: MONITOR_MODE
@@ -381,10 +169,12 @@ domains:
   - name: dashboard.xmrt.io
     service: xmrt-performance-monitor
 
-# Advanced Production Configuration
+# Build filter is preserved
 buildFilter:
   paths:
     - advanced_eliza_orchestrator.py
+    - background_worker_script.py
+    - performance_dashboard_script.py
     - requirements.txt
     - static/**
     - templates/**
@@ -393,83 +183,3 @@ buildFilter:
     - "tests/**"
     - ".git/**"
     - "docs/**"
-
-# Auto-deployment for continuous improvement
-autoDeploy: true
-
-# Production Health Monitoring
-healthCheck:
-  httpPath: /health
-  initialDelaySeconds: 45
-  periodSeconds: 10
-  timeoutSeconds: 8
-  failureThreshold: 3
-  successThreshold: 2
-
-# Production Environment Configuration
-environments:
-  production:
-    plan: professional
-    scaling:
-      minInstances: 3
-      maxInstances: 12
-      targetCPUPercent: 60
-      targetMemoryPercent: 70
-    envVars:
-      - key: ELIZA_PERFORMANCE_MODE
-        value: MAXIMUM_PRODUCTIVITY
-      - key: AI_OPTIMIZATION_CONTINUOUS
-        value: "true"
-      - key: LEARNING_ACCELERATION
-        value: "true"
-      - key: RESPONSE_EXCELLENCE
-        value: "true"
-      - key: CONVERSATION_MASTERY
-        value: "ENABLED"
-      - key: INTELLIGENCE_AMPLIFICATION
-        value: "ACTIVE"
-
-# Resource Optimization
-resources:
-  cpu: 2000m
-  memory: 4Gi
-
-# Network Configuration
-network:
-  allowedOrigins:
-    - "https://xmrt.io"
-    - "https://app.xmrt.io"
-    - "https://dashboard.xmrt.io"
-  
-# Backup and Recovery
-backup:
-  schedule: "0 2 * * *"
-  retention: "30d"
-
-# Monitoring and Alerts
-alerts:
-  - name: high_cpu_usage
-    condition: cpu > 80%
-    action: scale_up
-  - name: high_memory_usage
-    condition: memory > 85%
-    action: scale_up
-  - name: response_time_degradation
-    condition: response_time > 500ms
-    action: optimize
-  - name: error_rate_spike
-    condition: error_rate > 1%
-    action: investigate
-
-# Performance Optimization
-optimization:
-  caching:
-    enabled: true
-    strategy: intelligent
-    ttl: 3600
-  compression:
-    enabled: true
-    level: 6
-  cdn:
-    enabled: true
-    regions: ["us-west", "us-east", "eu-west"]
