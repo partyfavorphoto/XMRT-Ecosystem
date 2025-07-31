@@ -1,67 +1,16 @@
-# XMRT Eliza Orchestrator: Bulletproof Production Dependencies
-# Minimal stable versions tested for Render compatibility
-
-# Core Web Framework
-fastapi==0.68.0
-uvicorn==0.15.0
-
-# HTTP & Networking  
-requests==2.28.0
-httpx==0.24.0
-
-# Environment & Configuration
-python-dotenv==0.19.0
-
-# Data Processing & Validation
-pydantic==1.10.0
-
-# GitHub API Integration
-PyGithub==1.55
-
-# System Utilities
+schedule==1.2.0
+web3==7.12.1
+eth-account==0.13.7
+openai==1.98.0
+python-dotenv==1.1.1
+fastapi==0.116.1
+uvicorn==0.35.0
+requests==2.32.4
+httpx==0.28.0
+pydantic==2.11.7
+PyGithub==2.6.1
 psutil==5.9.0
-
-# JSON Processing (simple version)
-# Removed orjson and ujson - causing Rust compilation issues
-
-# Date/Time Utilities
-python-dateutil==2.8.2
-
-# AI Integration (stable version)
-openai==0.27.0
-
-# Async Support
-aiofiles==0.8.0
-
-# Basic logging
-# Removed loguru, structlog - using built-in logging
-
-# WebSocket Support
-websockets==10.4
-
-# Database (minimal)
-sqlalchemy==1.4.41
-
-# Caching (stable version)
-redis==4.5.0
-
-# Security (minimal)
-# Removed cryptography and passlib - causing compilation issues
-
-# Basic utilities only
-
-PyGithub>=1.59.0
-requests>=2.31.0
-python-dotenv>=1.0.0
-redis>=4.5.0
-numpy>=1.24.0
-asyncio
-logging
-dataclasses
-enum34
-datetime
-typing
-json
-base64
-time
-
+python-dateutil==2.9.0.post0
+aiofiles==24.1.0
+websockets==15.0.1
+six==1.17.0
