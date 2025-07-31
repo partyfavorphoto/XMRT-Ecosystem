@@ -16,7 +16,7 @@ python-dotenv==0.19.0
 pydantic==1.10.0
 
 # GitHub API Integration
-PyGithub==1.55
+PyGithub>=1.59.0
 
 # System Utilities
 psutil==5.9.0
