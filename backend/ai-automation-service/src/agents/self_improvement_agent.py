@@ -125,8 +125,11 @@ class SelfImprovementAgent:
             Provide specific, actionable recommendations for code improvements.
             """
             
+            # Get recent chat logs first
+            recent_chats = await self.get_recent_chat_logs()
+            
             analysis = await self.ai_utils.analyze_with_context(analysis_prompt, {
-                'recent_chats': await self.get_recent_chat_logs(),
+                'recent_chats': recent_chats,
                 'performance_data': self.performance_metrics
             })
             
