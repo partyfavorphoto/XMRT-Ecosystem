@@ -1,6 +1,13 @@
 # launcher.py - The Production Web Server & API for Eliza
 
 import os
+import openai
+import anthropic
+import google.generativeai as genai
+from huggingface_hub import InferenceClient
+import httpx
+import json
+
 import asyncio
 import logging
 from fastapi import FastAPI
@@ -170,34 +177,147 @@ async def general_ai_response(message: str) -> str:
 async def call_ai_service(prompt: str) -> str:
     """
     Call your AI services (OpenAI, Anthropic, Gemini, Hugging Face)
-    This is where you'll integrate your actual AI API calls
+    Now with REAL API implementations using your environment variables
     """
     try:
-        # TODO: Implement actual AI service calls here
-        # Try your AI services in order of preference:
+        print(f"[AI] Attempting to call AI services for prompt: {prompt[:100]}...")
         
-        # 1. Try Anthropic (Claude)
-        # anthropic_response = await call_anthropic(prompt)
-        # if anthropic_response: return anthropic_response
+        # Try AI services in order of preference
+        
+        # 1. Try Anthropic (Claude) - Usually most reliable
+        try:
+            anthropic_response = await call_anthropic(prompt)
+            if anthropic_response and len(anthropic_response) > 20:
+                print(f"[AI] Success with Anthropic: {len(anthropic_response)} chars")
+                return anthropic_response
+        except Exception as e:
+            print(f"[AI] Anthropic failed: {e}")
         
         # 2. Try OpenAI
-        # openai_response = await call_openai(prompt) 
-        # if openai_response: return openai_response
+        try:
+            openai_response = await call_openai(prompt)
+            if openai_response and len(openai_response) > 20:
+                print(f"[AI] Success with OpenAI: {len(openai_response)} chars")
+                return openai_response
+        except Exception as e:
+            print(f"[AI] OpenAI failed: {e}")
         
         # 3. Try Gemini
-        # gemini_response = await call_gemini(prompt)
-        # if gemini_response: return gemini_response
+        try:
+            gemini_response = await call_gemini(prompt)
+            if gemini_response and len(gemini_response) > 20:
+                print(f"[AI] Success with Gemini: {len(gemini_response)} chars")
+                return gemini_response
+        except Exception as e:
+            print(f"[AI] Gemini failed: {e}")
         
         # 4. Try Hugging Face
-        # hf_response = await call_huggingface(prompt)
-        # if hf_response: return hf_response
+        try:
+            hf_response = await call_huggingface(prompt)
+            if hf_response and len(hf_response) > 20:
+                print(f"[AI] Success with Hugging Face: {len(hf_response)} chars")
+                return hf_response
+        except Exception as e:
+            print(f"[AI] Hugging Face failed: {e}")
         
-        # For now, return None to use fallback responses
-        # Once you implement the AI calls above, this will use your APIs
+        print(f"[AI] All AI services failed, using enhanced fallback")
         return None
         
     except Exception as e:
-        print(f"[AI Service] Error: {e}")
+        print(f"[AI Service] Critical error: {e}")
+        return None
+
+async def call_anthropic(prompt: str) -> str:
+    """Call Anthropic Claude API"""
+    try:
+        api_key = os.getenv('ANTHROPIC_API_KEY')
+        if not api_key:
+            print("[Anthropic] No API key found")
+            return None
+        
+        client = anthropic.Anthropic(api_key=api_key)
+        
+        message = client.messages.create(
+            model="claude-3-sonnet-20240229",
+            max_tokens=300,
+            temperature=0.7,
+            messages=[{
+                "role": "user",
+                "content": prompt
+            }]
+        )
+        
+        return message.content[0].text if message.content else None
+        
+    except Exception as e:
+        print(f"[Anthropic] Error: {e}")
+        return None
+
+async def call_openai(prompt: str) -> str:
+    """Call OpenAI API"""
+    try:
+        api_key = os.getenv('OPENAI_API_KEY')
+        if not api_key:
+            print("[OpenAI] No API key found")
+            return None
+        
+        client = openai.AsyncOpenAI(api_key=api_key)
+        
+        response = await client.chat.completions.create(
+            model="gpt-3.5-turbo",
+            max_tokens=300,
+            temperature=0.7,
+            messages=[{
+                "role": "user",
+                "content": prompt
+            }]
+        )
+        
+        return response.choices[0].message.content if response.choices else None
+        
+    except Exception as e:
+        print(f"[OpenAI] Error: {e}")
+        return None
+
+async def call_gemini(prompt: str) -> str:
+    """Call Google Gemini API"""
+    try:
+        api_key = os.getenv('GEMINI_API_KEY') or os.getenv('GOOGLE_API_KEY')
+        if not api_key:
+            print("[Gemini] No API key found")
+            return None
+        
+        genai.configure(api_key=api_key)
+        model = genai.GenerativeModel('gemini-pro')
+        
+        response = model.generate_content(prompt)
+        return response.text if response.text else None
+        
+    except Exception as e:
+        print(f"[Gemini] Error: {e}")
+        return None
+
+async def call_huggingface(prompt: str) -> str:
+    """Call Hugging Face API"""
+    try:
+        api_key = os.getenv('HUGGINGFACE_API_KEY') or os.getenv('HF_TOKEN')
+        if not api_key:
+            print("[HuggingFace] No API key found")
+            return None
+        
+        client = InferenceClient(token=api_key)
+        
+        response = client.text_generation(
+            prompt=prompt,
+            model="microsoft/DialoGPT-large",
+            max_new_tokens=300,
+            temperature=0.7
+        )
+        
+        return response if isinstance(response, str) else None
+        
+    except Exception as e:
+        print(f"[HuggingFace] Error: {e}")
         return None
 
 
