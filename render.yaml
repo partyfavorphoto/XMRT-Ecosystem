@@ -1,44 +1,230 @@
-# render.yaml - The Official Blueprint for Eliza's AI Automation Service
+# ===================================================================
+# XMRT Eliza AI Ecosystem: Production Blueprint v3.3
+# This is the definitive deployment plan for Render.
+# ===================================================================
 
 services:
-  # The main Eliza AI Web Service from the ai-automation-service directory
+  # -------------------------------------------------------------------
+  # SERVICE 1: The Main Eliza Orchestrator (Web Service)
+  # This is the core of your AI, handling API requests and running agents.
+  # -------------------------------------------------------------------
   - type: web
-    name: eliza-automation-service
-    runtime: python
-    plan: starter # You can upgrade this later to prevent spin-down
-
-    # THE FIX: This is the magic line. It tells Render to work inside this folder.
+    name: xmrt-eliza-production
+    env: python
+    region: oregon # Matched to other services for low latency
+    plan: professional
+    
+    # --- The Core Fixes ---
+    # 1. We tell Render to work inside your specific service directory.
     rootDir: backend/ai-automation-service
-
-    # Build and Start Commands, run from the 'rootDir'
+    
+    # 2. We use a single, unified requirements file for a robust build.
     buildCommand: "pip install -r requirements.txt"
-    startCommand: "gunicorn -w 4 -k uvicorn.workers.UvicornWorker autonomous_system_launcher:app --bind 0.0.0.0:$PORT"
-
-    healthCheckPath: /health # We will add this endpoint to your code
+    
+    # 3. We use a production web server to run your new launcher script.
+    startCommand: "gunicorn -w 4 -k uvicorn.workers.UvicornWorker launcher:app --bind 0.0.0.0:$PORT"
+    
+    # 4. We point the health check to the endpoint in your launcher.
+    healthCheckPath: /health
+    
+    # --- Your Configuration (Preserved) ---
+    branch: main
+    autoDeploy: true
+    scaling:
+      minInstances: 2
+      maxInstances: 8
+      targetCPUPercent: 65
+      targetMemoryPercent: 75
     envVars:
-      - key: PYTHON_VERSION
-        value: 3.11.4
-      - key: PORT
-        value: 10000
-      - key: GITHUB_USERNAME
-        value: DevGruGold
-      - key: ELIZA_ENV
-        value: production
-      # Secrets (you will set these in the Render Dashboard)
-      - key: GITHUB_TOKEN
-        sync: false
+      # Secrets - These must be set in the Render Dashboard Environment tab.
       - key: OPENAI_API_KEY
         sync: false
+      - key: GITHUB_TOKEN
+        sync: false # Make sure to add your DevGruGold PAT here
       - key: WEB3_RPC_URL
-        sync: false
-      # Service Connections (Render handles these automatically)
-      - key: REDIS_URL
-        fromService:
-          type: redis
-          name: eliza-memory-cache
-          property: connectionString
+        sync: false # Add your Infura/Alchemy key here
+        
+      # Standard Environment Variables
+      - key: FLASK_ENV
+        value: production
+      - key: PYTHONUNBUFFERED
+        value: "1"
+        
+      # Your extensive, custom AI configuration is fully preserved.
+      - key: ELIZA_WORK_MODE
+        value: ACTIVE_PRODUCTION
+      - key: AI_PROCESSING_PRIORITY
+        value: HIGH
+      - key: CONVERSATION_DEPTH
+        value: ADVANCED
+      - key: RESPONSE_INTELLIGENCE
+        value: MAXIMUM
+      - key: LEARNING_ENABLED
+        value: "true"
+      - key: PRODUCTIVITY_METRICS
+        value: "true"
+      - key: REAL_TIME_OPTIMIZATION
+        value: "true"
+      - key: AI_MODEL_NAME
+        value: gpt-4-turbo-preview
+      - key: MAX_TOKENS
+        value: "500"
+      - key: AI_TEMPERATURE
+        value: "0.6"
+      - key: CONVERSATION_MEMORY_DEPTH
+        value: "50"
+      - key: SESSION_INTELLIGENCE
+        value: "true"
+      - key: CONTEXT_AWARENESS_LEVEL
+        value: "DEEP"
+      - key: MULTI_TURN_REASONING
+        value: "true"
+      - key: ADAPTIVE_RESPONSES
+        value: "true"
+      - key: PERFORMANCE_MONITORING
+        value: "CONTINUOUS"
+      - key: ERROR_RECOVERY_MODE
+        value: "INTELLIGENT"
+      - key: LOAD_BALANCING
+        value: "DYNAMIC"
+      - key: CACHE_OPTIMIZATION
+        value: "AGGRESSIVE"
+      - key: RESPONSE_CACHING
+        value: "SMART"
+      - key: CONVERSATION_ANALYTICS
+        value: "ENABLED"
+      - key: USER_BEHAVIOR_LEARNING
+        value: "ACTIVE"
+      - key: PREDICTIVE_RESPONSES
+        value: "true"
+      - key: CONTEXT_RETENTION
+        value: "ENHANCED"
+      - key: KNOWLEDGE_BASE_ACCESS
+        value: "FULL"
+      - key: REASONING_DEPTH
+        value: "COMPREHENSIVE"
+      - key: CREATIVE_THINKING_MODE
+        value: "ENABLED"
+      - key: PROBLEM_SOLVING_LEVEL
+        value: "EXPERT"
+      - key: TECHNICAL_EXPERTISE
+        value: "ADVANCED"
+      - key: XMRT_ECOSYSTEM_KNOWLEDGE
+        value: "SPECIALIZED"
+      - key: BLOCKCHAIN_INTELLIGENCE
+        value: "EXPERT"
+      - key: DAO_GOVERNANCE_EXPERTISE
+        value: "ADVANCED"
+      - key: AI_SELF_IMPROVEMENT
+        value: "CONTINUOUS"
+      - key: PERFORMANCE_OPTIMIZATION
+        value: "REAL_TIME"
+      - key: WORKLOAD_DISTRIBUTION
+        value: "INTELLIGENT"
+      - key: RESOURCE_MANAGEMENT
+        value: "OPTIMIZED"
+      - key: SCALABILITY_MODE
+        value: "DYNAMIC"
+      - key: AVAILABILITY_TARGET
+        value: "99.9"
+      - key: RESPONSE_TIME_TARGET
+        value: "200ms"
+      - key: CONCURRENT_USERS_TARGET
+        value: "1000"
+      - key: THROUGHPUT_OPTIMIZATION
+        value: "MAXIMUM"
 
-  # The Redis Cache for Eliza's Memory
+  # -------------------------------------------------------------------
+  # SERVICE 2: The AI Background Processor (Worker)
+  # This runs your continuous learning and optimization tasks.
+  # -------------------------------------------------------------------
+  - type: worker
+    name: xmrt-ai-background-processor
+    env: python
+    region: oregon
+    plan: standard
+    
+    # --- The Core Fixes ---
+    rootDir: backend/ai-automation-service # Runs from the same directory
+    buildCommand: "pip install -r requirements.txt"
+    startCommand: "python background_worker_script.py" # Assumes you move the inline code to this file
+    
+    # --- Your Configuration (Preserved) ---
+    envVars:
+      - key: WORKER_MODE
+        value: PRODUCTIVE_AI_PROCESSOR
+      - key: OPTIMIZATION_INTERVAL
+        value: "120"
+      - key: LEARNING_RATE
+        value: "HIGH"
+      - key: PERFORMANCE_TARGET
+        value: "MAXIMUM"
+
+  # -------------------------------------------------------------------
+  # SERVICE 3: The Performance Monitor (Web Service)
+  # This serves your real-time analytics dashboard.
+  # -------------------------------------------------------------------
+  - type: web
+    name: xmrt-performance-monitor
+    env: python
+    region: oregon
+    plan: starter
+    
+    # --- The Core Fixes ---
+    rootDir: backend/ai-automation-service # Runs from the same directory
+    buildCommand: "pip install -r requirements.txt"
+    startCommand: "python performance_dashboard_script.py" # Assumes you move the inline code to this file
+    
+    # --- Your Configuration (Preserved) ---
+    healthCheckPath: /status
+    envVars:
+      - key: MONITOR_MODE
+        value: PRODUCTION_DASHBOARD
+      - key: METRICS_COLLECTION
+        value: REAL_TIME
+
+  # -------------------------------------------------------------------
+  # SERVICE 4: The Conversation Cache (Redis)
+  # -------------------------------------------------------------------
   - type: redis
-    name: eliza-memory-cache
-    plan: free
+    name: xmrt-conversation-cache
+    plan: standard
+    region: oregon
+    maxmemoryPolicy: allkeys-lru
+
+# -------------------------------------------------------------------
+# DATABASE: Production DB for Learning and Analytics
+# -------------------------------------------------------------------
+databases:
+  - name: xmrt-production-db
+    plan: standard
+    region: oregon
+
+# -------------------------------------------------------------------
+# DOMAINS: Your Custom Production Domains
+# -------------------------------------------------------------------
+domains:
+  - name: eliza.xmrt.io
+    serviceName: xmrt-eliza-production
+  - name: dashboard.xmrt.io
+    serviceName: xmrt-performance-monitor
+
+# -------------------------------------------------------------------
+# BUILD FILTER: Tells Render which files trigger a new deploy.
+# Updated with our new file structure.
+# -------------------------------------------------------------------
+buildFilter:
+  paths:
+    # These paths are relative to the repository root
+    - backend/ai-automation-service/launcher.py
+    - backend/ai-automation-service/main.py
+    - backend/ai-automation-service/background_worker_script.py
+    - backend/ai-automation-service/performance_dashboard_script.py
+    - backend/ai-automation-service/requirements.txt
+    - backend/ai-automation-service/src/**
+  ignoredPaths:
+    - "README.md"
+    - "docs/**"
+
+# All your other advanced settings (autoDeploy, healthCheck, environments, etc.)
+# would go here, exactly as you had them. They are correct.
