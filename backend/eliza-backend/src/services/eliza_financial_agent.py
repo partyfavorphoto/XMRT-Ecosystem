@@ -4,11 +4,11 @@ from datetime import datetime
 
 # 🧾 Simulated DAO ledger
 ledger = pd.DataFrame([
-    {"timestamp": "2025-07-01", "type": "income", "amount": 21.34, "source": "mobile mining"},
-    {"timestamp": "2025-07-05", "type": "expense", "amount": -5.12, "source": "infra"},
-    {"timestamp": "2025-07-10", "type": "income", "amount": 13.67, "source": "staking"},
-    {"timestamp": "2025-07-12", "type": "expense", "amount": -3.00, "source": "dev bounties"},
-    {"timestamp": "2025-07-28", "type": "income", "amount": 18.25, "source": "XMR swap profit"},
+    {"timestamp": "2025-7-1", "type": "income", "amount": 21.34, "source": "mobile mining"},
+    {"timestamp": "2025-7-5", "type": "expense", "amount": -5.12, "source": "infra"},
+    {"timestamp": "2025-7-10", "type": "income", "amount": 13.67, "source": "staking"},
+    {"timestamp": "2025-7-12", "type": "expense", "amount": -3.0, "source": "dev bounties"},
+    {"timestamp": "2025-7-28", "type": "income", "amount": 18.25, "source": "XMR swap profit"},
 ])
 
 def summarize_ledger(df):
