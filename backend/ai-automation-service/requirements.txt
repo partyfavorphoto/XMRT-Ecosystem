@@ -2,21 +2,21 @@
 
 # --- Core Web Server & API ---
 # These versions are known to have stable wheels for Python 3.11
-fastapi==0.109.0
-uvicorn[standard]==0.25.0
-gunicorn==21.2.0
-python-dotenv==1.0.1
-pydantic==2.5.3
+fastapi
+uvicorn[standard]
+gunicorn
+python-dotenv
+pydantic
 
 # --- Key Integrations & AI ---
-openai==1.12.0
-PyGithub==1.59.1
-web3==6.11.3
+openai
+PyGithub
+web3
 
 # --- Essential Utilities ---
-requests==2.31.0
-httpx==0.25.2
-python-multipart==0.0.6
-redis==5.0.1
-sqlalchemy==2.0.25
-psycopg2-binary==2.9.9
+requests
+httpx
+python-multipart
+redis
+sqlalchemy
+psycopg2-binary
