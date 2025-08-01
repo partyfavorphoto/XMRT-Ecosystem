@@ -1,21 +1,22 @@
-# requirements.txt - The Definitive Parts List for Eliza
+# requirements.txt - Definitive list for Python 3.11 on Render
 
 # --- Core Web Server & API ---
-fastapi==0.104.1
-uvicorn[standard]==0.24.0
-gunicorn==21.2.0  # A stable, proven version
+# These versions are known to have stable wheels for Python 3.11
+fastapi==0.109.0
+uvicorn[standard]==0.25.0
+gunicorn==21.2.0
 python-dotenv==1.0.1
 pydantic==2.5.3
 
 # --- Key Integrations & AI ---
 openai==1.12.0
 PyGithub==1.59.1
-web3==6.11.1 # A version known to have stable dependencies
+web3==6.11.3
 
 # --- Essential Utilities ---
 requests==2.31.0
 httpx==0.25.2
 python-multipart==0.0.6
-redis==4.6.0
-sqlalchemy==2.0.23
+redis==5.0.1
+sqlalchemy==2.0.25
 psycopg2-binary==2.9.9
