@@ -1,26 +1,11 @@
-# XMRT Eliza: Unified Production Dependencies
-# This file lets pip's resolver build the perfect environment.
-
-# --- Core Application & API ---
-flask
 fastapi
-uvicorn[standard]
-gunicorn
-python-dotenv
+uvicorn
 python-multipart
-
-# --- Key Integrations & AI ---
 openai
-PyGithub
-web3
-celery
+pygithub
 redis
-
-# --- Utilities & Monitoring ---
-requests
-httpx
-psutil
-orjson
-structlog
-python-dateutil
+numpy
+aiohttp
 pydantic
+
+
