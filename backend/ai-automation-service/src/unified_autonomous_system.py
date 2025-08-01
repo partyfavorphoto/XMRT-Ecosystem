@@ -28,6 +28,20 @@ try:
     from enhanced_github_client import EnhancedGitHubClient, GitHubClientManager
     from autonomous_eliza import AutonomousElizaOS, autonomous_eliza
     from gpt5_adapter import gpt5_adapter, check_gpt5_migration
+
+from enum import Enum
+
+class DecisionLevel(Enum):
+    """Decision levels for XMRT autonomous systems"""
+    LOW = "low"
+    MEDIUM = "medium"
+    HIGH = "high"
+    CRITICAL = "critical"
+    
+    def __str__(self):
+        return self.value
+
+
 except ImportError as e:
     logging.error(f"Failed to import required modules: {e}")
     logger.error("UnifiedAutonomousSystem forced exit removed. Check logs for details.") # sys.exit(1) removed
