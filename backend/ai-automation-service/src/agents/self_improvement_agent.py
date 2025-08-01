@@ -4,12 +4,17 @@ Autonomously analyzes performance and improves codebase
 """
 
 import os
-import asyncio
 import subprocess
 import json
 from datetime import datetime
 from pathlib import Path
 import logging
+import asyncio
+
+async def maybe_await(obj):
+    if asyncio.iscoroutine(obj):
+        return await obj
+    return obj
 
 logger = logging.getLogger(__name__)
 
