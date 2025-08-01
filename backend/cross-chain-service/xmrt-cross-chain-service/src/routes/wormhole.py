@@ -62,8 +62,8 @@ def estimate_bridge_fee():
             }), 400
         
         # Simulate fee estimation (in production, this would call actual Wormhole APIs)
-        base_fee = 0.005  # ETH
-        amount_fee = float(amount) * 0.001  # 0.1% of amount
+        base_fee = 0.05  # ETH
+        amount_fee = float(amount) * 0.01  # 0.1% of amount
         total_fee = base_fee + amount_fee
         
         return jsonify({
@@ -159,7 +159,7 @@ def get_bridge_stats():
             'data': {
                 'total_volume_24h': 1250000,  # USD
                 'total_transfers_24h': 342,
-                'average_fee_eth': 0.008,
+                'average_fee_eth': 0.08,
                 'average_completion_time_minutes': 12,
                 'supported_chains_count': len(SUPPORTED_CHAINS),
                 'bridge_type': 'wormhole',
