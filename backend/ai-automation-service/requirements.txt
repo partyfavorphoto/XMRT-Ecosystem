@@ -31,3 +31,4 @@ radon>=6.0.0
 pytest>=7.0.0
 aiofiles
 psutil
+gitpython

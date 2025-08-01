@@ -30,7 +30,7 @@ try:
     from gpt5_adapter import gpt5_adapter, check_gpt5_migration
 except ImportError as e:
     logging.error(f"Failed to import required modules: {e}")
-    sys.exit(1)
+    logger.error("UnifiedAutonomousSystem forced exit removed. Check logs for details.") # sys.exit(1) removed
 
 class UnifiedSystemState(Enum):
     INITIALIZING = "initializing"
