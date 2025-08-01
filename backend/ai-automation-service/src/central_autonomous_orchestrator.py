@@ -82,7 +82,19 @@ class CentralAutonomousOrchestrator:
         for system_name, module_path, class_name, init_args in systems_to_load:
             try:
                 # Use importlib to dynamically load the module
-                module = __import__(module_path, fromlist=[class_name])
+                # Get class name from config or use default
+                class_name = module_config.get('class_name', 'DefaultClass')
+                try:
+                    module = __import__(module_path, fromlist=[class_name])
+                except ImportError as e:
+                    self.logger.error(f"Import error for {module_path}: {e}")
+                    continue
+                except Exception as system_error:
+                    self.logger.error(f"System error initializing {module_path}: {system_error}")
+                    continue
+                except Exception as e:
+                    self.logger.error(f"Failed to import module {module_path}: {e}")
+                    continue
                 SystemClass = getattr(module, class_name)
                 
                 # Handle specific initialization arguments if provided
