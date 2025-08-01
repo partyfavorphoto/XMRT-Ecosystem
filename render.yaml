@@ -1,33 +1,19 @@
-# ===================================================================
-# XMRT Eliza AI Ecosystem: Production Blueprint v3.4 (LAUNCH READY)
-# This is the definitive deployment plan for Render.
-# ===================================================================
+# render.yaml - The "No Doubt" Blueprint for Eliza
 
 services:
-  # -------------------------------------------------------------------
-  # SERVICE 1: The Main Eliza Orchestrator (Web Service)
-  # This is the core of your AI, handling API requests and running agents.
-  # -------------------------------------------------------------------
   - type: web
-    name: eliza-automation-service # The name of the service
+    name: eliza-automation-service
     runtime: python
-    plan: starter # You can upgrade this later to prevent spin-down
+    plan: starter
 
-    # --- The Core Configuration ---
-    # 1. We tell Render to work inside your specific service directory.
+    # This tells Render to work inside your service folder.
     rootDir: backend/ai-automation-service
-    
-    # 2. We use your now-perfect requirements file for a robust build.
+
+    # These commands will now work perfectly.
     buildCommand: "pip install -r requirements.txt"
-    
-    # 3. THE CRITICAL FIX: We use a production web server to run your NEW launcher script.
-    # This command starts the web server, which keeps the application running.
-    startCommand: "gunicorn -w 4 -k uvicorn.workers.UvicornWorker launcher:app --bind 0.0.0.0:$PORT"
-    
-    # 4. We point the health check to the endpoint in your launcher.
+    startCommand: "python -m gunicorn -w 4 -k uvicorn.workers.UvicornWorker launcher:app --bind 0.0.0.0:$PORT"
+
     healthCheckPath: /health
-    
-    # --- Your Environment (Secrets must be set in Render Dashboard) ---
     envVars:
       - key: PYTHON_VERSION
         value: 3.11.4
@@ -37,13 +23,3 @@ services:
         sync: false
       - key: WEB3_RPC_URL
         sync: false
-      # You can add your other 50+ custom environment variables here if needed
-      # or manage them directly in the Render dashboard for clarity.
-
-  # -------------------------------------------------------------------
-  # SERVICE 2: The Conversation Cache (Redis)
-  # -------------------------------------------------------------------
-  - type: redis
-    name: eliza-memory-cache
-    plan: free # Upgrade as needed
-    maxmemoryPolicy: allkeys-lru
