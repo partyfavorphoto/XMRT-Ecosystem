@@ -5,6 +5,7 @@ from src.utils.ai_utils import AIUtils
 from src.agents.governance_agent import GovernanceAgent
 from src.agents.treasury_agent import TreasuryAgent
 from src.agents.community_agent import CommunityAgent
+from src.central_autonomous_orchestrator import CentralAutonomousOrchestrator
 
 logger = logging.getLogger(__name__)
 
@@ -20,6 +21,8 @@ class AIAutomationService:
         self.governance_agent = GovernanceAgent(blockchain_utils, ai_utils)
         self.treasury_agent = TreasuryAgent(blockchain_utils, ai_utils)
         self.community_agent = CommunityAgent(blockchain_utils, ai_utils)
+        # Initialize Central Autonomous Orchestrator
+        self.central_orchestrator = CentralAutonomousOrchestrator(ai_utils, blockchain_utils)
         
         logger.info("AIAutomationService engine initialized and ready.")
     
@@ -32,11 +35,8 @@ class AIAutomationService:
                 logger.info("--- Starting new agent cycle ---")
                 
                 # Run all agent cycles in parallel
-                await asyncio.gather(
-                    self.governance_agent.run_cycle(),
-                    self.treasury_agent.run_cycle(),
-                    self.community_agent.run_cycle()
-                )
+                # Run comprehensive autonomous cycle using the Central Orchestrator
+                await self.central_orchestrator.run_autonomous_cycle()
                 
                 logger.info("--- Agent cycle complete. Sleeping for 60 seconds. ---")
                 await asyncio.sleep(60)
