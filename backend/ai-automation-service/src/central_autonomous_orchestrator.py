@@ -8,6 +8,20 @@ import logging
 from pathlib import Path
 import sys
 
+from enum import Enum
+
+class DecisionLevel(Enum):
+    """Decision levels for XMRT autonomous systems"""
+    LOW = "low"
+    MEDIUM = "medium"
+    HIGH = "high"
+    CRITICAL = "critical"
+    
+    def __str__(self):
+        return self.value
+
+
+
 logger = logging.getLogger(__name__)
 
 class CentralAutonomousOrchestrator:
