@@ -128,7 +128,7 @@ class SelfImprovementAgent:
             # Get recent chat logs first
             recent_chats = await self.get_recent_chat_logs()
             
-            analysis = await self.ai_utils.analyze_with_context(analysis_prompt, {
+            analysis = self.ai_utils.analyze_with_context(analysis_prompt, {
                 'recent_chats': recent_chats,
                 'performance_data': self.performance_metrics
             })
@@ -170,7 +170,7 @@ class SelfImprovementAgent:
             Format as JSON with implementation details.
             """
             
-            improvements = await self.ai_utils.generate_structured_response(improvement_prompt)
+            improvements = self.ai_utils.generate_structured_response(improvement_prompt)
             
             logger.info(f"[SelfImprovement] Identified {len(improvements)} improvement opportunities")
             return improvements
@@ -265,7 +265,7 @@ class SelfImprovementAgent:
             Ensure the code is production-ready, well-commented, and follows best practices.
             """
             
-            implementation = await self.ai_utils.generate_code(implementation_prompt)
+            implementation = self.ai_utils.generate_code(implementation_prompt)
             return implementation
             
         except Exception as e:
