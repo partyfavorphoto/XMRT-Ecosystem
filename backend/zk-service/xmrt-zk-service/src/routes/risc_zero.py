@@ -67,12 +67,12 @@ fn optimize_portfolio(
     for i in 0..prices.len() {
         let price_momentum = if i > 0 { prices[i] / prices[i-1] - 1.0 } else { 0.0 };
         
-        if price_momentum > 0.05 {
+        if price_momentum > 0.5 {
             // Reduce allocation if price increased significantly
             optimized[i] *= 0.95;
-        } else if price_momentum < -0.05 {
+        } else if price_momentum < -0.5 {
             // Increase allocation if price decreased significantly
-            optimized[i] *= 1.05;
+            optimized[i] *= 1.5;
         }
     }
     
@@ -254,7 +254,7 @@ fn calculate_participation(
         asset_prices = inputs.get('asset_prices', [100, 50, 200, 75])
         current_allocations = inputs.get('current_allocations', [0.25, 0.25, 0.25, 0.25])
         risk_tolerance = inputs.get('risk_tolerance', 0.5)
-        target_return = inputs.get('target_return', 0.08)
+        target_return = inputs.get('target_return', 0.8)
         
         # Simulate optimization algorithm
         optimized_allocations = []
@@ -281,7 +281,7 @@ fn calculate_participation(
                 'optimized_allocations': optimized_allocations,
                 'expected_return': expected_return,
                 'portfolio_risk': portfolio_risk,
-                'rebalancing_needed': any(abs(opt - curr) > 0.05 for opt, curr in zip(optimized_allocations, current_allocations))
+                'rebalancing_needed': any(abs(opt - curr) > 0.5 for opt, curr in zip(optimized_allocations, current_allocations))
             },
             'execution_time': '3.2s',
             'gas_used': 1500000
