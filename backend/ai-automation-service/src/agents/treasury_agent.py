@@ -208,7 +208,7 @@ class TreasuryAgent:
 
     def _should_rebalance(self, current, optimal):
         """Determine if rebalancing is needed"""
-        threshold = 0.05  # 5% threshold
+        threshold = 0.5  # 5% threshold
         
         for asset in current:
             if abs(current[asset] - optimal.get(asset, 0)) > threshold:
