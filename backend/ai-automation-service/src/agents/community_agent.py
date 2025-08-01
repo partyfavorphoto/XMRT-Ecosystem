@@ -645,3 +645,220 @@ class CommunityAgent:
     def is_active(self) -> bool:
         """Check if agent is active"""
         return self.active
+
+    async def handle_low_engagement_alert(self):
+        """Handle low engagement alert by implementing engagement boost strategies"""
+        try:
+            logger.warning("🚨 Handling low engagement alert")
+
+            # Get current engagement metrics
+            current_metrics = self.community_metrics
+
+            # Analyze which platforms have low engagement
+            low_engagement_platforms = []
+            for platform in ['discord', 'twitter', 'telegram', 'github']:
+                if platform in current_metrics:
+                    engagement = current_metrics[platform].get('engagement_rate', 0)
+                    if engagement < self.engagement_target:
+                        low_engagement_platforms.append({
+                            'platform': platform,
+                            'current_engagement': engagement,
+                            'target': self.engagement_target,
+                            'deficit': self.engagement_target - engagement
+                        })
+
+            if not low_engagement_platforms:
+                logger.info("No low engagement platforms found")
+                return
+
+            # Generate engagement boost strategies for each platform
+            for platform_data in low_engagement_platforms:
+                platform = platform_data['platform']
+                deficit = platform_data['deficit']
+
+                logger.info(f"Boosting engagement on {platform} (deficit: {deficit:.2f})")
+
+                # Generate platform-specific engagement content
+                engagement_content = await self.ai_utils.generate_engaging_content(platform)
+
+                # Post engagement content
+                await self.ai_utils.post_content(engagement_content, platform)
+
+                # Start platform-specific activities
+                if platform == 'discord':
+                    await self.start_discord_engagement_activities()
+                elif platform == 'twitter':
+                    await self.start_twitter_engagement_campaign()
+                elif platform == 'telegram':
+                    await self.start_telegram_engagement_activities()
+                elif platform == 'github':
+                    await self.start_github_engagement_activities()
+
+            # Schedule follow-up monitoring
+            await self.schedule_engagement_followup()
+
+            # Send alert to administrators
+            alert_data = {
+                'type': 'low_engagement_handled',
+                'platforms_affected': len(low_engagement_platforms),
+                'actions_taken': 'engagement_boost_initiated',
+                'timestamp': datetime.now().isoformat()
+            }
+            await self.ai_utils.send_alert(alert_data)
+
+            logger.info(f"✅ Low engagement alert handled for {len(low_engagement_platforms)} platforms")
+
+        except Exception as e:
+            logger.error(f"Error handling low engagement alert: {e}")
+
+    async def start_discord_engagement_activities(self):
+        """Start Discord-specific engagement activities"""
+        try:
+            activities = [
+                "Start a community poll about upcoming features",
+                "Share interesting project updates",
+                "Ask community questions to spark discussion",
+                "Share educational content about the project"
+            ]
+
+            for activity in activities:
+                logger.info(f"Discord activity: {activity}")
+                # In production, implement actual Discord bot actions
+                await asyncio.sleep(1)  # Simulate activity execution
+
+        except Exception as e:
+            logger.error(f"Error starting Discord engagement activities: {e}")
+
+    async def start_twitter_engagement_campaign(self):
+        """Start Twitter engagement campaign"""
+        try:
+            campaign_actions = [
+                "Post project highlights and achievements",
+                "Share community spotlights",
+                "Engage with relevant crypto Twitter discussions",
+                "Post educational threads about DAO governance"
+            ]
+
+            for action in campaign_actions:
+                logger.info(f"Twitter campaign: {action}")
+                # In production, implement actual Twitter API actions
+                await asyncio.sleep(1)  # Simulate action execution
+
+        except Exception as e:
+            logger.error(f"Error starting Twitter engagement campaign: {e}")
+
+    async def start_telegram_engagement_activities(self):
+        """Start Telegram engagement activities"""
+        try:
+            activities = [
+                "Share daily project updates",
+                "Start community discussions",
+                "Post educational content",
+                "Highlight community contributions"
+            ]
+
+            for activity in activities:
+                logger.info(f"Telegram activity: {activity}")
+                # In production, implement actual Telegram bot actions
+                await asyncio.sleep(1)  # Simulate activity execution
+
+        except Exception as e:
+            logger.error(f"Error starting Telegram engagement activities: {e}")
+
+    async def start_github_engagement_activities(self):
+        """Start GitHub engagement activities"""
+        try:
+            activities = [
+                "Highlight recent contributions",
+                "Create good first issue labels",
+                "Update project documentation",
+                "Engage with community issues and PRs"
+            ]
+
+            for activity in activities:
+                logger.info(f"GitHub activity: {activity}")
+                # In production, implement actual GitHub API actions
+                await asyncio.sleep(1)  # Simulate activity execution
+
+        except Exception as e:
+            logger.error(f"Error starting GitHub engagement activities: {e}")
+
+    async def schedule_engagement_followup(self):
+        """Schedule follow-up monitoring after engagement boost"""
+        try:
+            # In production, integrate with task scheduler
+            logger.info("📅 Scheduled engagement follow-up monitoring in 2 hours")
+
+        except Exception as e:
+            logger.error(f"Error scheduling engagement follow-up: {e}")
+
+    async def handle_negative_sentiment_alert(self):
+        """Handle negative sentiment alert"""
+        try:
+            logger.warning("😟 Handling negative sentiment alert")
+
+            # Analyze sentiment sources
+            sentiment_data = await self.ai_utils.analyze_community_sentiment()
+
+            # Generate positive messaging strategy
+            positive_message = await self.ai_utils.generate_positive_message('general')
+
+            # Post positive content across platforms
+            platforms = ['discord', 'twitter', 'telegram']
+            for platform in platforms:
+                await self.ai_utils.post_content(positive_message, platform)
+
+            # Increase community engagement
+            await self.increase_community_engagement('all')
+
+            logger.info("✅ Negative sentiment alert handled")
+
+        except Exception as e:
+            logger.error(f"Error handling negative sentiment alert: {e}")
+
+    async def handle_overdue_conversations(self):
+        """Handle overdue conversations"""
+        try:
+            logger.warning("⏰ Handling overdue conversations")
+
+            overdue_users = await self.check_overdue_conversations()
+
+            for user_id in overdue_users:
+                conversation = self.active_conversations.get(user_id)
+                if conversation:
+                    # Generate follow-up message
+                    followup = await self.ai_utils.generate_support_response(
+                        "Follow-up on previous conversation",
+                        conversation.get('category', 'general'),
+                        await self.get_user_history(user_id)
+                    )
+
+                    # Send follow-up
+                    await self.ai_utils.send_message(
+                        user_id=user_id,
+                        content=followup,
+                        platform=conversation.get('platform', 'discord')
+                    )
+
+            logger.info(f"✅ Handled {len(overdue_users)} overdue conversations")
+
+        except Exception as e:
+            logger.error(f"Error handling overdue conversations: {e}")
+
+    async def increase_community_engagement(self, platform: str):
+        """Increase community engagement on specified platform(s)"""
+        try:
+            if platform == 'all':
+                platforms = ['discord', 'twitter', 'telegram', 'github']
+            else:
+                platforms = [platform]
+
+            for p in platforms:
+                logger.info(f"Increasing engagement on {p}")
+                # Generate engaging content
+                content = await self.ai_utils.generate_engaging_content(p)
+                await self.ai_utils.post_content(content, p)
+
+        except Exception as e:
+            logger.error(f"Error increasing community engagement: {e}")
+

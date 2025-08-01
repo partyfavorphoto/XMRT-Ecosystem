@@ -446,3 +446,375 @@ class AIUtils:
             'severity': 'medium' if flagged else 'low',
             'recommended_action': 'warn' if flagged else 'none'
         }
+
+    async def analyze_proposal_urgency(self, proposal: Dict[str, Any]) -> Dict[str, Any]:
+        """Analyze proposal urgency for emergency handling"""
+        try:
+            prompt = f"""
+            Analyze the urgency of this governance proposal:
+
+            Proposal ID: {proposal.get('id', 'unknown')}
+            Title: {proposal.get('title', '')}
+            Description: {proposal.get('description', '')}
+            Priority: {proposal.get('priority', 'normal')}
+            End Time: {proposal.get('end_time', '')}
+            Votes For: {proposal.get('votes_for', 0)}
+            Votes Against: {proposal.get('votes_against', 0)}
+
+            Analyze:
+            1. Urgency level (0-1, where 1 is extremely urgent)
+            2. Requires immediate action (true/false)
+            3. Time sensitivity (0-1)
+            4. Impact level (0-1)
+            5. Recommended response time (in minutes)
+            6. Auto vote recommendation (support/oppose/abstain/none)
+
+            Consider factors like:
+            - Time remaining until deadline
+            - Vote margin and participation
+            - Proposal type and impact
+            - Emergency indicators
+
+            Respond in JSON format.
+            """
+
+            response = await self.call_openai(prompt, temperature=0.3)
+
+            try:
+                analysis = json.loads(response)
+            except json.JSONDecodeError:
+                # Fallback analysis based on proposal data
+                urgency_level = 1.0 if proposal.get('priority') == 'emergency' else 0.5
+                analysis = {
+                    'urgency_level': urgency_level,
+                    'requires_immediate_action': proposal.get('priority') == 'emergency',
+                    'time_sensitivity': urgency_level,
+                    'impact_level': 0.7 if proposal.get('priority') == 'emergency' else 0.4,
+                    'recommended_response_time': 15 if proposal.get('priority') == 'emergency' else 60,
+                    'auto_vote_recommendation': 'none',
+                    'reasoning': 'Fallback analysis due to AI parsing error'
+                }
+
+            return analysis
+
+        except Exception as e:
+            logger.error(f"Error analyzing proposal urgency: {e}")
+            return {
+                'urgency_level': 0.5,
+                'requires_immediate_action': False,
+                'time_sensitivity': 0.5,
+                'impact_level': 0.5,
+                'recommended_response_time': 60,
+                'auto_vote_recommendation': 'none',
+                'reasoning': 'Analysis failed due to error'
+            }
+
+
+    async def generate_engaging_content(self, platform: str) -> str:
+        """Generate engaging content for a specific platform"""
+        try:
+            platform_styles = {
+                'discord': 'casual and community-focused',
+                'twitter': 'concise and hashtag-friendly',
+                'telegram': 'informative and discussion-starting',
+                'github': 'technical and contribution-focused'
+            }
+
+            style = platform_styles.get(platform, 'professional')
+
+            prompt = f"""
+            Generate engaging content for {platform} to boost community engagement.
+            
+            Style: {style}
+            Topic: XMRT DAO project updates, community highlights, or educational content
+            
+            Requirements:
+            - Encourage interaction and discussion
+            - Be positive and community-focused
+            - Include a call-to-action
+            - Keep appropriate length for {platform}
+            
+            Generate content that will increase engagement and participation.
+            """
+
+            content = await self.call_openai(prompt, max_tokens=300)
+            return content
+
+        except Exception as e:
+            logger.error(f"Error generating engaging content: {e}")
+            return f"🚀 Exciting updates coming to XMRT DAO! What features would you like to see next? Share your thoughts below! #XMRT #DAO"
+
+    async def post_content(self, content: str, platform: str):
+        """Post content to specified platform"""
+        try:
+            logger.info(f"📝 Posting content to {platform}: {content[:50]}...")
+            
+            # In production, implement actual API calls for each platform
+            if platform == 'discord':
+                await self._post_to_discord(content)
+            elif platform == 'twitter':
+                await self._post_to_twitter(content)
+            elif platform == 'telegram':
+                await self._post_to_telegram(content)
+            elif platform == 'github':
+                await self._post_to_github(content)
+            else:
+                logger.warning(f"Unknown platform: {platform}")
+
+        except Exception as e:
+            logger.error(f"Error posting content to {platform}: {e}")
+
+    async def generate_positive_message(self, platform: str) -> str:
+        """Generate positive message to counter negative sentiment"""
+        try:
+            prompt = f"""
+            Generate a positive, uplifting message for the XMRT DAO community on {platform}.
+            
+            The message should:
+            - Address any concerns with transparency
+            - Highlight recent achievements and progress
+            - Show appreciation for the community
+            - Be authentic and not overly promotional
+            - Encourage continued participation
+            
+            Keep it appropriate for {platform} format and style.
+            """
+
+            message = await self.call_openai(prompt, max_tokens=250)
+            return message
+
+        except Exception as e:
+            logger.error(f"Error generating positive message: {e}")
+            return "🌟 Thank you to our amazing XMRT DAO community! Your support and participation make this project stronger every day. Together, we're building something incredible! 💪"
+
+    async def _post_to_discord(self, content: str):
+        """Post content to Discord"""
+        # Mock implementation - replace with actual Discord bot API calls
+        logger.info(f"Discord: {content}")
+
+    async def _post_to_twitter(self, content: str):
+        """Post content to Twitter"""
+        # Mock implementation - replace with actual Twitter API calls
+        logger.info(f"Twitter: {content}")
+
+    async def _post_to_telegram(self, content: str):
+        """Post content to Telegram"""
+        # Mock implementation - replace with actual Telegram bot API calls
+        logger.info(f"Telegram: {content}")
+
+    async def _post_to_github(self, content: str):
+        """Post content to GitHub (as discussion or announcement)"""
+        # Mock implementation - replace with actual GitHub API calls
+        logger.info(f"GitHub: {content}")
+
+    async def analyze_mention_importance(self, mention: Dict[str, Any]) -> Dict[str, Any]:
+        """Analyze the importance of a social media mention"""
+        try:
+            user = mention.get('user', {})
+            content = mention.get('content', '')
+
+            prompt = f"""
+            Analyze this social media mention for response priority:
+            
+            User: @{user.get('username', 'unknown')}
+            Followers: {user.get('followers', 0)}
+            Verified: {user.get('verified', False)}
+            Content: {content}
+            Retweets: {mention.get('retweets', 0)}
+            Likes: {mention.get('likes', 0)}
+            
+            Determine:
+            1. Should we respond? (true/false)
+            2. Priority level (low/medium/high)
+            3. Recommended tone (professional/friendly/technical)
+            4. Response urgency (0-1)
+            
+            Respond in JSON format.
+            """
+
+            response = await self.call_openai(prompt, max_tokens=200)
+
+            try:
+                analysis = json.loads(response)
+            except json.JSONDecodeError:
+                # Fallback analysis
+                should_respond = (user.get('followers', 0) > 1000 or 
+                                user.get('verified', False) or 
+                                mention.get('retweets', 0) > 10)
+                
+                analysis = {
+                    'should_respond': should_respond,
+                    'priority': 'medium' if should_respond else 'low',
+                    'recommended_tone': 'professional',
+                    'urgency': 0.7 if should_respond else 0.3
+                }
+
+            return analysis
+
+        except Exception as e:
+            logger.error(f"Error analyzing mention importance: {e}")
+            return {
+                'should_respond': False,
+                'priority': 'low',
+                'recommended_tone': 'professional',
+                'urgency': 0.3
+            }
+
+    async def generate_twitter_response(self, mention: str, context: str, tone: str) -> str:
+        """Generate Twitter response to a mention"""
+        try:
+            prompt = f"""
+            Generate a Twitter response to this mention:
+            
+            Mention: {mention}
+            Context: {context}
+            Tone: {tone}
+            
+            Requirements:
+            - Stay within Twitter character limit
+            - Be helpful and engaging
+            - Represent XMRT DAO professionally
+            - Include relevant hashtags if appropriate
+            """
+
+            response = await self.call_openai(prompt, max_tokens=100)
+            return response
+
+        except Exception as e:
+            logger.error(f"Error generating Twitter response: {e}")
+            return "Thanks for your interest in XMRT DAO! Feel free to join our community for more updates. #XMRT #DAO"
+
+    async def send_twitter_response(self, mention_id: str, response: str):
+        """Send Twitter response to a mention"""
+        try:
+            logger.info(f"Sending Twitter response to {mention_id}: {response}")
+            # In production, implement actual Twitter API call
+            
+        except Exception as e:
+            logger.error(f"Error sending Twitter response: {e}")
+
+    async def analyze_github_issue(self, issue: Dict[str, Any]) -> Dict[str, Any]:
+        """Analyze GitHub issue for automated response"""
+        try:
+            title = issue.get('title', '')
+            body = issue.get('body', '')
+            labels = issue.get('labels', [])
+
+            prompt = f"""
+            Analyze this GitHub issue for automated response:
+            
+            Title: {title}
+            Body: {body[:500]}...
+            Current Labels: {labels}
+            
+            Determine:
+            1. Should we respond automatically? (true/false)
+            2. Issue type (bug/feature/question/documentation)
+            3. Priority (low/medium/high)
+            4. Suggested labels to add
+            5. Response type (welcome/clarification/assignment)
+            
+            Respond in JSON format.
+            """
+
+            response = await self.call_openai(prompt, max_tokens=300)
+
+            try:
+                analysis = json.loads(response)
+            except json.JSONDecodeError:
+                analysis = {
+                    'should_respond': True,
+                    'issue_type': 'question',
+                    'priority': 'medium',
+                    'labels': ['needs-triage'],
+                    'response_type': 'welcome'
+                }
+
+            return analysis
+
+        except Exception as e:
+            logger.error(f"Error analyzing GitHub issue: {e}")
+            return {
+                'should_respond': False,
+                'issue_type': 'unknown',
+                'priority': 'low',
+                'labels': [],
+                'response_type': 'none'
+            }
+
+    async def generate_github_response(self, issue: Dict[str, Any], analysis: Dict[str, Any]) -> str:
+        """Generate GitHub issue response"""
+        try:
+            response_type = analysis.get('response_type', 'welcome')
+            issue_type = analysis.get('issue_type', 'question')
+
+            prompt = f"""
+            Generate a GitHub issue response:
+            
+            Issue Title: {issue.get('title', '')}
+            Issue Type: {issue_type}
+            Response Type: {response_type}
+            
+            Generate a helpful, professional response that:
+            - Welcomes the contributor
+            - Acknowledges their issue/request
+            - Provides next steps or guidance
+            - Maintains a positive tone
+            """
+
+            response = await self.call_openai(prompt, max_tokens=300)
+            return response
+
+        except Exception as e:
+            logger.error(f"Error generating GitHub response: {e}")
+            return "Thank you for opening this issue! Our team will review it and get back to you soon."
+
+    async def post_github_comment(self, issue_number: int, comment: str):
+        """Post comment on GitHub issue"""
+        try:
+            logger.info(f"Posting GitHub comment on issue #{issue_number}: {comment[:50]}...")
+            # In production, implement actual GitHub API call
+            
+        except Exception as e:
+            logger.error(f"Error posting GitHub comment: {e}")
+
+    async def add_github_labels(self, issue_number: int, labels: List[str]):
+        """Add labels to GitHub issue"""
+        try:
+            logger.info(f"Adding labels to issue #{issue_number}: {labels}")
+            # In production, implement actual GitHub API call
+            
+        except Exception as e:
+            logger.error(f"Error adding GitHub labels: {e}")
+
+    async def generate_warning_message(self, reason: str) -> str:
+        """Generate warning message for moderation"""
+        try:
+            prompt = f"""
+            Generate a polite but firm warning message for a community member.
+            
+            Reason: {reason}
+            
+            The message should:
+            - Be respectful but clear
+            - Explain the issue
+            - Reference community guidelines
+            - Encourage better behavior
+            """
+
+            message = await self.call_openai(prompt, max_tokens=200)
+            return message
+
+        except Exception as e:
+            logger.error(f"Error generating warning message: {e}")
+            return f"Please note that your recent message may violate our community guidelines regarding {reason}. We appreciate your understanding and cooperation in maintaining a positive environment."
+
+    async def delete_message(self, message_id: str, platform: str):
+        """Delete message on specified platform"""
+        try:
+            logger.info(f"Deleting message {message_id} on {platform}")
+            # In production, implement actual API calls for message deletion
+            
+        except Exception as e:
+            logger.error(f"Error deleting message: {e}")
+
