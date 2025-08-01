@@ -256,7 +256,7 @@ class ZKOracleService:
             'session_hash': f'0x{session_hash}',
             'data_hash': f'0x{data_hash}',
             'commitment': f'0x{hashlib.sha256(f"{session_hash}{data_hash}".encode()).hexdigest()}',
-            'signature': f'0x{hashlib.sha256(f"signature_{session_data["session_id"]}".encode()).hexdigest()}',
+            'signature': f'0x{hashlib.sha256(f"signature_{session_data["session_id"]"]}".encode()).hexdigest()}',
             'timestamp': int(time.time())
         }
         
