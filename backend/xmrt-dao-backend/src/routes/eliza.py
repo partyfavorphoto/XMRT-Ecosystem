@@ -25,7 +25,7 @@ MEMORY_CONFIG = {
     'max_memories_per_user': 10000,
     'memory_retention_days': 365,
     'auto_prune_enabled': True,
-    'embedding_model': 'text-embedding-ada-02',
+    'embedding_model': 'text-embedding-ada-2',
     'similarity_threshold': 0.7
 }
 
@@ -528,7 +528,7 @@ class EnhancedElizaAgent:
             if operation_type == 'bridge_tokens':
                 # Simulate fee estimation
                 fee_data = {
-                    'estimated_fee_eth': 0.05,
+                    'estimated_fee_eth': 0.5,
                     'estimated_time_seconds': 300,
                     'last_updated': datetime.now().isoformat()
                 }
