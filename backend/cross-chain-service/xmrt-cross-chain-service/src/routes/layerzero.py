@@ -61,8 +61,8 @@ def estimate_oft_fee():
             }), 400
         
         # Simulate fee estimation (in production, this would call actual LayerZero APIs)
-        base_fee = 0.003  # ETH (LayerZero typically has lower fees)
-        amount_fee = float(amount) * 0.0005  # 0.05% of amount
+        base_fee = 0.03  # ETH (LayerZero typically has lower fees)
+        amount_fee = float(amount) * 0.005  # 0.5% of amount
         total_fee = base_fee + amount_fee
         
         return jsonify({
@@ -179,7 +179,7 @@ def get_bridge_stats():
             'data': {
                 'total_volume_24h': 890000,  # USD
                 'total_transfers_24h': 567,
-                'average_fee_eth': 0.004,
+                'average_fee_eth': 0.04,
                 'average_completion_time_minutes': 3,
                 'supported_chains_count': len(LAYERZERO_CHAINS),
                 'bridge_type': 'layerzero_oft',
