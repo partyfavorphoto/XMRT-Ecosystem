@@ -376,7 +376,7 @@ Implemented autonomously by Eliza AI Self-Improvement Agent
             log_file_path = "/var/log/chat.log"
             if not os.path.exists(log_file_path):
                 logger.warning(f"[SelfImprovement] Chat log file not found: {log_file_path}")
-                return "No chat logs available."
+                return ""
             recent_logs = await self.terminal_utils.execute(f"tail -100 {log_file_path}")
             return recent_logs
         except Exception as e:
