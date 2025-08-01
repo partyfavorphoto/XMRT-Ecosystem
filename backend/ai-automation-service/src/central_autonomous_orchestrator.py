@@ -216,11 +216,8 @@ class CentralAutonomousOrchestrator:
     def list_available_tools(self):
         tools = []
         for name, system in self.active_systems.items():
-            methods = [m for m in dir(system) if not m.startswith("_") and callable(getattr(system, m))]
+            methods = [m for m in dir(system) if not m.startswith('_') and callable(getattr(system, m))]
             tools.append(f"{name}: {', '.join(methods[:10])}")  # Limit to 10 methods for brevity
         if tools:
-            return "Active systems and top methods:
-" + "
-".join(tools)
+            return "Active systems and top methods:\n" + "\n".join(tools)
         return "No tools or integrations are currently online."
-    
