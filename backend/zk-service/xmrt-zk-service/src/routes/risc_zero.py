@@ -370,7 +370,7 @@ fn calculate_participation(
                 'execution_id': execution_id,
                 'program_name': execution_record['program_name'],
                 'journal': execution_record['outputs'],
-                'seal': f'0x{hashlib.sha256(f"{execution_id}_{execution_record["timestamp"]}".encode()).hexdigest()}',
+                'seal': f'0x{hashlib.sha256(f"{execution_id}_{execution_record["timestamp"]"]}".encode()).hexdigest()}',
                 'verification_key': f'vk_{execution_record["program_name"]}_{hashlib.md5(execution_record["program_name"].encode()).hexdigest()[:8]}',
                 'timestamp': execution_record['timestamp'],
                 'gas_used': execution_record['gas_used']
