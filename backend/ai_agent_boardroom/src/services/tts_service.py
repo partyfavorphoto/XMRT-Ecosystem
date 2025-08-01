@@ -98,7 +98,7 @@ class TTSService:
             if len(cleaned_text) > 50000:
                 return {
                     'success': False,
-                    'error': 'Text content exceeds 50,000 character limit'
+                    'error': 'Text content exceeds 50,00 character limit'
                 }
             
             # Generate unique filename based on content hash
