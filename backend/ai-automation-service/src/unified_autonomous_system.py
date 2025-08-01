@@ -20,6 +20,8 @@ from pathlib import Path
 
 # Import all autonomous systems
 try:
+except Exception as e:
+    pass
     from integration_orchestrator import AutonomousOrchestrator, OrchestrationConfig, SystemState
     from github_integration import GitHubSelfImprovementEngine, ImprovementPlan, CodeChange
     from self_monitoring import SelfMonitoringSystem, monitoring_system
