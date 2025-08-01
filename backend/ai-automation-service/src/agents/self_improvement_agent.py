@@ -373,7 +373,11 @@ Implemented autonomously by Eliza AI Self-Improvement Agent
         """Get recent chat logs for analysis"""
         try:
             # Use terminal to get recent logs
-            recent_logs = await self.terminal_utils.execute("tail -100 /var/log/chat.log")
+            log_file_path = "/var/log/chat.log"
+            if not os.path.exists(log_file_path):
+                logger.warning(f"[SelfImprovement] Chat log file not found: {log_file_path}")
+                return "No chat logs available."
+            recent_logs = await self.terminal_utils.execute(f"tail -100 {log_file_path}")
             return recent_logs
         except Exception as e:
             logger.error(f"[SelfImprovement] Log retrieval error: {e}")
