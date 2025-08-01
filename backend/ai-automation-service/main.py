@@ -1,65 +1,37 @@
-# main.py - The Core Autonomous Agent Service Engine
-# This file contains the "engine" of Eliza's AI operations.
-
 import asyncio
 import logging
-import os
-import sys
-import time
-from datetime import datetime
-from typing import Dict, Any
-
-from web3 import Web3
-import openai
-from dotenv import load_dotenv
-
-# --- Setup ---
-sys.path.append(os.path.join(os.path.dirname(__file__), 'src'))
-load_dotenv()
-
+from utils.blockchain_utils import BlockchainUtils
+from utils.ai_utils import AIUtils
 from agents.governance_agent import GovernanceAgent
 from agents.treasury_agent import TreasuryAgent
 from agents.community_agent import CommunityAgent
-from agents.self_improvement_agent import SelfImprovementAgent
-from utils.blockchain_utils import BlockchainUtils
-from utils.ai_utils import AIUtils
-from src.autonomous_systems_router import AutonomousSystemsRouter
-from utils.github_utils import GitHubUtils
-from utils.terminal_utils import TerminalUtils
-from utils.browser_utils import BrowserUtils
 
-# --- Logging and API Key Configuration ---
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', handlers=[logging.StreamHandler()])
 logger = logging.getLogger(__name__)
 
-# --- FIX for OpenAI Key ---
-openai.api_key = os.getenv("OPENAI_API_KEY")
-if not openai.api_key:
-    logger.error("CRITICAL: OPENAI_API_KEY environment variable not found! AI features will fail.")
-
 class AIAutomationService:
-    """
-    This class orchestrates all the autonomous AI agents.
-    It's started and managed by launcher.py.
-    """
     def __init__(self):
-        self.blockchain_utils = BlockchainUtils()
-        self.ai_utils = AIUtils()
-        self.governance_agent = GovernanceAgent(self.blockchain_utils, self.ai_utils)
-        self.treasury_agent = TreasuryAgent(self.blockchain_utils, self.ai_utils)
-        self.community_agent = CommunityAgent(self.blockchain_utils, self.ai_utils)
-        self.running = False
+        logger.info("Initializing AI Automation Service...")
+        
+        # Initialize utilities
+        blockchain_utils = BlockchainUtils()
+        ai_utils = AIUtils()
+        
+        # Initialize agents
+        self.governance_agent = GovernanceAgent(blockchain_utils, ai_utils)
+        self.treasury_agent = TreasuryAgent(blockchain_utils, ai_utils)
+        self.community_agent = CommunityAgent(blockchain_utils, ai_utils)
+        
         logger.info("AIAutomationService engine initialized and ready.")
-
+    
     async def start_automation(self):
-        """Starts the main automation loop using pure asyncio."""
+        """Start the main automation loop"""
         logger.info("🚀 AI Engine Starting: Beginning main automation loop...")
-        self.running = True
-
-        while self.running:
+        
+        while True:
             try:
                 logger.info("--- Starting new agent cycle ---")
-                # This runs all your agent tasks concurrently, which is highly efficient.
+                
+                # Run all agent cycles
                 await asyncio.gather(
                     self.governance_agent.run_cycle(),
                     self.treasury_agent.run_cycle(),
@@ -67,27 +39,47 @@ class AIAutomationService:
                 )
                 
                 # Run existing autonomous systems
-
-    async def run_existing_autonomous_systems(self):
-        """Run Eliza's existing autonomous systems using the router"""
-        try:
-            # Initialize all autonomous systems
-            await self.autonomous_router.initialize_all_systems()
-            
-            # Run comprehensive autonomous cycle
-            await self.autonomous_router.run_autonomous_cycle()
-            
-            logger.info("[Main] Autonomous systems cycle completed successfully")
-            
-        except Exception as e:
-            logger.error(f"[Main] Autonomous systems error: {e}")
-
                 await self.run_existing_autonomous_systems()
+                
                 logger.info("--- Agent cycle complete. Sleeping for 60 seconds. ---")
                 await asyncio.sleep(60)
-
+                
             except Exception as e:
-                logger.error(f"FATAL ERROR in main agent cycle: {e}", exc_info=True)
-                await asyncio.sleep(120)
+                logger.error(f"FATAL ERROR in main agent cycle: {e}")
+                await asyncio.sleep(10)  # Brief pause before retry
+    
+    async def run_existing_autonomous_systems(self):
+        """Run Eliza's existing autonomous systems"""
+        try:
+            logger.info("[Main] Running existing autonomous systems...")
+            
+            # Try to run EvolutionaryElizaOrchestrator if available
+            try:
+                import sys
+                sys.path.append('.')
+                sys.path.append('..')
+                from advanced_eliza_orchestrator import EvolutionaryElizaOrchestrator
+                orchestrator = EvolutionaryElizaOrchestrator()
+                if hasattr(orchestrator, 'run_autonomous_cycle'):
+                    await orchestrator.run_autonomous_cycle()
+                    logger.info("[Main] EvolutionaryElizaOrchestrator cycle completed")
+            except Exception as e:
+                logger.warning(f"[Main] EvolutionaryElizaOrchestrator not available: {e}")
+            
+            # Try to run UnifiedAutonomousSystem if available
+            try:
+                from src.unified_autonomous_system import UnifiedAutonomousSystem
+                unified_system = UnifiedAutonomousSystem()
+                if hasattr(unified_system, 'execute_autonomous_cycle'):
+                    await unified_system.execute_autonomous_cycle()
+                    logger.info("[Main] UnifiedAutonomousSystem cycle completed")
+            except Exception as e:
+                logger.warning(f"[Main] UnifiedAutonomousSystem not available: {e}")
+            
+            logger.info("[Main] Existing autonomous systems cycle completed")
+            
+        except Exception as e:
+            logger.error(f"[Main] Error running existing autonomous systems: {e}")
 
-    # ... (Your other methods like stop_automation, execute_manual_action, etc. go here)
+# Create global instance
+automation_service = AIAutomationService()
