@@ -20,8 +20,12 @@ load_dotenv()
 from agents.governance_agent import GovernanceAgent
 from agents.treasury_agent import TreasuryAgent
 from agents.community_agent import CommunityAgent
+from agents.self_improvement_agent import SelfImprovementAgent
 from utils.blockchain_utils import BlockchainUtils
 from utils.ai_utils import AIUtils
+from utils.github_utils import GitHubUtils
+from utils.terminal_utils import TerminalUtils
+from utils.browser_utils import BrowserUtils
 
 # --- Logging and API Key Configuration ---
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', handlers=[logging.StreamHandler()])
@@ -58,7 +62,8 @@ class AIAutomationService:
                 await asyncio.gather(
                     self.governance_agent.run_cycle(), # You must create this method in your agent
                     self.treasury_agent.run_cycle(),   # You must create this method in your agent
-                    self.community_agent.run_cycle()  # You must create this method in your agent
+                    self.community_agent.run_cycle(),  # You must create this method in your agent
+                    self.self_improvement_agent.run_cycle()  # Autonomous self-improvement
                 )
                 logger.info("--- Agent cycle complete. Sleeping for 60 seconds. ---")
                 await asyncio.sleep(60)
