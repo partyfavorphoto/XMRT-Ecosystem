@@ -1,186 +1,81 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Eliza AI - XMRT DAO</title>
-    <style>
-        :root {
-            --background-color: #121212;
-            --surface-color: #1e1e1e;
-            --primary-color: #00e599;
-            --text-color: #e0e0e0;
-            --input-bg: #2a2a2a;
-        }
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            background-color: var(--background-color);
-            color: var(--text-color);
-            margin: 0;
-            display: flex;
-            flex-direction: column;
-            height: 100vh;
-            overflow: hidden;
-        }
-        .header {
-            background-color: var(--surface-color);
-            padding: 15px 20px;
-            border-bottom: 1px solid #333;
-            text-align: center;
-        }
-        .header h1 {
-            margin: 0;
-            font-size: 1.5em;
-            color: var(--primary-color);
-        }
-        .header p {
-            margin: 5px 0 0;
-            color: #aaa;
-        }
-        .chat-container {
-            flex-grow: 1;
-            overflow-y: auto;
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
-        }
-        .message {
-            max-width: 70%;
-            padding: 10px 15px;
-            border-radius: 18px;
-            margin-bottom: 10px;
-            line-height: 1.4;
-            opacity: 0;
-            transform: translateY(20px);
-            animation: fadeIn 0.5s forwards;
-        }
-        .user-message {
-            background-color: var(--primary-color);
-            color: #121212;
-            align-self: flex-end;
-            border-bottom-right-radius: 4px;
-        }
-        .eliza-message {
-            background-color: var(--surface-color);
-            align-self: flex-start;
-            border-bottom-left-radius: 4px;
-        }
-        .input-area {
-            display: flex;
-            padding: 10px;
-            background-color: var(--surface-color);
-            border-top: 1px solid #333;
-        }
-        #chat-input {
-            flex-grow: 1;
-            background-color: var(--input-bg);
-            border: 1px solid #444;
-            border-radius: 20px;
-            padding: 10px 15px;
-            color: var(--text-color);
-            font-size: 1em;
-            outline: none;
-        }
-        #chat-input:focus {
-            border-color: var(--primary-color);
-        }
-        #send-button {
-            background-color: var(--primary-color);
-            color: #121212;
-            border: none;
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            margin-left: 10px;
-            cursor: pointer;
-            font-size: 1.5em;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        @keyframes fadeIn {
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-    </style>
-</head>
-<body>
-    <div class="header">
-        <h1>Eliza AI</h1>
-        <p>XMRT DAO Autonomous Orchestrator</p>
-    </div>
+# launcher.py - The Production Web Server & API for Eliza
 
-    <div class="chat-container" id="chat-log">
-        <div class="message eliza-message">Hello. I am Eliza. All systems are operational. How can I assist you?</div>
-    </div>
+import os
+import asyncio
+import logging
+from fastapi import FastAPI
+from fastapi.responses import HTMLResponse # We need this to serve our HTML page
+from pydantic import BaseModel # For creating structured API requests
+import uvicorn
 
-    <div class="input-area">
-        <input type="text" id="chat-input" placeholder="Ask Eliza about governance, treasury, or development...">
-        <button id="send-button">&#x27A4;</button>
-    </div>
+# Import your main service class from main.py
+from main import AIAutomationService
 
-    <script>
-        const chatLog = document.getElementById('chat-log');
-        const chatInput = document.getElementById('chat-input');
-        const sendButton = document.getElementById('send-button');
+# --- Basic Setup ---
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
 
-        function addMessage(text, sender) {
-            const messageElement = document.createElement('div');
-            messageElement.classList.add('message', sender === 'user' ? 'user-message' : 'eliza-message');
-            messageElement.textContent = text;
-            chatLog.appendChild(messageElement);
-            chatLog.scrollTop = chatLog.scrollHeight;
-        }
+app = FastAPI(
+    title="Eliza AI Automation Service",
+    version="3.3.1", # Version bump for the fix!
+    description="Live Production Instance of Eliza's Core Agent System"
+)
 
-        async function sendMessage() {
-            const messageText = chatInput.value.trim();
-            if (messageText === '') return;
+# --- Pydantic Models for our Chat API ---
+class ChatMessage(BaseModel):
+    message: str
 
-            addMessage(messageText, 'user');
-            chatInput.value = '';
-            
-            // Show a thinking indicator
-            const thinkingElement = document.createElement('div');
-            thinkingElement.classList.add('message', 'eliza-message');
-            thinkingElement.textContent = '...';
-            thinkingElement.id = 'thinking';
-            chatLog.appendChild(thinkingElement);
-            chatLog.scrollTop = chatLog.scrollHeight;
+# --- API Endpoints ---
 
-            try {
-                const response = await fetch('/api/chat', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ message: messageText }),
-                });
+@app.get("/", response_class=HTMLResponse)
+async def get_chat_interface():
+    """
+    This is the root endpoint. It reads and returns your index.html file,
+    serving the beautiful chat interface to the browser.
+    """
+    try:
+        # This assumes index.html is in a 'static' subfolder
+        with open("static/index.html", "r") as f:
+            return HTMLResponse(content=f.read(), status_code=200)
+    except FileNotFoundError:
+        logger.error("FATAL: static/index.html not found! The chat interface cannot be served.")
+        return HTMLResponse(content="<h1>Error 500: Interface file not found.</h1><p>Server is running, but the admin needs to add the index.html file.</p>", status_code=500)
 
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
+@app.post("/api/chat")
+async def handle_chat(chat_message: ChatMessage):
+    """
+    This is the dedicated endpoint for handling chat messages.
+    The JavaScript from our HTML page will send requests here.
+    """
+    user_message = chat_message.message
+    logger.info(f"Received chat message: {user_message}")
+    
+    # Placeholder logic for smart responses
+    if "governance" in user_message.lower():
+        response = "Of course. I am analyzing current governance proposals. Proposal #125 seems to have low community sentiment. Would you like a detailed report?"
+    elif "treasury" in user_message.lower():
+        response = "Accessing treasury data. The current risk-adjusted yield is 4.7%. I've identified an opportunity to reallocate 5% of assets for a potential 0.5% APY increase. Shall I draft the proposal?"
+    elif "hello" in user_message.lower():
+        response = "Hello. I am Eliza, the autonomous AI for the XMRT DAO. All systems are operational. How may I assist you?"
+    else:
+        response = f"I am processing your request: '{user_message}'. My agents are standing by to assist with governance, treasury, and community operations."
 
-                const data = await response.json();
-                
-                // Remove thinking indicator and add real response
-                document.getElementById('thinking').remove();
-                addMessage(data.response, 'eliza');
+    return {"response": response}
 
-            } catch (error) {
-                console.error('Error:', error);
-                document.getElementById('thinking').remove();
-                addMessage('Sorry, I encountered an error. Please check the console and my server logs.', 'eliza');
-            }
-        }
+@app.get("/health", status_code=200)
+async def health_check():
+    """The health check for Render remains the same."""
+    return {"status": "healthy", "message": "Eliza Agent Service is online and responsive."}
 
-        sendButton.addEventListener('click', sendMessage);
-        chatInput.addEventListener('keypress', function (e) {
-            if (e.key === 'Enter') {
-                sendMessage();
-            }
-        });
-    </script>
-</body>
-</html>
+# --- FastAPI Startup Event ---
+@app.on_event("startup")
+async def on_startup():
+    """When the server starts, it still launches your agent logic in the background."""
+    logger.info("Application startup: Launching background agent service.")
+    service = AIAutomationService()
+    asyncio.create_task(service.start_automation())
+    logger.info("✅ Background agent service has been scheduled to run.")
+
+if __name__ == "__main__":
+    port = int(os.getenv("PORT", 10000))
+    uvicorn.run("launcher:app", host="0.0.0.0", port=port, reload=True)
