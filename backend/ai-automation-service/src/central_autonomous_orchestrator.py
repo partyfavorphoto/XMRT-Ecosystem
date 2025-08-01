@@ -184,3 +184,43 @@ class CentralAutonomousOrchestrator:
         # Fallback to general AI if no specific tool is matched
         return f"I understand you're asking about '{query}'. As the XMRT DAO's autonomous AI, I can help with a wide range of tasks related to governance, treasury management, tokenomics, and development. I'm also constantly improving myself!"
 
+
+    def get_recent_commit_status(self):
+        # TODO: Implement actual GitHub commit status fetch. For now, return placeholder.
+        try:
+            manager = self.active_systems.get('GitHubClientManager')
+            if manager and hasattr(manager, 'get_last_commit_status'):
+                return manager.get_last_commit_status()
+        except Exception as ex:
+            return f"Error fetching commit status: {ex}"
+        return "No recent autonomous commits detected yet."
+
+    def get_last_self_improvement_summary(self):
+        try:
+            agent = self.active_systems.get('SelfImprovementAgent')
+            if agent and hasattr(agent, 'get_last_summary'):
+                return agent.get_last_summary()
+        except Exception as ex:
+            return f"Error fetching self-improvement summary: {ex}"
+        return "Self-improvement system is running but has not reported any completed improvements yet."
+
+    def get_last_error_report(self):
+        try:
+            agent = self.active_systems.get('SelfImprovementAgent')
+            if agent and hasattr(agent, 'get_last_errors'):
+                return agent.get_last_errors()
+        except Exception as ex:
+            return f"Error fetching error report: {ex}"
+        return "No error report found for last cycle."
+
+    def list_available_tools(self):
+        tools = []
+        for name, system in self.active_systems.items():
+            methods = [m for m in dir(system) if not m.startswith("_") and callable(getattr(system, m))]
+            tools.append(f"{name}: {', '.join(methods[:10])}")  # Limit to 10 methods for brevity
+        if tools:
+            return "Active systems and top methods:
+" + "
+".join(tools)
+        return "No tools or integrations are currently online."
+    
