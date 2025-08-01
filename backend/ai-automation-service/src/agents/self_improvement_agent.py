@@ -327,13 +327,13 @@ Implemented autonomously by Eliza AI Self-Improvement Agent
             logger.info("[SelfImprovement] Validating improvements...")
             
             # Run automated tests using terminal
-            test_results = await self.terminal_utils.execute("python -m pytest tests/ -v")
+            test_results = await maybe_await(self.terminal_utils.execute("python -m pytest tests/ -v"))
             
             # Check for any new errors in logs
-            error_check = await self.terminal_utils.execute("grep -i error /var/log/*.log | tail -10")
+            error_check = await maybe_await(self.terminal_utils.execute("grep -i error /var/log/*.log | tail -10"))
             
             # Run a quick performance benchmark
-            benchmark_results = await self.run_performance_benchmark()
+            benchmark_results = await maybe_await(self.run_performance_benchmark())
             
             validation_results = {
                 'tests': test_results,
@@ -343,9 +343,9 @@ Implemented autonomously by Eliza AI Self-Improvement Agent
             }
             
             # Use AI to analyze validation results
-            validation_analysis = await self.ai_utils.analyze_validation_results(validation_results)
+            validation_analysis = await maybe_await(self.ai_utils.analyze_validation_results(validation_results))
             
-            if validation_analysis.get('success', False):
+            if validation_analysis and validation_analysis.get('success', False):
                 logger.info("[SelfImprovement] Validation successful - improvements are working")
             else:
                 logger.warning("[SelfImprovement] Validation issues detected - may need rollback")

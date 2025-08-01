@@ -7,20 +7,65 @@ import subprocess
 import asyncio
 from pathlib import Path
 import logging
+from github import Github
 
 logger = logging.getLogger(__name__)
 
 class GitHubUtils:
     def __init__(self):
-        self.token = os.getenv('GITHUB_TOKEN')
+        # Use the provided credentials from user
+        self.token = os.getenv("GITHUB_TOKEN")
         self.username = os.getenv('GITHUB_USERNAME', 'DevGruGold')
-        self.repo = os.getenv('GITHUB_REPO', 'xmrt-ecosystem')
+        self.email = os.getenv('GITHUB_EMAIL', 'joeyleepcs@gmail.com')
+        self.repo_name = os.getenv('GITHUB_REPO', 'XMRT-Ecosystem')
         
-    async def commit_changes(self, message, files):
+        # Initialize PyGithub client
+        try:
+            self.github = Github(self.token)
+            self.repo = self.github.get_repo(f"{self.username}/{self.repo_name}")
+            logger.info(f"[GitHub] Successfully connected to {self.username}/{self.repo_name}")
+        except Exception as e:
+            logger.error(f"[GitHub] Failed to initialize GitHub client: {e}")
+            self.github = None
+            self.repo = None
+    
+    async def setup_git_config(self):
+        """Configure git with user credentials"""
+        try:
+            # Configure git user
+            subprocess.run(['git', 'config', 'user.name', self.username], check=True)
+            subprocess.run(['git', 'config', 'user.email', self.email], check=True)
+            
+            # Configure remote with token
+            remote_url = f"https://{self.token}@github.com/{self.username}/{self.repo_name}.git"
+            subprocess.run(['git', 'remote', 'set-url', 'origin', remote_url], check=True)
+            
+            logger.info("[GitHub] Git configuration completed successfully")
+            return True
+            
+        except Exception as e:
+            logger.error(f"[GitHub] Git configuration error: {e}")
+            return False
+        
+    async def commit_changes(self, message, files=None):
         """Commit changes to GitHub"""
         try:
-            # Add files
-            subprocess.run(['git', 'add', '.'], check=True)
+            # Ensure git is configured
+            await self.setup_git_config()
+            
+            # Add files (all if not specified)
+            if files:
+                for file_path in files:
+                    subprocess.run(['git', 'add', file_path], check=True)
+            else:
+                subprocess.run(['git', 'add', '.'], check=True)
+            
+            # Check if there are changes to commit
+            result = subprocess.run(['git', 'status', '--porcelain'], 
+                                  capture_output=True, text=True)
+            if not result.stdout.strip():
+                logger.info("[GitHub] No changes to commit")
+                return True
             
             # Commit
             subprocess.run(['git', 'commit', '-m', message], check=True)
@@ -31,6 +76,9 @@ class GitHubUtils:
             logger.info(f"[GitHub] Successfully committed: {message[:50]}...")
             return True
             
+        except subprocess.CalledProcessError as e:
+            logger.error(f"[GitHub] Git command failed: {e}")
+            return False
         except Exception as e:
             logger.error(f"[GitHub] Commit error: {e}")
             return False
@@ -38,11 +86,88 @@ class GitHubUtils:
     async def create_branch(self, branch_name):
         """Create a new branch for experimental changes"""
         try:
-            subprocess.run(['git', 'checkout', '-b', branch_name], check=True)
+            # Check if branch already exists
+            result = subprocess.run(['git', 'branch', '--list', branch_name], 
+                                  capture_output=True, text=True)
+            if result.stdout.strip():
+                logger.info(f"[GitHub] Branch {branch_name} already exists, switching to it")
+                subprocess.run(['git', 'checkout', branch_name], check=True)
+            else:
+                subprocess.run(['git', 'checkout', '-b', branch_name], check=True)
+                logger.info(f"[GitHub] Created and switched to branch: {branch_name}")
+            
             return True
         except Exception as e:
             logger.error(f"[GitHub] Branch creation error: {e}")
             return False
+    
+    async def create_pull_request(self, title, body, head_branch, base_branch='main'):
+        """Create a pull request using PyGithub"""
+        try:
+            if not self.repo:
+                logger.error("[GitHub] Repository not initialized")
+                return None
+            
+            pr = self.repo.create_pull(
+                title=title,
+                body=body,
+                head=head_branch,
+                base=base_branch
+            )
+            
+            logger.info(f"[GitHub] Created pull request #{pr.number}: {title}")
+            return pr
+            
+        except Exception as e:
+            logger.error(f"[GitHub] Pull request creation error: {e}")
+            return None
+    
+    async def get_repository_info(self):
+        """Get repository information"""
+        try:
+            if not self.repo:
+                return None
+            
+            info = {
+                'name': self.repo.name,
+                'full_name': self.repo.full_name,
+                'description': self.repo.description,
+                'stars': self.repo.stargazers_count,
+                'forks': self.repo.forks_count,
+                'open_issues': self.repo.open_issues_count,
+                'default_branch': self.repo.default_branch,
+                'last_updated': self.repo.updated_at.isoformat()
+            }
+            
+            return info
+            
+        except Exception as e:
+            logger.error(f"[GitHub] Repository info error: {e}")
+            return None
+    
+    async def analyze_recent_commits(self, limit=10):
+        """Analyze recent commits for patterns"""
+        try:
+            if not self.repo:
+                return []
+            
+            commits = list(self.repo.get_commits()[:limit])
+            commit_data = []
+            
+            for commit in commits:
+                commit_data.append({
+                    'sha': commit.sha[:8],
+                    'message': commit.commit.message,
+                    'author': commit.commit.author.name,
+                    'date': commit.commit.author.date.isoformat(),
+                    'files_changed': len(commit.files) if commit.files else 0
+                })
+            
+            return commit_data
+            
+        except Exception as e:
+            logger.error(f"[GitHub] Commit analysis error: {e}")
+            return []
 
 
 # XMRT Intelligence Upgrade
