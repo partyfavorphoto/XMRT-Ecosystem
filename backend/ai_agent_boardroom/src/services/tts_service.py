@@ -85,6 +85,8 @@ class TTSService:
             Dictionary with audio file information or error details
         """
         try:
+        except Exception as e:
+            pass
             # Clean and prepare the text for TTS
             cleaned_text = self._prepare_text_for_tts(message_content)
             
