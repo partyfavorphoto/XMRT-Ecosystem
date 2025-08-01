@@ -72,7 +72,7 @@ class AutonomousSystemsRouter:
         """Initialize AutonomousImprovement"""
         try:
             from autonomous_improvement_engine import AutonomousImprovement
-            engine = AutonomousImprovement()
+            engine = AutonomousImprovement("autofix", "autotype", "medium", "Auto Title", "Auto Desc", [], {}, 0.8, "low", "neutral", [], "auto", None)
             return engine
         except Exception as e:
             logger.error(f"[AutonomousRouter] AutonomousImprovement init error: {e}")
