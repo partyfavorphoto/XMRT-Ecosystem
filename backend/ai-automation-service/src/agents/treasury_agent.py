@@ -293,3 +293,46 @@ class TreasuryAgent:
         logger.critical(f"Emergency treasury action completed: {result}")
         # Simulate stakeholder notification
 
+    async def run_cycle(self):
+        """Execute a treasury cycle - analyze funds, optimize yields, etc."""
+        try:
+            print(f"[{self.__class__.__name__}] Starting treasury cycle...")
+            
+            # Treasury-specific cycle logic
+            await self.analyze_treasury_status()
+            await self.optimize_yields()
+            await self.check_risk_parameters()
+            
+            print(f"[{self.__class__.__name__}] Treasury cycle completed successfully")
+            
+        except Exception as e:
+            print(f"[{self.__class__.__name__}] Error in treasury cycle: {e}")
+    
+    async def analyze_treasury_status(self):
+        """Analyze current treasury status"""
+        try:
+            # TODO: Implement actual treasury analysis
+            print(f"[{self.__class__.__name__}] Analyzing treasury status...")
+            pass
+        except Exception as e:
+            print(f"[{self.__class__.__name__}] Treasury analysis error: {e}")
+    
+    async def optimize_yields(self):
+        """Optimize treasury yields"""
+        try:
+            # TODO: Implement yield optimization
+            print(f"[{self.__class__.__name__}] Optimizing yields...")
+            pass
+        except Exception as e:
+            print(f"[{self.__class__.__name__}] Yield optimization error: {e}")
+    
+    async def check_risk_parameters(self):
+        """Check and adjust risk parameters"""
+        try:
+            # TODO: Implement risk parameter checking
+            print(f"[{self.__class__.__name__}] Checking risk parameters...")
+            pass
+        except Exception as e:
+            print(f"[{self.__class__.__name__}] Risk parameter error: {e}")
+
+

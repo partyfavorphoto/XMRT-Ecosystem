@@ -186,3 +186,20 @@ class GovernanceAgent:
         # Simulate automated voting
         logger.info(f"Executing automated vote for proposal {proposal['id']}")
 
+    async def run_cycle(self):
+        """Execute a governance cycle - analyze proposals, update status, etc."""
+        try:
+            print(f"[{self.__class__.__name__}] Starting governance cycle...")
+            
+            # Use existing methods from your GovernanceAgent class
+            await self.check_proposals()
+            await self.analyze_sentiment()
+            await self.check_emergency_proposals()
+            
+            print(f"[{self.__class__.__name__}] Governance cycle completed successfully")
+            
+        except Exception as e:
+            print(f"[{self.__class__.__name__}] Error in governance cycle: {e}")
+            # Don't re-raise - let the system continue with other agents
+
+
