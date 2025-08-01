@@ -141,7 +141,6 @@ class EnhancedElizaAgent:
             
             # Enhance context based on message type and relevant memories
             enhanced_context = self._enhance_context(message_type, user_context, relevant_memories)
->>>>>>> 707b4bb691ba1f717aa714b5bbb8b87a5d11435c
             
             # Prepare messages for OpenAI
             messages = [
