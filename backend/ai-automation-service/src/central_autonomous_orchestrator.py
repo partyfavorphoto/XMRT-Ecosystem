@@ -29,10 +29,15 @@ class CentralAutonomousOrchestrator:
         sys.path.append(str(project_root / 'backend' / 'eliza-backend' / 'src')) # For external_tools_integration.py
         sys.path.append(str(current_dir)) # For other src modules
         
-        self.initialize_systems_async = asyncio.create_task(self._initialize_systems())
+        
         
         logger.info("[CentralOrchestrator] Initialization scheduled.")
-    
+    async def initialize(self):
+        """Perform asynchronous initialization of all systems."""
+        logger.info("[CentralOrchestrator] Starting synchronous system initialization...")
+        await self._initialize_systems()
+        logger.info("[CentralOrchestrator] Asynchronous initialization complete.")
+
     async def _initialize_systems(self):
         """Asynchronously initialize all known sophisticated autonomous systems."""
         logger.info("[CentralOrchestrator] Starting asynchronous system initialization...")
@@ -104,7 +109,7 @@ class CentralAutonomousOrchestrator:
         Execute a comprehensive autonomous cycle across all integrated systems.
         This method will be called by main.py
         """
-        await self.initialize_systems_async # Ensure systems are initialized
+        # Systems will be initialized externally by AIAutomationService.start_automation
         
         logger.info("[CentralOrchestrator] Starting comprehensive autonomous cycle...")
         
