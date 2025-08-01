@@ -11,11 +11,11 @@ services:
     pythonVersion: "3.11"
 
     # This tells Render to work inside your service folder.
-    rootDir: backend/ai-automation-service
+    rootDir: .
 
     # These commands will now work perfectly in the new environment.
     buildCommand: "pip install -r requirements.txt"
-    startCommand: "python -m gunicorn -w 4 -k uvicorn.workers.UvicornWorker launcher:app --bind 0.0.0.0:$PORT"
+    startCommand: "python -m uvicorn unified_eliza_agent:app --host 0.0.0.0 --port $PORT"
 
     healthCheckPath: /health # The endpoint in your launcher.py
     
@@ -27,3 +27,5 @@ services:
         sync: false
       - key: WEB3_RPC_URL
         sync: false
+
+
