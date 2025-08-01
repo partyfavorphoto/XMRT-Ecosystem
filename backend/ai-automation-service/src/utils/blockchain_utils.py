@@ -132,7 +132,7 @@ class BlockchainUtils:
             for name, address in self.contract_addresses.items():
                 if address and name in self.contract_abis:
                     contracts[name] = self.w3.eth.contract(
-                        address=Web3.toChecksumAddress(address),
+                        address=Web3.to_checksum_address(address),
                         abi=self.contract_abis[name]
                     )
 
