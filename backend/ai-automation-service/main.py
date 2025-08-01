@@ -23,6 +23,7 @@ from agents.community_agent import CommunityAgent
 from agents.self_improvement_agent import SelfImprovementAgent
 from utils.blockchain_utils import BlockchainUtils
 from utils.ai_utils import AIUtils
+from src.autonomous_systems_router import AutonomousSystemsRouter
 from utils.github_utils import GitHubUtils
 from utils.terminal_utils import TerminalUtils
 from utils.browser_utils import BrowserUtils
@@ -60,11 +61,28 @@ class AIAutomationService:
                 logger.info("--- Starting new agent cycle ---")
                 # This runs all your agent tasks concurrently, which is highly efficient.
                 await asyncio.gather(
-                    self.governance_agent.run_cycle(), # You must create this method in your agent
-                    self.treasury_agent.run_cycle(),   # You must create this method in your agent
-                    self.community_agent.run_cycle(),  # You must create this method in your agent
-                    self.self_improvement_agent.run_cycle()  # Autonomous self-improvement
+                    self.governance_agent.run_cycle(),
+                    self.treasury_agent.run_cycle(),
+                    self.community_agent.run_cycle()
                 )
+                
+                # Run existing autonomous systems
+
+    async def run_existing_autonomous_systems(self):
+        """Run Eliza's existing autonomous systems using the router"""
+        try:
+            # Initialize all autonomous systems
+            await self.autonomous_router.initialize_all_systems()
+            
+            # Run comprehensive autonomous cycle
+            await self.autonomous_router.run_autonomous_cycle()
+            
+            logger.info("[Main] Autonomous systems cycle completed successfully")
+            
+        except Exception as e:
+            logger.error(f"[Main] Autonomous systems error: {e}")
+
+                await self.run_existing_autonomous_systems()
                 logger.info("--- Agent cycle complete. Sleeping for 60 seconds. ---")
                 await asyncio.sleep(60)
 
