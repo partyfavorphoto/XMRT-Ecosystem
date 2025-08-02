@@ -22,7 +22,7 @@ class ElizaAI:
         self.emulation = ElizaAIEmulation()
         
         # Use emulation by default for testing
-        self.use_emulation = True
+        self.use_emulation = False
         
         # Initialize OpenAI client as fallback
         self.api_key = os.getenv('VITE_OPEN_AI_API_KEY') or os.getenv('OPENAI_API_KEY')
@@ -34,10 +34,10 @@ class ElizaAI:
                 logger.info("OpenAI client initialized successfully")
             except Exception as e:
                 logger.warning(f"OpenAI client initialization failed: {e}. Using emulation.")
-                self.use_emulation = True
+                self.use_emulation = False
         else:
             logger.info("Using AI emulation for testing")
-            self.use_emulation = True
+            self.use_emulation = False
         
         # Eliza's personality and knowledge base for OpenAI
         self.system_prompt = self._build_system_prompt()
