@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
 """
-Enhanced Unified Eliza Agent
-Consolidated AI agent for XMRT-Ecosystem with advanced decision-making, orchestration, and coordination capabilities.
-Now includes proper frontend serving.
+Redesigned Unified Eliza Agent
+Completely new frontend design with modern chat interface and reliable input system.
 """
 
 import asyncio
@@ -18,9 +17,6 @@ from enum import Enum
 import openai
 import aiohttp
 from github import Github
-import redis
-import sqlite3
-from contextlib import asynccontextmanager
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -41,22 +37,6 @@ class DecisionCriteria:
     description: str
     measurement_type: str  # 'benefit' or 'cost'
 
-@dataclass
-class ConfidenceMetrics:
-    """Confidence metrics for decision making."""
-    historical_accuracy: float
-    data_quality: float
-    consensus_level: float
-    risk_assessment: float
-
-@dataclass
-class SystemStatus:
-    """System status data structure."""
-    component: str
-    status: str
-    last_update: datetime
-    metrics: Dict[str, Any]
-
 class ConfidenceManager:
     """Dynamic confidence adjustment based on historical performance."""
     
@@ -70,22 +50,6 @@ class ConfidenceManager:
         self.performance_history = []
         self.adjustment_factor = 0.01
         
-    def adjust_threshold(self, decision_level: DecisionLevel, success_rate: float):
-        """Adjust confidence threshold based on success rate."""
-        current_threshold = self.confidence_thresholds[decision_level]
-        
-        if success_rate > 0.9:
-            # Lower threshold if performing well
-            new_threshold = max(0.5, current_threshold - self.adjustment_factor)
-        elif success_rate < 0.7:
-            # Raise threshold if performing poorly
-            new_threshold = min(0.95, current_threshold + self.adjustment_factor)
-        else:
-            new_threshold = current_threshold
-            
-        self.confidence_thresholds[decision_level] = new_threshold
-        logger.info(f"Adjusted {decision_level.value} threshold to {new_threshold:.3f}")
-        
     def get_threshold(self, decision_level: DecisionLevel) -> float:
         """Get current threshold for decision level."""
         return self.confidence_thresholds[decision_level]
@@ -94,17 +58,7 @@ class DecisionEvaluator:
     """Multi-criteria decision analysis for governance decisions."""
     
     def __init__(self):
-        self.criteria_weights = {
-            'financial_impact': 0.30,
-            'security_risk': 0.25,
-            'community_sentiment': 0.25,
-            'regulatory_compliance': 0.20
-        }
-        self.mcda_criteria = self._initialize_mcda_criteria()
-        
-    def _initialize_mcda_criteria(self) -> List[DecisionCriteria]:
-        """Initialize Multi-Criteria Decision Analysis criteria."""
-        return [
+        self.mcda_criteria = [
             DecisionCriteria("financial_impact", 0.3, "Financial impact on DAO treasury", "benefit"),
             DecisionCriteria("community_benefit", 0.25, "Benefit to community members", "benefit"),
             DecisionCriteria("technical_feasibility", 0.2, "Technical implementation feasibility", "benefit"),
@@ -162,7 +116,6 @@ class DecisionEvaluator:
     
     async def _assess_community_benefit(self, proposal: Dict[str, Any]) -> float:
         """Assess community benefit of proposal."""
-        # Simplified assessment based on proposal category
         category = proposal.get('category', 'general')
         
         benefit_scores = {
@@ -343,7 +296,7 @@ class UnifiedElizaAgent:
         """Get comprehensive system status."""
         return {
             'timestamp': datetime.now().isoformat(),
-            'agent_version': '1.0.0',
+            'agent_version': '2.0.0',
             'status': 'operational',
             'components': self.components,
             'confidence_thresholds': {level.value: threshold for level, threshold in self.confidence_manager.confidence_thresholds.items()}
@@ -352,33 +305,37 @@ class UnifiedElizaAgent:
     async def chat_response(self, user_message: str, context: str = "") -> str:
         """Generate chat response for user interaction."""
         try:
-            # Simple response generation for now
-            # In a full implementation, this would use the knowledge router and advanced NLP
+            user_message_lower = user_message.lower()
             
-            if "governance" in user_message.lower():
-                return "I can help you with XMRT DAO governance processes. I analyze proposals using Multi-Criteria Decision Analysis and provide transparent explanations for all decisions."
-            elif "status" in user_message.lower():
+            if "governance" in user_message_lower:
+                return "I can help you with XMRT DAO governance processes. I analyze proposals using Multi-Criteria Decision Analysis and provide transparent explanations for all decisions. Would you like me to analyze a specific proposal?"
+            elif "status" in user_message_lower:
                 status = await self.get_system_status()
-                return f"System Status: {status['status']}. All components operational."
-            elif "capabilities" in user_message.lower():
-                return "I am Eliza, the XMRT DAO autonomous orchestrator. My capabilities include: governance proposal analysis, autonomous decision-making with MCDA, explainable AI, continuous learning, and system coordination."
-            elif "hello" in user_message.lower() or "hi" in user_message.lower():
-                return "Hello! I'm Eliza, your XMRT DAO AI assistant. I can help with governance, treasury management, and system operations. What would you like to know?"
+                return f"System Status: {status['status']}. All components operational. Agent version: {status['agent_version']}. How can I assist you further?"
+            elif "capabilities" in user_message_lower or "what can you do" in user_message_lower:
+                return "I am Eliza, the XMRT DAO autonomous orchestrator. My capabilities include: governance proposal analysis using MCDA, autonomous decision-making with explainable AI, continuous learning, system coordination, treasury management assistance, and real-time status monitoring. What specific area would you like to explore?"
+            elif any(greeting in user_message_lower for greeting in ["hello", "hi", "hey", "greetings"]):
+                return "Hello! I'm Eliza, your XMRT DAO AI assistant. I'm here to help with governance, treasury management, and system operations. What would you like to know or discuss today?"
+            elif "treasury" in user_message_lower:
+                return "I can assist with treasury management including fund allocation analysis, risk assessment, and financial impact evaluation. What treasury-related question do you have?"
+            elif "help" in user_message_lower:
+                return "I'm here to help! You can ask me about: governance proposals and analysis, system status and monitoring, treasury management, my capabilities and features, or any XMRT DAO operations. What specific topic interests you?"
+            elif "test" in user_message_lower:
+                return "Test successful! I'm fully operational and ready to assist. All systems are functioning normally. Is there anything specific you'd like me to help you with?"
             else:
-                return "I'm here to help with XMRT DAO operations. You can ask me about governance proposals, system status, treasury management, or my capabilities. How can I assist you today?"
+                return f"I understand you're asking about: '{user_message}'. I'm here to help with XMRT DAO operations including governance, treasury management, and system coordination. Could you provide more specific details about what you'd like to know or accomplish?"
                 
         except Exception as e:
             logger.error(f"Error generating chat response: {e}")
-            return "I apologize, but I encountered an error processing your request. Please try again."
+            return "I apologize, but I encountered an error processing your request. Please try again, and if the issue persists, please check the system status."
 
 # FastAPI application for deployment
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
-from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-app = FastAPI(title="Unified Eliza Agent", version="1.0.0")
+app = FastAPI(title="Redesigned Unified Eliza Agent", version="2.0.0")
 
 # Add CORS middleware
 app.add_middleware(
@@ -412,431 +369,604 @@ class ProposalRequest(BaseModel):
     risk_factors: List[str] = []
     treasury_balance: float = 1000000
 
-# Frontend HTML content
-FRONTEND_HTML = """<!DOCTYPE html>
+# Completely redesigned frontend HTML with new input system
+REDESIGNED_FRONTEND_HTML = """<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Eliza AI - XMRT DAO</title>
+    <title>Eliza AI v2.0 - XMRT DAO</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        :root {
-            --primary-green: #00ff88;
-            --dark-bg: #1a1a1a;
-            --card-bg: #2d2d2d;
-            --text-primary: #ffffff;
-            --text-secondary: #a0a0a0;
-        }
-
         * {
+            margin: 0;
+            padding: 0;
             box-sizing: border-box;
         }
 
+        :root {
+            --primary: #00ff88;
+            --primary-dark: #00cc6a;
+            --bg-primary: #0a0a0a;
+            --bg-secondary: #1a1a1a;
+            --bg-tertiary: #2a2a2a;
+            --text-primary: #ffffff;
+            --text-secondary: #b0b0b0;
+            --text-muted: #808080;
+            --border: #333333;
+            --shadow: rgba(0, 255, 136, 0.1);
+            --error: #ff4444;
+            --success: #00ff88;
+        }
+
         body {
-            background-color: var(--dark-bg);
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
             color: var(--text-primary);
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            margin: 0;
-            padding: 0;
             min-height: 100vh;
             display: flex;
-            flex-direction: column;
             align-items: center;
             justify-content: center;
+            padding: 20px;
         }
 
-        .chat-container {
+        .app-container {
             width: 100%;
-            max-width: 600px;
-            height: 80vh;
-            background-color: var(--card-bg);
-            border-radius: 12px;
+            max-width: 800px;
+            height: 90vh;
+            background: var(--bg-secondary);
+            border-radius: 20px;
+            border: 1px solid var(--border);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3), 0 0 0 1px var(--shadow);
             display: flex;
             flex-direction: column;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
-            margin: 20px;
+            overflow: hidden;
         }
 
-        .chat-header {
-            padding: 20px;
-            border-bottom: 1px solid #444;
-            text-align: center;
-        }
-
-        .chat-title {
-            font-size: 24px;
-            font-weight: bold;
-            color: var(--primary-green);
-            margin-bottom: 8px;
-        }
-
-        .chat-subtitle {
-            font-size: 14px;
-            color: var(--text-secondary);
-        }
-
-        .chat-messages {
-            flex: 1;
-            overflow-y: auto;
-            padding: 20px;
+        .header {
+            background: linear-gradient(90deg, var(--bg-tertiary) 0%, var(--bg-secondary) 100%);
+            padding: 24px 32px;
+            border-bottom: 1px solid var(--border);
             display: flex;
-            flex-direction: column;
+            align-items: center;
             gap: 16px;
         }
 
-        .message {
-            max-width: 80%;
-            padding: 12px 16px;
-            border-radius: 12px;
-            font-size: 14px;
-            line-height: 1.4;
-            word-wrap: break-word;
-        }
-
-        .message.bot {
-            background-color: rgba(255, 255, 255, 0.1);
-            color: var(--text-primary);
-            align-self: flex-start;
-            border-bottom-left-radius: 4px;
-        }
-
-        .message.user {
-            background-color: var(--primary-green);
-            color: #000;
-            align-self: flex-end;
-            border-bottom-right-radius: 4px;
-        }
-
-        .chat-input-container {
-            padding: 20px;
-            border-top: 1px solid #444;
-            display: flex;
-            gap: 12px;
-            align-items: center;
-        }
-
-        .chat-input {
-            flex: 1;
-            padding: 12px 16px;
-            border: 1px solid #444;
-            border-radius: 24px;
-            background-color: var(--dark-bg);
-            color: var(--text-primary);
-            font-size: 14px;
-            outline: none;
-            transition: border-color 0.2s ease;
-        }
-
-        .chat-input:focus {
-            border-color: var(--primary-green);
-        }
-
-        .chat-input::placeholder {
-            color: var(--text-secondary);
-        }
-
-        .send-button {
+        .avatar {
             width: 48px;
             height: 48px;
-            border-radius: 50%;
-            background-color: var(--primary-green);
-            color: #000;
-            border: none;
-            cursor: pointer;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            border-radius: 12px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 18px;
-            font-weight: bold;
-            transition: all 0.2s ease;
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--bg-primary);
+            box-shadow: 0 4px 12px var(--shadow);
         }
 
-        .send-button:hover {
-            background-color: #00e67a;
-            transform: scale(1.05);
+        .header-info h1 {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 4px;
         }
 
-        .send-button:disabled {
-            background-color: #666;
-            cursor: not-allowed;
-            transform: none;
+        .header-info p {
+            font-size: 14px;
+            color: var(--text-secondary);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            background: var(--primary);
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.7; transform: scale(1.1); }
+        }
+
+        .chat-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .messages-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 32px;
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+
+        .message {
+            display: flex;
+            gap: 16px;
+            max-width: 85%;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .message.user {
+            align-self: flex-end;
+            flex-direction: row-reverse;
+        }
+
+        .message-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            font-weight: 600;
+            flex-shrink: 0;
+        }
+
+        .message.bot .message-avatar {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: var(--bg-primary);
+        }
+
+        .message.user .message-avatar {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+        }
+
+        .message-content {
+            background: var(--bg-tertiary);
+            padding: 16px 20px;
+            border-radius: 16px;
+            font-size: 15px;
+            line-height: 1.5;
+            border: 1px solid var(--border);
+        }
+
+        .message.user .message-content {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: var(--bg-primary);
+            border: none;
+        }
+
+        .message.bot .message-content {
+            border-bottom-left-radius: 6px;
+        }
+
+        .message.user .message-content {
+            border-bottom-right-radius: 6px;
         }
 
         .typing-indicator {
             display: none;
-            align-self: flex-start;
-            padding: 12px 16px;
-            background-color: rgba(255, 255, 255, 0.1);
-            border-radius: 12px;
-            border-bottom-left-radius: 4px;
-            max-width: 80px;
+            align-items: center;
+            gap: 16px;
+            padding: 0 32px;
+            margin-bottom: 16px;
+        }
+
+        .typing-indicator.show {
+            display: flex;
         }
 
         .typing-dots {
             display: flex;
             gap: 4px;
+            padding: 16px 20px;
+            background: var(--bg-tertiary);
+            border-radius: 16px;
+            border-bottom-left-radius: 6px;
+            border: 1px solid var(--border);
         }
 
         .typing-dot {
             width: 8px;
             height: 8px;
+            background: var(--text-muted);
             border-radius: 50%;
-            background-color: var(--text-secondary);
             animation: typing 1.4s infinite ease-in-out;
         }
 
         .typing-dot:nth-child(1) { animation-delay: -0.32s; }
         .typing-dot:nth-child(2) { animation-delay: -0.16s; }
+        .typing-dot:nth-child(3) { animation-delay: 0s; }
 
         @keyframes typing {
-            0%, 80%, 100% {
-                transform: scale(0.8);
-                opacity: 0.5;
-            }
-            40% {
-                transform: scale(1);
-                opacity: 1;
-            }
+            0%, 80%, 100% { transform: scale(0.8); opacity: 0.5; }
+            40% { transform: scale(1.2); opacity: 1; }
         }
 
-        .status-indicator {
-            display: inline-block;
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background-color: var(--primary-green);
-            margin-right: 8px;
-            animation: pulse 2s infinite;
+        .input-area {
+            padding: 24px 32px;
+            border-top: 1px solid var(--border);
+            background: var(--bg-secondary);
         }
 
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
+        .input-container {
+            display: flex;
+            gap: 12px;
+            align-items: flex-end;
+            background: var(--bg-tertiary);
+            border: 2px solid var(--border);
+            border-radius: 16px;
+            padding: 4px;
+            transition: border-color 0.2s ease;
         }
 
-        .error-message {
-            background-color: #ff4444;
+        .input-container:focus-within {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 4px var(--shadow);
+        }
+
+        .message-input {
+            flex: 1;
+            background: transparent;
+            border: none;
+            outline: none;
+            color: var(--text-primary);
+            font-size: 15px;
+            font-family: inherit;
+            padding: 16px 20px;
+            resize: none;
+            min-height: 24px;
+            max-height: 120px;
+            line-height: 1.5;
+        }
+
+        .message-input::placeholder {
+            color: var(--text-muted);
+        }
+
+        .send-btn {
+            width: 48px;
+            height: 48px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            border: none;
+            border-radius: 12px;
+            color: var(--bg-primary);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            font-weight: 600;
+            transition: all 0.2s ease;
+            flex-shrink: 0;
+        }
+
+        .send-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px var(--shadow);
+        }
+
+        .send-btn:active {
+            transform: translateY(0);
+        }
+
+        .send-btn:disabled {
+            background: var(--border);
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .error-toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: var(--error);
             color: white;
-            padding: 8px 12px;
-            border-radius: 6px;
-            font-size: 12px;
-            margin-top: 8px;
-            display: none;
+            padding: 16px 24px;
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: 500;
+            box-shadow: 0 8px 24px rgba(255, 68, 68, 0.3);
+            transform: translateX(400px);
+            transition: transform 0.3s ease;
+            z-index: 1000;
+        }
+
+        .error-toast.show {
+            transform: translateX(0);
+        }
+
+        .welcome-message {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--text-secondary);
+        }
+
+        .welcome-message h2 {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 12px;
+            color: var(--text-primary);
+        }
+
+        .welcome-message p {
+            font-size: 15px;
+            line-height: 1.6;
         }
 
         @media (max-width: 768px) {
-            .chat-container {
+            .app-container {
                 height: 100vh;
-                margin: 0;
                 border-radius: 0;
+                border: none;
             }
+            
+            .header {
+                padding: 20px 24px;
+            }
+            
+            .messages-container {
+                padding: 24px 20px;
+            }
+            
+            .input-area {
+                padding: 20px 24px;
+            }
+        }
+
+        /* Custom scrollbar */
+        .messages-container::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .messages-container::-webkit-scrollbar-track {
+            background: var(--bg-secondary);
+        }
+
+        .messages-container::-webkit-scrollbar-thumb {
+            background: var(--border);
+            border-radius: 3px;
+        }
+
+        .messages-container::-webkit-scrollbar-thumb:hover {
+            background: var(--text-muted);
         }
     </style>
 </head>
 <body>
-    <div class="chat-container">
-        <div class="chat-header">
-            <div class="chat-title">Eliza AI</div>
-            <div class="chat-subtitle">
-                <span class="status-indicator"></span>
-                XMRT DAO Autonomous Orchestrator
+    <div class="app-container">
+        <div class="header">
+            <div class="avatar">E</div>
+            <div class="header-info">
+                <h1>Eliza AI v2.0</h1>
+                <p>
+                    <span class="status-dot"></span>
+                    XMRT DAO Autonomous Orchestrator
+                </p>
             </div>
         </div>
 
-        <div class="chat-messages" id="chatMessages">
-            <div class="message bot">
-                Hello. I am Eliza. All systems are operational. How can I assist you?
+        <div class="chat-area">
+            <div class="messages-container" id="messagesContainer">
+                <div class="welcome-message">
+                    <h2>Welcome to Eliza AI v2.0</h2>
+                    <p>I'm your XMRT DAO autonomous orchestrator. I can help with governance analysis, treasury management, system monitoring, and more. How can I assist you today?</p>
+                </div>
+            </div>
+
+            <div class="typing-indicator" id="typingIndicator">
+                <div class="message-avatar" style="background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%); color: var(--bg-primary);">E</div>
+                <div class="typing-dots">
+                    <div class="typing-dot"></div>
+                    <div class="typing-dot"></div>
+                    <div class="typing-dot"></div>
+                </div>
+            </div>
+
+            <div class="input-area">
+                <div class="input-container">
+                    <textarea 
+                        class="message-input" 
+                        id="messageInput" 
+                        placeholder="Type your message here..."
+                        rows="1"
+                    ></textarea>
+                    <button class="send-btn" id="sendButton" type="button">
+                        ↗
+                    </button>
+                </div>
             </div>
         </div>
-
-        <div class="typing-indicator" id="typingIndicator">
-            <div class="typing-dots">
-                <div class="typing-dot"></div>
-                <div class="typing-dot"></div>
-                <div class="typing-dot"></div>
-            </div>
-        </div>
-
-        <div class="chat-input-container">
-            <input 
-                type="text" 
-                class="chat-input" 
-                id="chatInput" 
-                placeholder="Ask Eliza about governance, treasury, or development..."
-                maxlength="500"
-            >
-            <button class="send-button" id="sendButton" type="button">
-                ➤
-            </button>
-        </div>
-        
-        <div class="error-message" id="errorMessage"></div>
     </div>
 
+    <div class="error-toast" id="errorToast"></div>
+
     <script>
-        // Global variables
-        let isProcessing = false;
-        const chatMessages = document.getElementById('chatMessages');
-        const chatInput = document.getElementById('chatInput');
-        const sendButton = document.getElementById('sendButton');
-        const typingIndicator = document.getElementById('typingIndicator');
-        const errorMessage = document.getElementById('errorMessage');
-
-        // Initialize the chat
-        function initializeChat() {
-            console.log('Initializing Eliza chat interface...');
-            
-            // Add event listeners
-            sendButton.addEventListener('click', sendMessage);
-            chatInput.addEventListener('keypress', handleKeyPress);
-            
-            // Focus on input
-            chatInput.focus();
-            
-            console.log('Chat interface initialized successfully');
-        }
-
-        // Handle key press events
-        function handleKeyPress(event) {
-            if (event.key === 'Enter' && !event.shiftKey) {
-                event.preventDefault();
-                sendMessage();
-            }
-        }
-
-        // Send message function
-        async function sendMessage() {
-            if (isProcessing) return;
-            
-            const messageText = chatInput.value.trim();
-            if (messageText === '') return;
-            
-            console.log('Sending message:', messageText);
-            
-            // Disable input and show processing state
-            isProcessing = true;
-            sendButton.disabled = true;
-            chatInput.disabled = true;
-            hideError();
-            
-            // Add user message to chat
-            addMessage(messageText, 'user');
-            
-            // Clear input
-            chatInput.value = '';
-            
-            // Show typing indicator
-            showTypingIndicator();
-            
-            try {
-                // Send message to API
-                const response = await fetch('/api/chat', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ 
-                        message: messageText,
-                        context: ""
-                    })
-                });
+        class ElizaChat {
+            constructor() {
+                this.messagesContainer = document.getElementById('messagesContainer');
+                this.messageInput = document.getElementById('messageInput');
+                this.sendButton = document.getElementById('sendButton');
+                this.typingIndicator = document.getElementById('typingIndicator');
+                this.errorToast = document.getElementById('errorToast');
+                this.isProcessing = false;
                 
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
+                this.init();
+            }
+
+            init() {
+                console.log('Initializing Eliza Chat v2.0...');
+                
+                // Event listeners
+                this.sendButton.addEventListener('click', () => this.sendMessage());
+                this.messageInput.addEventListener('keydown', (e) => this.handleKeyDown(e));
+                this.messageInput.addEventListener('input', () => this.autoResize());
+                
+                // Focus input
+                this.messageInput.focus();
+                
+                // Test API connection
+                this.testConnection();
+                
+                console.log('Eliza Chat v2.0 initialized successfully');
+            }
+
+            handleKeyDown(event) {
+                if (event.key === 'Enter' && !event.shiftKey) {
+                    event.preventDefault();
+                    this.sendMessage();
+                } else if (event.key === 'Enter' && event.shiftKey) {
+                    // Allow line break
+                    return;
+                }
+            }
+
+            autoResize() {
+                const textarea = this.messageInput;
+                textarea.style.height = 'auto';
+                textarea.style.height = Math.min(textarea.scrollHeight, 120) + 'px';
+            }
+
+            async sendMessage() {
+                if (this.isProcessing) return;
+                
+                const message = this.messageInput.value.trim();
+                if (!message) return;
+                
+                console.log('Sending message:', message);
+                
+                // Set processing state
+                this.isProcessing = true;
+                this.sendButton.disabled = true;
+                this.messageInput.disabled = true;
+                
+                // Add user message
+                this.addMessage(message, 'user');
+                
+                // Clear input
+                this.messageInput.value = '';
+                this.autoResize();
+                
+                // Show typing indicator
+                this.showTyping();
+                
+                try {
+                    const response = await fetch('/api/chat', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            message: message,
+                            context: ''
+                        })
+                    });
+                    
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                    }
+                    
+                    const data = await response.json();
+                    console.log('API response:', data);
+                    
+                    // Hide typing indicator
+                    this.hideTyping();
+                    
+                    // Add bot response
+                    const botMessage = data.response || 'I apologize, but I encountered an issue processing your request.';
+                    this.addMessage(botMessage, 'bot');
+                    
+                } catch (error) {
+                    console.error('Error sending message:', error);
+                    this.hideTyping();
+                    this.showError(`Failed to send message: ${error.message}`);
+                    
+                    // Add error message to chat
+                    this.addMessage('I apologize, but I\\'m having trouble connecting right now. Please try again in a moment.', 'bot');
+                } finally {
+                    // Reset state
+                    this.isProcessing = false;
+                    this.sendButton.disabled = false;
+                    this.messageInput.disabled = false;
+                    this.messageInput.focus();
+                }
+            }
+
+            addMessage(text, sender) {
+                // Remove welcome message if it exists
+                const welcomeMessage = this.messagesContainer.querySelector('.welcome-message');
+                if (welcomeMessage) {
+                    welcomeMessage.remove();
                 }
                 
-                const data = await response.json();
-                console.log('API response:', data);
+                const messageDiv = document.createElement('div');
+                messageDiv.className = `message ${sender}`;
                 
-                // Hide typing indicator
-                hideTypingIndicator();
+                const avatar = document.createElement('div');
+                avatar.className = 'message-avatar';
+                avatar.textContent = sender === 'bot' ? 'E' : 'U';
                 
-                // Add bot response to chat
-                if (data.response) {
-                    addMessage(data.response, 'bot');
-                } else {
-                    addMessage('I apologize, but I encountered an issue processing your request. Please try again.', 'bot');
+                const content = document.createElement('div');
+                content.className = 'message-content';
+                content.textContent = text;
+                
+                messageDiv.appendChild(avatar);
+                messageDiv.appendChild(content);
+                
+                this.messagesContainer.appendChild(messageDiv);
+                this.scrollToBottom();
+            }
+
+            showTyping() {
+                this.typingIndicator.classList.add('show');
+                this.scrollToBottom();
+            }
+
+            hideTyping() {
+                this.typingIndicator.classList.remove('show');
+            }
+
+            showError(message) {
+                this.errorToast.textContent = message;
+                this.errorToast.classList.add('show');
+                
+                setTimeout(() => {
+                    this.errorToast.classList.remove('show');
+                }, 5000);
+            }
+
+            scrollToBottom() {
+                setTimeout(() => {
+                    this.messagesContainer.scrollTop = this.messagesContainer.scrollHeight;
+                }, 100);
+            }
+
+            async testConnection() {
+                try {
+                    const response = await fetch('/health');
+                    if (response.ok) {
+                        console.log('API connection successful');
+                    } else {
+                        console.warn('API health check failed');
+                    }
+                } catch (error) {
+                    console.error('API connection test failed:', error);
                 }
-                
-            } catch (error) {
-                console.error('Error sending message:', error);
-                hideTypingIndicator();
-                showError('Failed to send message. Please check your connection and try again.');
-                
-                // Add error message to chat
-                addMessage('I apologize, but I\\'m having trouble connecting right now. Please try again in a moment.', 'bot');
-            } finally {
-                // Re-enable input
-                isProcessing = false;
-                sendButton.disabled = false;
-                chatInput.disabled = false;
-                chatInput.focus();
             }
         }
 
-        // Add message to chat
-        function addMessage(text, sender) {
-            const messageDiv = document.createElement('div');
-            messageDiv.className = `message ${sender}`;
-            messageDiv.textContent = text;
-            
-            chatMessages.appendChild(messageDiv);
-            
-            // Scroll to bottom
-            chatMessages.scrollTop = chatMessages.scrollHeight;
-        }
-
-        // Show typing indicator
-        function showTypingIndicator() {
-            typingIndicator.style.display = 'block';
-            chatMessages.scrollTop = chatMessages.scrollHeight;
-        }
-
-        // Hide typing indicator
-        function hideTypingIndicator() {
-            typingIndicator.style.display = 'none';
-        }
-
-        // Show error message
-        function showError(message) {
-            errorMessage.textContent = message;
-            errorMessage.style.display = 'block';
-            setTimeout(hideError, 5000); // Auto-hide after 5 seconds
-        }
-
-        // Hide error message
-        function hideError() {
-            errorMessage.style.display = 'none';
-        }
-
-        // Test API connection
-        async function testApiConnection() {
-            try {
-                const response = await fetch('/health');
-                if (response.ok) {
-                    console.log('API connection successful');
-                    return true;
-                } else {
-                    console.warn('API health check failed');
-                    return false;
-                }
-            } catch (error) {
-                console.error('API connection test failed:', error);
-                return false;
-            }
-        }
-
-        // Initialize when page loads
-        document.addEventListener('DOMContentLoaded', function() {
-            initializeChat();
-            testApiConnection();
-        });
-
-        // Handle page visibility changes
-        document.addEventListener('visibilitychange', function() {
-            if (!document.hidden && !isProcessing) {
-                chatInput.focus();
-            }
+        // Initialize when DOM is loaded
+        document.addEventListener('DOMContentLoaded', () => {
+            new ElizaChat();
         });
     </script>
 </body>
@@ -844,8 +974,8 @@ FRONTEND_HTML = """<!DOCTYPE html>
 
 @app.get("/", response_class=HTMLResponse)
 async def serve_frontend():
-    """Serve the frontend HTML."""
-    return HTMLResponse(content=FRONTEND_HTML)
+    """Serve the redesigned frontend HTML."""
+    return HTMLResponse(content=REDESIGNED_FRONTEND_HTML)
 
 @app.post("/api/chat")
 async def chat_endpoint(request: ChatRequest):
@@ -878,7 +1008,7 @@ async def get_status():
 @app.get("/health")
 async def health_check():
     """Health check endpoint."""
-    return {"status": "healthy", "timestamp": datetime.now().isoformat()}
+    return {"status": "healthy", "timestamp": datetime.now().isoformat(), "version": "2.0.0"}
 
 if __name__ == "__main__":
     import uvicorn
