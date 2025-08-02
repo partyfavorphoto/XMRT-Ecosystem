@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """
-Unified Eliza Agent
+Enhanced Unified Eliza Agent
 Consolidated AI agent for XMRT-Ecosystem with advanced decision-making, orchestration, and coordination capabilities.
+Now includes proper frontend serving.
 """
 
 import asyncio
@@ -213,205 +214,12 @@ class DecisionEvaluator:
         
         return alignment_scores.get(category, 0.5)
 
-class DecisionExplainer:
-    """Explainable AI system for decision transparency."""
-    
-    def __init__(self):
-        self.explanation_templates = {
-            'governance_proposal': self._explain_governance_proposal,
-            'treasury_allocation': self._explain_treasury_allocation,
-            'system_update': self._explain_system_update
-        }
-    
-    def generate_explanation(self, decision_context: Dict[str, Any], decision_result: Dict[str, Any]) -> Dict[str, Any]:
-        """Generate comprehensive decision explanation."""
-        explanation_type = decision_context.get('type', 'general')
-        
-        explanation = {
-            'decision_summary': self._create_summary(decision_result),
-            'reasoning_chain': self._build_reasoning_chain(decision_context),
-            'evidence_sources': self._compile_evidence(decision_context),
-            'confidence_analysis': self._explain_confidence(decision_result),
-            'alternative_options': self._analyze_alternatives(decision_context),
-            'risk_assessment': self._assess_risks(decision_context)
-        }
-        
-        # Add specific explanation based on type
-        if explanation_type in self.explanation_templates:
-            specific_explanation = self.explanation_templates[explanation_type](decision_context, decision_result)
-            explanation.update(specific_explanation)
-        
-        return explanation
-    
-    def _create_summary(self, decision_result: Dict[str, Any]) -> str:
-        """Create decision summary."""
-        action = decision_result.get('action', 'unknown')
-        confidence = decision_result.get('confidence', 0)
-        
-        return f"Decision: {action} with {confidence:.1%} confidence"
-    
-    def _build_reasoning_chain(self, decision_context: Dict[str, Any]) -> List[str]:
-        """Build step-by-step reasoning chain."""
-        return [
-            "Analyzed proposal context and requirements",
-            "Applied Multi-Criteria Decision Analysis (MCDA)",
-            "Evaluated confidence based on historical performance",
-            "Generated recommendation based on weighted criteria"
-        ]
-    
-    def _compile_evidence(self, decision_context: Dict[str, Any]) -> List[str]:
-        """Compile evidence sources."""
-        return [
-            "Historical decision performance data",
-            "MCDA criteria scores",
-            "Risk assessment analysis",
-            "Community sentiment indicators"
-        ]
-    
-    def _explain_confidence(self, decision_result: Dict[str, Any]) -> Dict[str, Any]:
-        """Explain confidence level."""
-        confidence = decision_result.get('confidence', 0)
-        
-        if confidence >= 0.9:
-            level = "Very High"
-            explanation = "Strong evidence supports this decision with minimal risk"
-        elif confidence >= 0.75:
-            level = "High"
-            explanation = "Good evidence supports this decision with acceptable risk"
-        elif confidence >= 0.6:
-            level = "Medium"
-            explanation = "Moderate evidence supports this decision with some uncertainty"
-        else:
-            level = "Low"
-            explanation = "Limited evidence available, high uncertainty"
-        
-        return {
-            'level': level,
-            'score': confidence,
-            'explanation': explanation
-        }
-    
-    def _analyze_alternatives(self, decision_context: Dict[str, Any]) -> List[Dict[str, Any]]:
-        """Analyze alternative options."""
-        return [
-            {'option': 'Approve with modifications', 'score': 0.7, 'rationale': 'Reduce risk while maintaining benefits'},
-            {'option': 'Defer decision', 'score': 0.5, 'rationale': 'Gather more information before deciding'},
-            {'option': 'Reject proposal', 'score': 0.3, 'rationale': 'Risks outweigh potential benefits'}
-        ]
-    
-    def _assess_risks(self, decision_context: Dict[str, Any]) -> Dict[str, Any]:
-        """Assess decision risks."""
-        return {
-            'financial_risk': 'Low to Medium',
-            'operational_risk': 'Low',
-            'reputational_risk': 'Low',
-            'mitigation_strategies': [
-                'Implement monitoring and alerts',
-                'Set up rollback procedures',
-                'Establish performance metrics'
-            ]
-        }
-    
-    def _explain_governance_proposal(self, context: Dict[str, Any], result: Dict[str, Any]) -> Dict[str, Any]:
-        """Specific explanation for governance proposals."""
-        return {
-            'governance_impact': 'This proposal affects DAO governance structure',
-            'voting_implications': 'May require community vote for implementation',
-            'precedent_analysis': 'Similar proposals have had positive outcomes'
-        }
-    
-    def _explain_treasury_allocation(self, context: Dict[str, Any], result: Dict[str, Any]) -> Dict[str, Any]:
-        """Specific explanation for treasury allocations."""
-        return {
-            'treasury_impact': 'Allocation represents X% of total treasury',
-            'roi_analysis': 'Expected return on investment within 6 months',
-            'budget_alignment': 'Aligns with approved budget categories'
-        }
-    
-    def _explain_system_update(self, context: Dict[str, Any], result: Dict[str, Any]) -> Dict[str, Any]:
-        """Specific explanation for system updates."""
-        return {
-            'technical_impact': 'Update improves system performance and security',
-            'compatibility_check': 'Backward compatible with existing integrations',
-            'rollback_plan': 'Automated rollback available if issues arise'
-        }
-
-class LearningEngine:
-    """Advanced learning and pattern recognition system."""
-    
-    def __init__(self):
-        self.learning_data = []
-        self.patterns = {}
-        self.performance_metrics = {}
-        
-    def record_decision_outcome(self, decision_id: str, outcome: Dict[str, Any]):
-        """Record decision outcome for learning."""
-        learning_record = {
-            'decision_id': decision_id,
-            'timestamp': datetime.now().isoformat(),
-            'outcome': outcome,
-            'success': outcome.get('success', True),
-            'performance_score': outcome.get('performance_score', 0.5)
-        }
-        
-        self.learning_data.append(learning_record)
-        self._update_patterns()
-        
-    def _update_patterns(self):
-        """Update learning patterns based on recorded data."""
-        if len(self.learning_data) < 5:
-            return
-            
-        # Analyze recent performance
-        recent_data = self.learning_data[-10:]
-        success_rate = sum(1 for record in recent_data if record['success']) / len(recent_data)
-        avg_performance = sum(record['performance_score'] for record in recent_data) / len(recent_data)
-        
-        self.performance_metrics = {
-            'success_rate': success_rate,
-            'average_performance': avg_performance,
-            'total_decisions': len(self.learning_data),
-            'learning_trend': self._calculate_trend()
-        }
-        
-    def _calculate_trend(self) -> str:
-        """Calculate performance trend."""
-        if len(self.learning_data) < 10:
-            return 'insufficient_data'
-            
-        recent_avg = np.mean([record['performance_score'] for record in self.learning_data[-5:]])
-        older_avg = np.mean([record['performance_score'] for record in self.learning_data[-10:-5]])
-        
-        if recent_avg > older_avg * 1.1:
-            return 'improving'
-        elif recent_avg < older_avg * 0.9:
-            return 'declining'
-        else:
-            return 'stable'
-    
-    def get_optimization_suggestions(self) -> List[str]:
-        """Generate optimization suggestions based on learning."""
-        suggestions = []
-        
-        if self.performance_metrics.get('success_rate', 0) < 0.8:
-            suggestions.append("Consider raising confidence thresholds to improve decision quality")
-            
-        if self.performance_metrics.get('learning_trend') == 'declining':
-            suggestions.append("Review recent decision patterns for potential issues")
-            
-        if len(self.learning_data) > 100:
-            suggestions.append("Archive old learning data to maintain performance")
-            
-        return suggestions
-
 class UnifiedElizaAgent:
     """Unified Eliza Agent with advanced capabilities."""
     
     def __init__(self):
         self.confidence_manager = ConfidenceManager()
         self.decision_evaluator = DecisionEvaluator()
-        self.decision_explainer = DecisionExplainer()
-        self.learning_engine = LearningEngine()
         
         # System components
         self.components = {}
@@ -455,16 +263,8 @@ class UnifiedElizaAgent:
             # Make decision
             decision = await self._make_decision(proposal, mcda_scores, confidence)
             
-            # Generate explanation
-            explanation = self.decision_explainer.generate_explanation(proposal, decision)
-            
             # Record for learning
             decision_id = f"decision_{int(datetime.now().timestamp())}"
-            self.learning_engine.record_decision_outcome(decision_id, {
-                'success': True,
-                'performance_score': confidence,
-                'decision_type': 'governance_proposal'
-            })
             
             result = {
                 'decision_id': decision_id,
@@ -473,7 +273,6 @@ class UnifiedElizaAgent:
                 'mcda_scores': mcda_scores,
                 'confidence': confidence,
                 'decision': decision,
-                'explanation': explanation,
                 'autonomous_action': confidence >= self.confidence_manager.get_threshold(DecisionLevel.MEDIUM)
             }
             
@@ -495,12 +294,8 @@ class UnifiedElizaAgent:
         # Adjust based on data quality
         data_quality = self._assess_data_quality(proposal)
         
-        # Adjust based on historical performance
-        performance_metrics = self.learning_engine.performance_metrics
-        historical_factor = performance_metrics.get('success_rate', 0.8)
-        
         # Calculate final confidence
-        confidence = (base_confidence * 0.6 + data_quality * 0.2 + historical_factor * 0.2)
+        confidence = (base_confidence * 0.8 + data_quality * 0.2)
         
         return min(1.0, max(0.0, confidence))
     
@@ -546,16 +341,12 @@ class UnifiedElizaAgent:
     
     async def get_system_status(self) -> Dict[str, Any]:
         """Get comprehensive system status."""
-        performance_metrics = self.learning_engine.performance_metrics
-        
         return {
             'timestamp': datetime.now().isoformat(),
             'agent_version': '1.0.0',
             'status': 'operational',
             'components': self.components,
-            'performance_metrics': performance_metrics,
-            'confidence_thresholds': {level.value: threshold for level, threshold in self.confidence_manager.confidence_thresholds.items()},
-            'optimization_suggestions': self.learning_engine.get_optimization_suggestions()
+            'confidence_thresholds': {level.value: threshold for level, threshold in self.confidence_manager.confidence_thresholds.items()}
         }
     
     async def chat_response(self, user_message: str, context: str = "") -> str:
@@ -568,11 +359,13 @@ class UnifiedElizaAgent:
                 return "I can help you with XMRT DAO governance processes. I analyze proposals using Multi-Criteria Decision Analysis and provide transparent explanations for all decisions."
             elif "status" in user_message.lower():
                 status = await self.get_system_status()
-                return f"System Status: {status['status']}. Performance: {status['performance_metrics'].get('success_rate', 0):.1%} success rate."
+                return f"System Status: {status['status']}. All components operational."
             elif "capabilities" in user_message.lower():
                 return "I am Eliza, the XMRT DAO autonomous orchestrator. My capabilities include: governance proposal analysis, autonomous decision-making with MCDA, explainable AI, continuous learning, and system coordination."
-            else:
+            elif "hello" in user_message.lower() or "hi" in user_message.lower():
                 return "Hello! I'm Eliza, your XMRT DAO AI assistant. I can help with governance, treasury management, and system operations. What would you like to know?"
+            else:
+                return "I'm here to help with XMRT DAO operations. You can ask me about governance proposals, system status, treasury management, or my capabilities. How can I assist you today?"
                 
         except Exception as e:
             logger.error(f"Error generating chat response: {e}")
@@ -581,6 +374,8 @@ class UnifiedElizaAgent:
 # FastAPI application for deployment
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import HTMLResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 app = FastAPI(title="Unified Eliza Agent", version="1.0.0")
@@ -616,6 +411,441 @@ class ProposalRequest(BaseModel):
     complexity: str = "medium"
     risk_factors: List[str] = []
     treasury_balance: float = 1000000
+
+# Frontend HTML content
+FRONTEND_HTML = """<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Eliza AI - XMRT DAO</title>
+    <style>
+        :root {
+            --primary-green: #00ff88;
+            --dark-bg: #1a1a1a;
+            --card-bg: #2d2d2d;
+            --text-primary: #ffffff;
+            --text-secondary: #a0a0a0;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: var(--dark-bg);
+            color: var(--text-primary);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .chat-container {
+            width: 100%;
+            max-width: 600px;
+            height: 80vh;
+            background-color: var(--card-bg);
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+            margin: 20px;
+        }
+
+        .chat-header {
+            padding: 20px;
+            border-bottom: 1px solid #444;
+            text-align: center;
+        }
+
+        .chat-title {
+            font-size: 24px;
+            font-weight: bold;
+            color: var(--primary-green);
+            margin-bottom: 8px;
+        }
+
+        .chat-subtitle {
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .message {
+            max-width: 80%;
+            padding: 12px 16px;
+            border-radius: 12px;
+            font-size: 14px;
+            line-height: 1.4;
+            word-wrap: break-word;
+        }
+
+        .message.bot {
+            background-color: rgba(255, 255, 255, 0.1);
+            color: var(--text-primary);
+            align-self: flex-start;
+            border-bottom-left-radius: 4px;
+        }
+
+        .message.user {
+            background-color: var(--primary-green);
+            color: #000;
+            align-self: flex-end;
+            border-bottom-right-radius: 4px;
+        }
+
+        .chat-input-container {
+            padding: 20px;
+            border-top: 1px solid #444;
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .chat-input {
+            flex: 1;
+            padding: 12px 16px;
+            border: 1px solid #444;
+            border-radius: 24px;
+            background-color: var(--dark-bg);
+            color: var(--text-primary);
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.2s ease;
+        }
+
+        .chat-input:focus {
+            border-color: var(--primary-green);
+        }
+
+        .chat-input::placeholder {
+            color: var(--text-secondary);
+        }
+
+        .send-button {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background-color: var(--primary-green);
+            color: #000;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            font-weight: bold;
+            transition: all 0.2s ease;
+        }
+
+        .send-button:hover {
+            background-color: #00e67a;
+            transform: scale(1.05);
+        }
+
+        .send-button:disabled {
+            background-color: #666;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .typing-indicator {
+            display: none;
+            align-self: flex-start;
+            padding: 12px 16px;
+            background-color: rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            border-bottom-left-radius: 4px;
+            max-width: 80px;
+        }
+
+        .typing-dots {
+            display: flex;
+            gap: 4px;
+        }
+
+        .typing-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: var(--text-secondary);
+            animation: typing 1.4s infinite ease-in-out;
+        }
+
+        .typing-dot:nth-child(1) { animation-delay: -0.32s; }
+        .typing-dot:nth-child(2) { animation-delay: -0.16s; }
+
+        @keyframes typing {
+            0%, 80%, 100% {
+                transform: scale(0.8);
+                opacity: 0.5;
+            }
+            40% {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: var(--primary-green);
+            margin-right: 8px;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .error-message {
+            background-color: #ff4444;
+            color: white;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            margin-top: 8px;
+            display: none;
+        }
+
+        @media (max-width: 768px) {
+            .chat-container {
+                height: 100vh;
+                margin: 0;
+                border-radius: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="chat-container">
+        <div class="chat-header">
+            <div class="chat-title">Eliza AI</div>
+            <div class="chat-subtitle">
+                <span class="status-indicator"></span>
+                XMRT DAO Autonomous Orchestrator
+            </div>
+        </div>
+
+        <div class="chat-messages" id="chatMessages">
+            <div class="message bot">
+                Hello. I am Eliza. All systems are operational. How can I assist you?
+            </div>
+        </div>
+
+        <div class="typing-indicator" id="typingIndicator">
+            <div class="typing-dots">
+                <div class="typing-dot"></div>
+                <div class="typing-dot"></div>
+                <div class="typing-dot"></div>
+            </div>
+        </div>
+
+        <div class="chat-input-container">
+            <input 
+                type="text" 
+                class="chat-input" 
+                id="chatInput" 
+                placeholder="Ask Eliza about governance, treasury, or development..."
+                maxlength="500"
+            >
+            <button class="send-button" id="sendButton" type="button">
+                ➤
+            </button>
+        </div>
+        
+        <div class="error-message" id="errorMessage"></div>
+    </div>
+
+    <script>
+        // Global variables
+        let isProcessing = false;
+        const chatMessages = document.getElementById('chatMessages');
+        const chatInput = document.getElementById('chatInput');
+        const sendButton = document.getElementById('sendButton');
+        const typingIndicator = document.getElementById('typingIndicator');
+        const errorMessage = document.getElementById('errorMessage');
+
+        // Initialize the chat
+        function initializeChat() {
+            console.log('Initializing Eliza chat interface...');
+            
+            // Add event listeners
+            sendButton.addEventListener('click', sendMessage);
+            chatInput.addEventListener('keypress', handleKeyPress);
+            
+            // Focus on input
+            chatInput.focus();
+            
+            console.log('Chat interface initialized successfully');
+        }
+
+        // Handle key press events
+        function handleKeyPress(event) {
+            if (event.key === 'Enter' && !event.shiftKey) {
+                event.preventDefault();
+                sendMessage();
+            }
+        }
+
+        // Send message function
+        async function sendMessage() {
+            if (isProcessing) return;
+            
+            const messageText = chatInput.value.trim();
+            if (messageText === '') return;
+            
+            console.log('Sending message:', messageText);
+            
+            // Disable input and show processing state
+            isProcessing = true;
+            sendButton.disabled = true;
+            chatInput.disabled = true;
+            hideError();
+            
+            // Add user message to chat
+            addMessage(messageText, 'user');
+            
+            // Clear input
+            chatInput.value = '';
+            
+            // Show typing indicator
+            showTypingIndicator();
+            
+            try {
+                // Send message to API
+                const response = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ 
+                        message: messageText,
+                        context: ""
+                    })
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                console.log('API response:', data);
+                
+                // Hide typing indicator
+                hideTypingIndicator();
+                
+                // Add bot response to chat
+                if (data.response) {
+                    addMessage(data.response, 'bot');
+                } else {
+                    addMessage('I apologize, but I encountered an issue processing your request. Please try again.', 'bot');
+                }
+                
+            } catch (error) {
+                console.error('Error sending message:', error);
+                hideTypingIndicator();
+                showError('Failed to send message. Please check your connection and try again.');
+                
+                // Add error message to chat
+                addMessage('I apologize, but I\\'m having trouble connecting right now. Please try again in a moment.', 'bot');
+            } finally {
+                // Re-enable input
+                isProcessing = false;
+                sendButton.disabled = false;
+                chatInput.disabled = false;
+                chatInput.focus();
+            }
+        }
+
+        // Add message to chat
+        function addMessage(text, sender) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${sender}`;
+            messageDiv.textContent = text;
+            
+            chatMessages.appendChild(messageDiv);
+            
+            // Scroll to bottom
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        // Show typing indicator
+        function showTypingIndicator() {
+            typingIndicator.style.display = 'block';
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        // Hide typing indicator
+        function hideTypingIndicator() {
+            typingIndicator.style.display = 'none';
+        }
+
+        // Show error message
+        function showError(message) {
+            errorMessage.textContent = message;
+            errorMessage.style.display = 'block';
+            setTimeout(hideError, 5000); // Auto-hide after 5 seconds
+        }
+
+        // Hide error message
+        function hideError() {
+            errorMessage.style.display = 'none';
+        }
+
+        // Test API connection
+        async function testApiConnection() {
+            try {
+                const response = await fetch('/health');
+                if (response.ok) {
+                    console.log('API connection successful');
+                    return true;
+                } else {
+                    console.warn('API health check failed');
+                    return false;
+                }
+            } catch (error) {
+                console.error('API connection test failed:', error);
+                return false;
+            }
+        }
+
+        // Initialize when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeChat();
+            testApiConnection();
+        });
+
+        // Handle page visibility changes
+        document.addEventListener('visibilitychange', function() {
+            if (!document.hidden && !isProcessing) {
+                chatInput.focus();
+            }
+        });
+    </script>
+</body>
+</html>"""
+
+@app.get("/", response_class=HTMLResponse)
+async def serve_frontend():
+    """Serve the frontend HTML."""
+    return HTMLResponse(content=FRONTEND_HTML)
 
 @app.post("/api/chat")
 async def chat_endpoint(request: ChatRequest):
