@@ -54,20 +54,28 @@ async def demo_enhanced_eliza():
         "What's the status of mining operations?"
     ]
     
-    print("🤖 ENHANCED ELIZA DEMO")
-    print("=" * 40)
+if __name__ == "__main__":
+        print("🤖 ENHANCED ELIZA DEMO")
+if __name__ == "__main__":
+        print("=" * 40)
     
     for query in test_queries:
-        print(f"\n👤 User: {query}")
+if __name__ == "__main__":
+            print(f"\n👤 User: {query}")
         response = await eliza.process_message(query)
-        print(f"🤖 Enhanced Eliza: {response[:200]}...")
+if __name__ == "__main__":
+            print(f"🤖 Enhanced Eliza: {response[:200]}...")
     
     # Show system status
     status = eliza.get_system_status()
-    print(f"\n📊 System Status:")
-    print(f"   Autonomous Cycles: {status['autonomous_cycles']}")
-    print(f"   Knowledge Categories: {status['knowledge_categories']}")
-    print(f"   Router Status: {status['router_status']}")
+if __name__ == "__main__":
+        print(f"\n📊 System Status:")
+if __name__ == "__main__":
+        print(f"   Autonomous Cycles: {status['autonomous_cycles']}")
+if __name__ == "__main__":
+        print(f"   Knowledge Categories: {status['knowledge_categories']}")
+if __name__ == "__main__":
+        print(f"   Router Status: {status['router_status']}")
 
 if __name__ == "__main__":
     # Run the demo

@@ -51,7 +51,8 @@ class TTSService:
         """Ensure the audio directory exists"""
         if not os.path.exists(self.audio_dir):
             os.makedirs(self.audio_dir, exist_ok=True)
-            logger.info(f"Created audio directory: {self.audio_dir}")
+if __name__ == "__main__":
+                logger.info(f"Created audio directory: {self.audio_dir}")
     
     def get_voice_for_agent(self, agent_personality: str) -> str:
         """
@@ -136,7 +137,8 @@ from src.utils.media_utils import generate_speech_audio
                 }
                 
         except Exception as e:
-            logger.error(f"Error generating speech for agent {agent_id}: {str(e)}")
+if __name__ == "__main__":
+                logger.error(f"Error generating speech for agent {agent_id}: {str(e)}")
             return {
                 'success': False,
                 'error': str(e)
@@ -233,7 +235,8 @@ from src.utils.media_utils import generate_speech_audio
             )
             
         except Exception as e:
-            logger.error(f"Error generating session intro: {str(e)}")
+if __name__ == "__main__":
+                logger.error(f"Error generating session intro: {str(e)}")
             return {
                 'success': False,
                 'error': str(e)
@@ -281,7 +284,8 @@ from src.utils.media_utils import generate_speech_audio
             )
             
         except Exception as e:
-            logger.error(f"Error generating vote announcement: {str(e)}")
+if __name__ == "__main__":
+                logger.error(f"Error generating vote announcement: {str(e)}")
             return {
                 'success': False,
                 'error': str(e)
@@ -339,7 +343,8 @@ from src.utils.media_utils import generate_speech_audio
             }
             
         except Exception as e:
-            logger.error(f"Error cleaning up audio files: {str(e)}")
+if __name__ == "__main__":
+                logger.error(f"Error cleaning up audio files: {str(e)}")
             return {
                 'success': False,
                 'error': str(e)

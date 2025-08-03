@@ -35,7 +35,8 @@ class SelfMonitoringSystem:
         
     async def start_monitoring(self):
         """Start continuous monitoring."""
-        logger.info("Starting self-monitoring system...")
+if __name__ == "__main__":
+            logger.info("Starting self-monitoring system...")
         self.is_monitoring = True
         
         while self.is_monitoring:
@@ -67,7 +68,8 @@ class SelfMonitoringSystem:
                 await asyncio.sleep(self.monitoring_interval)
                 
             except Exception as e:
-                logger.error(f"Error in monitoring cycle: {e}")
+if __name__ == "__main__":
+                    logger.error(f"Error in monitoring cycle: {e}")
                 await asyncio.sleep(self.monitoring_interval)
     
     async def collect_system_metrics(self) -> Dict[str, Any]:
@@ -100,7 +102,8 @@ class SelfMonitoringSystem:
                 'uptime': time.time() - psutil.boot_time()
             }
         except Exception as e:
-            logger.error(f"Error collecting system metrics: {e}")
+if __name__ == "__main__":
+                logger.error(f"Error collecting system metrics: {e}")
             return {'error': str(e)}
     
     async def _collect_application_metrics(self) -> Dict[str, Any]:
@@ -118,7 +121,8 @@ class SelfMonitoringSystem:
                 'worker_processes': 4
             }
         except Exception as e:
-            logger.error(f"Error collecting application metrics: {e}")
+if __name__ == "__main__":
+                logger.error(f"Error collecting application metrics: {e}")
             return {'error': str(e)}
     
     async def _collect_network_metrics(self) -> Dict[str, Any]:
@@ -137,7 +141,8 @@ class SelfMonitoringSystem:
                 'drops_out': net_io.dropout
             }
         except Exception as e:
-            logger.error(f"Error collecting network metrics: {e}")
+if __name__ == "__main__":
+                logger.error(f"Error collecting network metrics: {e}")
             return {'error': str(e)}
     
     async def _collect_database_metrics(self) -> Dict[str, Any]:
@@ -154,7 +159,8 @@ class SelfMonitoringSystem:
                 'table_locks': 2
             }
         except Exception as e:
-            logger.error(f"Error collecting database metrics: {e}")
+if __name__ == "__main__":
+                logger.error(f"Error collecting database metrics: {e}")
             return {'error': str(e)}
     
     async def _collect_blockchain_metrics(self) -> Dict[str, Any]:
@@ -171,7 +177,8 @@ class SelfMonitoringSystem:
                 'peer_count': 25
             }
         except Exception as e:
-            logger.error(f"Error collecting blockchain metrics: {e}")
+if __name__ == "__main__":
+                logger.error(f"Error collecting blockchain metrics: {e}")
             return {'error': str(e)}
     
     async def analyze_health(self, metrics: Dict[str, Any]) -> Dict[str, Any]:
@@ -318,7 +325,8 @@ class SelfMonitoringSystem:
             }
             
             self.alerts.append(alert)
-            logger.warning(f"WARNING ALERT: {alert['title']}")
+if __name__ == "__main__":
+                logger.warning(f"WARNING ALERT: {alert['title']}")
         
         # Clean up old alerts (keep last 100)
         self.alerts = self.alerts[-100:]
@@ -471,7 +479,8 @@ class SelfMonitoringSystem:
     
     async def stop_monitoring(self):
         """Stop the monitoring system."""
-        logger.info("Stopping self-monitoring system...")
+if __name__ == "__main__":
+            logger.info("Stopping self-monitoring system...")
         self.is_monitoring = False
     
     async def acknowledge_alert(self, alert_id: str) -> bool:
@@ -480,7 +489,8 @@ class SelfMonitoringSystem:
             if alert['id'] == alert_id:
                 alert['acknowledged'] = True
                 alert['acknowledged_at'] = datetime.now().isoformat()
-                logger.info(f"Alert {alert_id} acknowledged")
+if __name__ == "__main__":
+                    logger.info(f"Alert {alert_id} acknowledged")
                 return True
         
         return False
@@ -497,7 +507,8 @@ async def main():
     
     # Generate health report
     report = await monitor.get_health_report()
-    print(f"Health report: {json.dumps(report, indent=2)}")
+if __name__ == "__main__":
+        print(f"Health report: {json.dumps(report, indent=2)}")
     
     # Stop monitoring
     await monitor.stop_monitoring()

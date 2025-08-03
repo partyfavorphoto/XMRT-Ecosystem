@@ -35,7 +35,8 @@ class UnifiedAutonomousSystem:
         
     async def initialize(self):
         """Initialize the unified autonomous system."""
-        logger.info("Initializing Unified Autonomous System...")
+if __name__ == "__main__":
+            logger.info("Initializing Unified Autonomous System...")
         
         # Initialize core components
         await self._initialize_eliza_core()
@@ -43,7 +44,8 @@ class UnifiedAutonomousSystem:
         await self._initialize_monitoring()
         await self._initialize_orchestrator()
         
-        logger.info("Unified Autonomous System initialized successfully")
+if __name__ == "__main__":
+            logger.info("Unified Autonomous System initialized successfully")
     
     async def _initialize_eliza_core(self):
         """Initialize Eliza AI core component."""
@@ -53,7 +55,8 @@ class UnifiedAutonomousSystem:
             'decision_history': [],
             'learning_rate': 0.1
         }
-        logger.info("Eliza Core initialized")
+if __name__ == "__main__":
+            logger.info("Eliza Core initialized")
     
     async def _initialize_github_integration(self):
         """Initialize GitHub integration component."""
@@ -63,7 +66,8 @@ class UnifiedAutonomousSystem:
             'improvement_queue': [],
             'auto_pr_enabled': True
         }
-        logger.info("GitHub Integration initialized")
+if __name__ == "__main__":
+            logger.info("GitHub Integration initialized")
     
     async def _initialize_monitoring(self):
         """Initialize monitoring component."""
@@ -73,7 +77,8 @@ class UnifiedAutonomousSystem:
             'metrics': {},
             'health_score': 100
         }
-        logger.info("Monitoring initialized")
+if __name__ == "__main__":
+            logger.info("Monitoring initialized")
     
     async def _initialize_orchestrator(self):
         """Initialize orchestrator component."""
@@ -83,11 +88,13 @@ class UnifiedAutonomousSystem:
             'performance_metrics': {},
             'optimization_suggestions': []
         }
-        logger.info("Orchestrator initialized")
+if __name__ == "__main__":
+            logger.info("Orchestrator initialized")
     
     async def coordinate_decision(self, decision_request: Dict[str, Any]) -> Dict[str, Any]:
         """Coordinate a decision across all autonomous components."""
-        logger.info(f"Coordinating decision: {decision_request.get('type', 'unknown')}")
+if __name__ == "__main__":
+            logger.info(f"Coordinating decision: {decision_request.get('type', 'unknown')}")
         
         # Gather input from all components
         eliza_input = await self._get_eliza_input(decision_request)
@@ -150,7 +157,8 @@ class UnifiedAutonomousSystem:
     
     async def _execute_coordinated_response(self, decision: Dict[str, Any]):
         """Execute the coordinated response."""
-        logger.info(f"Executing coordinated response for decision {decision['decision_id']}")
+if __name__ == "__main__":
+            logger.info(f"Executing coordinated response for decision {decision['decision_id']}")
         
         # Update component states
         for component in self.components:
@@ -166,7 +174,8 @@ class UnifiedAutonomousSystem:
     
     async def emergency_coordination(self, emergency_type: str, details: Dict[str, Any]):
         """Handle emergency coordination across all systems."""
-        logger.warning(f"Emergency coordination triggered: {emergency_type}")
+if __name__ == "__main__":
+            logger.warning(f"Emergency coordination triggered: {emergency_type}")
         
         # Implement circuit breakers
         await self._activate_circuit_breakers()
@@ -177,13 +186,15 @@ class UnifiedAutonomousSystem:
         # Execute recovery procedures
         await self._execute_recovery_procedures(response)
         
-        logger.info("Emergency coordination completed")
+if __name__ == "__main__":
+            logger.info("Emergency coordination completed")
     
     async def _activate_circuit_breakers(self):
         """Activate circuit breakers for system protection."""
         for component in self.components:
             self.components[component]['circuit_breaker'] = 'active'
-        logger.info("Circuit breakers activated")
+if __name__ == "__main__":
+            logger.info("Circuit breakers activated")
     
     async def _coordinate_emergency_response(self, emergency_type: str, details: Dict[str, Any]) -> Dict[str, Any]:
         """Coordinate emergency response."""
@@ -196,7 +207,8 @@ class UnifiedAutonomousSystem:
     
     async def _execute_recovery_procedures(self, response: Dict[str, Any]):
         """Execute recovery procedures."""
-        logger.info("Executing recovery procedures...")
+if __name__ == "__main__":
+            logger.info("Executing recovery procedures...")
         
         # Simulate recovery
         await asyncio.sleep(1)
@@ -206,7 +218,8 @@ class UnifiedAutonomousSystem:
             self.components[component]['circuit_breaker'] = 'inactive'
             self.components[component]['status'] = 'recovered'
         
-        logger.info("Recovery procedures completed")
+if __name__ == "__main__":
+            logger.info("Recovery procedures completed")
     
     async def get_system_status(self) -> Dict[str, Any]:
         """Get comprehensive system status."""
@@ -233,11 +246,13 @@ async def main():
     }
     
     decision = await system.coordinate_decision(decision_request)
-    print(f"Decision result: {json.dumps(decision, indent=2)}")
+if __name__ == "__main__":
+        print(f"Decision result: {json.dumps(decision, indent=2)}")
     
     # Get system status
     status = await system.get_system_status()
-    print(f"System status: {json.dumps(status, indent=2)}")
+if __name__ == "__main__":
+        print(f"System status: {json.dumps(status, indent=2)}")
 
 if __name__ == "__main__":
     asyncio.run(main())

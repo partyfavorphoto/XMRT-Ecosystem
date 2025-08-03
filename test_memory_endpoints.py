@@ -35,16 +35,21 @@ class MemoryEndpointTester:
         self.test_results.append(result)
         
         status = "✅ PASS" if success else "❌ FAIL"
-        print(f"{status} - {test_name}")
+if __name__ == "__main__":
+            print(f"{status} - {test_name}")
         if details:
-            print(f"    Details: {details}")
+if __name__ == "__main__":
+                print(f"    Details: {details}")
         if not success and response_data:
-            print(f"    Response: {response_data}")
-        print()
+if __name__ == "__main__":
+                print(f"    Response: {response_data}")
+if __name__ == "__main__":
+            print()
     
     def test_store_memory_endpoint(self):
         """Test the /memory/store endpoint"""
-        print("🧠 Testing Memory Store Endpoint...")
+if __name__ == "__main__":
+            print("🧠 Testing Memory Store Endpoint...")
         
         # Test 1: Store a basic memory
         test_data = {
@@ -131,7 +136,8 @@ class MemoryEndpointTester:
     
     def test_search_memory_endpoint(self):
         """Test the /memory/search endpoint"""
-        print("🔍 Testing Memory Search Endpoint...")
+if __name__ == "__main__":
+            print("🔍 Testing Memory Search Endpoint...")
         
         # Test 1: Basic search
         test_data = {
@@ -212,7 +218,8 @@ class MemoryEndpointTester:
     
     def test_associations_endpoint(self):
         """Test the /memory/associations endpoint"""
-        print("🔗 Testing Memory Associations Endpoint...")
+if __name__ == "__main__":
+            print("🔗 Testing Memory Associations Endpoint...")
         
         if not self.stored_memory_ids:
             self.log_test("Memory Associations", False, "No stored memories to test associations")
@@ -279,7 +286,8 @@ class MemoryEndpointTester:
     
     def test_analytics_endpoint(self):
         """Test the /memory/analytics endpoint"""
-        print("📊 Testing Memory Analytics Endpoint...")
+if __name__ == "__main__":
+            print("📊 Testing Memory Analytics Endpoint...")
         
         # Test 1: Get basic analytics
         try:
@@ -325,7 +333,8 @@ class MemoryEndpointTester:
     
     def test_prune_endpoint(self):
         """Test the /memory/prune endpoint"""
-        print("🧹 Testing Memory Prune Endpoint...")
+if __name__ == "__main__":
+            print("🧹 Testing Memory Prune Endpoint...")
         
         # Test 1: Dry run prune
         test_data = {
@@ -391,7 +400,8 @@ class MemoryEndpointTester:
     
     def test_chat_endpoint_with_memory(self):
         """Test that the chat endpoint properly integrates with memory"""
-        print("💬 Testing Chat Endpoint Memory Integration...")
+if __name__ == "__main__":
+            print("💬 Testing Chat Endpoint Memory Integration...")
         
         # Test 1: Send a message that should be stored in memory
         test_data = {
@@ -440,8 +450,10 @@ class MemoryEndpointTester:
     
     def run_all_tests(self):
         """Run all memory endpoint tests"""
-        print("🚀 Starting Comprehensive Memory Endpoint Tests")
-        print("=" * 60)
+if __name__ == "__main__":
+            print("🚀 Starting Comprehensive Memory Endpoint Tests")
+if __name__ == "__main__":
+            print("=" * 60)
         
         # Test all endpoints
         self.test_store_memory_endpoint()
@@ -452,23 +464,31 @@ class MemoryEndpointTester:
         self.test_chat_endpoint_with_memory()
         
         # Summary
-        print("📋 Test Summary")
-        print("=" * 60)
+if __name__ == "__main__":
+            print("📋 Test Summary")
+if __name__ == "__main__":
+            print("=" * 60)
         
         total_tests = len(self.test_results)
         passed_tests = sum(1 for result in self.test_results if result['success'])
         failed_tests = total_tests - passed_tests
         
-        print(f"Total Tests: {total_tests}")
-        print(f"Passed: {passed_tests} ✅")
-        print(f"Failed: {failed_tests} ❌")
-        print(f"Success Rate: {(passed_tests/total_tests)*100:.1f}%")
+if __name__ == "__main__":
+            print(f"Total Tests: {total_tests}")
+if __name__ == "__main__":
+            print(f"Passed: {passed_tests} ✅")
+if __name__ == "__main__":
+            print(f"Failed: {failed_tests} ❌")
+if __name__ == "__main__":
+            print(f"Success Rate: {(passed_tests/total_tests)*100:.1f}%")
         
         if failed_tests > 0:
-            print("\n❌ Failed Tests:")
+if __name__ == "__main__":
+                print("\n❌ Failed Tests:")
             for result in self.test_results:
                 if not result['success']:
-                    print(f"  - {result['test_name']}: {result['details']}")
+if __name__ == "__main__":
+                        print(f"  - {result['test_name']}: {result['details']}")
         
         return passed_tests, failed_tests
     
@@ -487,27 +507,35 @@ class MemoryEndpointTester:
         with open(filename, 'w') as f:
             json.dump(report, f, indent=2)
         
-        print(f"\n📄 Detailed test report saved to: {filename}")
+if __name__ == "__main__":
+            print(f"\n📄 Detailed test report saved to: {filename}")
 
 
 def main():
     """Main test execution"""
-    print("🧠 Eliza Long-Term Memory Endpoint Tester")
-    print("=" * 60)
+if __name__ == "__main__":
+        print("🧠 Eliza Long-Term Memory Endpoint Tester")
+if __name__ == "__main__":
+        print("=" * 60)
     
     # Check if server is running
     try:
         response = requests.get(f"{BASE_URL}/status", timeout=5)
         if response.status_code != 200:
-            print("❌ Error: Eliza server is not responding properly")
-            print("Please make sure the Flask application is running on localhost:5000")
+if __name__ == "__main__":
+                print("❌ Error: Eliza server is not responding properly")
+if __name__ == "__main__":
+                print("Please make sure the Flask application is running on localhost:5000")
             sys.exit(1)
     except requests.exceptions.RequestException:
-        print("❌ Error: Cannot connect to Eliza server")
-        print("Please make sure the Flask application is running on localhost:5000")
+if __name__ == "__main__":
+            print("❌ Error: Cannot connect to Eliza server")
+if __name__ == "__main__":
+            print("Please make sure the Flask application is running on localhost:5000")
         sys.exit(1)
     
-    print("✅ Server is running, starting tests...\n")
+if __name__ == "__main__":
+        print("✅ Server is running, starting tests...\n")
     
     # Run tests
     tester = MemoryEndpointTester(BASE_URL)

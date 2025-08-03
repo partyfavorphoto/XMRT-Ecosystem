@@ -4,10 +4,12 @@
 
 class XMRT_Utility_XMRT_Analytics_Tool_2_1_v2:
     def __init__(self):
-        print("Utility initialized.")
+if __name__ == "__main__":
+            print("Utility initialized.")
     
     def run(self):
-        print("Executing utility function based on XMRT_Analytics_Tool_2_1.")
+if __name__ == "__main__":
+            print("Executing utility function based on XMRT_Analytics_Tool_2_1.")
         # Simulated actual utility code here
         
 if __name__ == "__main__":

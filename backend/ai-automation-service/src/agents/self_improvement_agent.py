@@ -27,14 +27,16 @@ class SelfImprovementAgent:
         self.improvement_log = []
         self.performance_metrics = {}
         
-        logger.info("Self-Improvement Agent initialized")
+if __name__ == "__main__":
+            logger.info("Self-Improvement Agent initialized")
     
     async def run_cycle(self):
         """
         Execute a self-improvement cycle
         """
         try:
-            logger.info("[SelfImprovementAgent] Starting self-improvement cycle...")
+if __name__ == "__main__":
+                logger.info("[SelfImprovementAgent] Starting self-improvement cycle...")
             
             # 1. Analyze current performance
             await self.analyze_performance()
@@ -51,15 +53,18 @@ class SelfImprovementAgent:
             # 5. Test and validate changes
             await self.validate_improvements()
             
-            logger.info("[SelfImprovementAgent] Self-improvement cycle completed successfully")
+if __name__ == "__main__":
+                logger.info("[SelfImprovementAgent] Self-improvement cycle completed successfully")
             
         except Exception as e:
-            logger.error(f"[SelfImprovementAgent] Error in self-improvement cycle: {e}")
+if __name__ == "__main__":
+                logger.error(f"[SelfImprovementAgent] Error in self-improvement cycle: {e}")
     
     async def analyze_performance(self):
         """Analyze current system performance and response quality"""
         try:
-            logger.info("[SelfImprovement] Analyzing current performance...")
+if __name__ == "__main__":
+                logger.info("[SelfImprovement] Analyzing current performance...")
             
             # Run internal diagnostics
             performance_data = await self.run_diagnostics()
@@ -77,10 +82,12 @@ class SelfImprovementAgent:
                 'errors': error_analysis
             }
             
-            logger.info(f"[SelfImprovement] Performance analysis complete: {len(self.performance_metrics)} metrics")
+if __name__ == "__main__":
+                logger.info(f"[SelfImprovement] Performance analysis complete: {len(self.performance_metrics)} metrics")
             
         except Exception as e:
-            logger.error(f"[SelfImprovement] Performance analysis error: {e}")
+if __name__ == "__main__":
+                logger.error(f"[SelfImprovement] Performance analysis error: {e}")
     
     async def run_diagnostics(self):
         """Run system diagnostics using terminal access"""
@@ -106,7 +113,8 @@ class SelfImprovementAgent:
             return diagnostics
             
         except Exception as e:
-            logger.error(f"[SelfImprovement] Diagnostics error: {e}")
+if __name__ == "__main__":
+                logger.error(f"[SelfImprovement] Diagnostics error: {e}")
             return {}
     
     async def analyze_chat_responses(self):
@@ -136,13 +144,15 @@ class SelfImprovementAgent:
             return analysis
             
         except Exception as e:
-            logger.error(f"[SelfImprovement] Chat analysis error: {e}")
+if __name__ == "__main__":
+                logger.error(f"[SelfImprovement] Chat analysis error: {e}")
             return {}
     
     async def identify_improvements(self):
         """Use AI to identify specific code improvements"""
         try:
-            logger.info("[SelfImprovement] Identifying improvement opportunities...")
+if __name__ == "__main__":
+                logger.info("[SelfImprovement] Identifying improvement opportunities...")
             
             # Analyze current codebase
             codebase_analysis = await self.analyze_codebase()
@@ -172,17 +182,20 @@ class SelfImprovementAgent:
             
             improvements = self.ai_utils.generate_structured_response(improvement_prompt)
             
-            logger.info(f"[SelfImprovement] Identified {len(improvements)} improvement opportunities")
+if __name__ == "__main__":
+                logger.info(f"[SelfImprovement] Identified {len(improvements)} improvement opportunities")
             return improvements
             
         except Exception as e:
-            logger.error(f"[SelfImprovement] Improvement identification error: {e}")
+if __name__ == "__main__":
+                logger.error(f"[SelfImprovement] Improvement identification error: {e}")
             return []
     
     async def research_improvements(self, improvements):
         """Research best practices using browser access"""
         try:
-            logger.info("[SelfImprovement] Researching best practices...")
+if __name__ == "__main__":
+                logger.info("[SelfImprovement] Researching best practices...")
             
             for improvement in improvements:
                 # Use browser to research implementation approaches
@@ -200,19 +213,23 @@ class SelfImprovementAgent:
                         top_results = await self.browser_utils.get_content(search_results[:3])
                         research_data.extend(top_results)
                     except Exception as e:
-                        logger.warning(f"[SelfImprovement] Research error for '{query}': {e}")
+if __name__ == "__main__":
+                            logger.warning(f"[SelfImprovement] Research error for '{query}': {e}")
                 
                 improvement['research'] = research_data
             
-            logger.info("[SelfImprovement] Research phase completed")
+if __name__ == "__main__":
+                logger.info("[SelfImprovement] Research phase completed")
             
         except Exception as e:
-            logger.error(f"[SelfImprovement] Research error: {e}")
+if __name__ == "__main__":
+                logger.error(f"[SelfImprovement] Research error: {e}")
     
     async def implement_improvements(self, improvements):
         """Implement the identified improvements using GitHub access"""
         try:
-            logger.info("[SelfImprovement] Implementing improvements...")
+if __name__ == "__main__":
+                logger.info("[SelfImprovement] Implementing improvements...")
             
             implemented_count = 0
             
@@ -240,13 +257,16 @@ class SelfImprovementAgent:
                                 })
                 
                 except Exception as e:
-                    logger.error(f"[SelfImprovement] Failed to implement improvement: {e}")
+if __name__ == "__main__":
+                        logger.error(f"[SelfImprovement] Failed to implement improvement: {e}")
                     continue
             
-            logger.info(f"[SelfImprovement] Successfully implemented {implemented_count} improvements")
+if __name__ == "__main__":
+                logger.info(f"[SelfImprovement] Successfully implemented {implemented_count} improvements")
             
         except Exception as e:
-            logger.error(f"[SelfImprovement] Implementation error: {e}")
+if __name__ == "__main__":
+                logger.error(f"[SelfImprovement] Implementation error: {e}")
     
     async def generate_implementation(self, improvement):
         """Generate the actual code implementation using AI"""
@@ -269,7 +289,8 @@ class SelfImprovementAgent:
             return implementation
             
         except Exception as e:
-            logger.error(f"[SelfImprovement] Code generation error: {e}")
+if __name__ == "__main__":
+                logger.error(f"[SelfImprovement] Code generation error: {e}")
             return None
     
     async def apply_code_changes(self, implementation):
@@ -285,12 +306,14 @@ class SelfImprovementAgent:
                 # Write the new content
                 file_path.write_text(file_change['content'])
                 
-                logger.info(f"[SelfImprovement] Updated file: {file_path}")
+if __name__ == "__main__":
+                    logger.info(f"[SelfImprovement] Updated file: {file_path}")
             
             return True
             
         except Exception as e:
-            logger.error(f"[SelfImprovement] Code application error: {e}")
+if __name__ == "__main__":
+                logger.error(f"[SelfImprovement] Code application error: {e}")
             return False
     
     async def commit_improvement(self, improvement, implementation):
@@ -316,15 +339,18 @@ Implemented autonomously by Eliza AI Self-Improvement Agent
                 files=implementation.get('file_changes', [])
             )
             
-            logger.info(f"[SelfImprovement] Committed improvement: {improvement.get('title')}")
+if __name__ == "__main__":
+                logger.info(f"[SelfImprovement] Committed improvement: {improvement.get('title')}")
             
         except Exception as e:
-            logger.error(f"[SelfImprovement] Commit error: {e}")
+if __name__ == "__main__":
+                logger.error(f"[SelfImprovement] Commit error: {e}")
     
     async def validate_improvements(self):
         """Test and validate implemented improvements"""
         try:
-            logger.info("[SelfImprovement] Validating improvements...")
+if __name__ == "__main__":
+                logger.info("[SelfImprovement] Validating improvements...")
             
             # Run automated tests using terminal
             test_results = await maybe_await(self.terminal_utils.execute("python -m pytest tests/ -v"))
@@ -346,12 +372,15 @@ Implemented autonomously by Eliza AI Self-Improvement Agent
             validation_analysis = await maybe_await(self.ai_utils.analyze_validation_results(validation_results))
             
             if validation_analysis and validation_analysis.get('success', False):
-                logger.info("[SelfImprovement] Validation successful - improvements are working")
+if __name__ == "__main__":
+                    logger.info("[SelfImprovement] Validation successful - improvements are working")
             else:
-                logger.warning("[SelfImprovement] Validation issues detected - may need rollback")
+if __name__ == "__main__":
+                    logger.warning("[SelfImprovement] Validation issues detected - may need rollback")
             
         except Exception as e:
-            logger.error(f"[SelfImprovement] Validation error: {e}")
+if __name__ == "__main__":
+                logger.error(f"[SelfImprovement] Validation error: {e}")
     
     async def run_performance_benchmark(self):
         """Run performance benchmarks to measure improvement impact"""
@@ -366,7 +395,8 @@ Implemented autonomously by Eliza AI Self-Improvement Agent
             return benchmark_data
             
         except Exception as e:
-            logger.error(f"[SelfImprovement] Benchmark error: {e}")
+if __name__ == "__main__":
+                logger.error(f"[SelfImprovement] Benchmark error: {e}")
             return {}
     
     async def get_recent_chat_logs(self):
@@ -375,12 +405,14 @@ Implemented autonomously by Eliza AI Self-Improvement Agent
             # Use terminal to get recent logs
             log_file_path = "/var/log/chat.log"
             if not os.path.exists(log_file_path):
-                logger.warning(f"[SelfImprovement] Chat log file not found: {log_file_path}")
+if __name__ == "__main__":
+                    logger.warning(f"[SelfImprovement] Chat log file not found: {log_file_path}")
                 return ""
             recent_logs = await self.terminal_utils.execute(f"tail -100 {log_file_path}")
             return recent_logs
         except Exception as e:
-            logger.error(f"[SelfImprovement] Log retrieval error: {e}")
+if __name__ == "__main__":
+                logger.error(f"[SelfImprovement] Log retrieval error: {e}")
             return ""
     
     async def analyze_codebase(self):
@@ -407,7 +439,8 @@ Implemented autonomously by Eliza AI Self-Improvement Agent
             return code_analysis
             
         except Exception as e:
-            logger.error(f"[SelfImprovement] Codebase analysis error: {e}")
+if __name__ == "__main__":
+                logger.error(f"[SelfImprovement] Codebase analysis error: {e}")
             return {}
     
     def get_status(self):

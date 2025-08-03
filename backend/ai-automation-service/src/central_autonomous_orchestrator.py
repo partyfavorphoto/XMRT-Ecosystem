@@ -33,7 +33,8 @@ class CentralAutonomousOrchestrator:
         self.active_systems = {}
         self.system_status = {}
         
-        logger.info("[CentralOrchestrator] Initializing...")
+if __name__ == "__main__":
+            logger.info("[CentralOrchestrator] Initializing...")
         
         # Add necessary paths for imports from other parts of the monorepo
         # This is crucial for importing modules like advanced_eliza_orchestrator
@@ -47,16 +48,20 @@ class CentralAutonomousOrchestrator:
         
         
         
-        logger.info("[CentralOrchestrator] Initialization scheduled.")
+if __name__ == "__main__":
+            logger.info("[CentralOrchestrator] Initialization scheduled.")
     async def initialize(self):
         """Perform asynchronous initialization of all systems."""
-        logger.info("[CentralOrchestrator] Starting synchronous system initialization...")
+if __name__ == "__main__":
+            logger.info("[CentralOrchestrator] Starting synchronous system initialization...")
         await self._initialize_systems()
-        logger.info("[CentralOrchestrator] Asynchronous initialization complete.")
+if __name__ == "__main__":
+            logger.info("[CentralOrchestrator] Asynchronous initialization complete.")
 
     async def _initialize_systems(self):
         """Asynchronously initialize all known sophisticated autonomous systems."""
-        logger.info("[CentralOrchestrator] Starting asynchronous system initialization...")
+if __name__ == "__main__":
+            logger.info("[CentralOrchestrator] Starting asynchronous system initialization...")
         
         systems_to_load = [
             # Main Orchestrators
@@ -121,15 +126,19 @@ class CentralAutonomousOrchestrator:
                 
                 self.active_systems[system_name] = instance
                 self.system_status[system_name] = 'initialized'
-                logger.info(f"[CentralOrchestrator] ✅ Loaded and initialized: {system_name}")
+if __name__ == "__main__":
+                    logger.info(f"[CentralOrchestrator] ✅ Loaded and initialized: {system_name}")
             except ImportError as ie:
                 self.system_status[system_name] = 'import_error'
-                logger.warning(f"[CentralOrchestrator] ⚠️ Import error for {system_name} ({module_path}.{class_name}): {ie}")
+if __name__ == "__main__":
+                    logger.warning(f"[CentralOrchestrator] ⚠️ Import error for {system_name} ({module_path}.{class_name}): {ie}")
             except Exception as e:
                 self.system_status[system_name] = 'init_error'
-                logger.error(f"[CentralOrchestrator] ❌ Failed to initialize {system_name}: {e}")
+if __name__ == "__main__":
+                    logger.error(f"[CentralOrchestrator] ❌ Failed to initialize {system_name}: {e}")
         
-        logger.info(f"[CentralOrchestrator] Finished system initialization. Active: {len(self.active_systems)} systems.")
+if __name__ == "__main__":
+            logger.info(f"[CentralOrchestrator] Finished system initialization. Active: {len(self.active_systems)} systems.")
 
     async def run_autonomous_cycle(self):
         """
@@ -138,7 +147,8 @@ class CentralAutonomousOrchestrator:
         """
         # Systems will be initialized externally by AIAutomationService.start_automation
         
-        logger.info("[CentralOrchestrator] Starting comprehensive autonomous cycle...")
+if __name__ == "__main__":
+            logger.info("[CentralOrchestrator] Starting comprehensive autonomous cycle...")
         
         tasks = []
         for system_name, system_instance in self.active_systems.items():
@@ -154,22 +164,27 @@ class CentralAutonomousOrchestrator:
             elif hasattr(system_instance, 'run_cycle'): # For basic agents
                 tasks.append(self._run_system_task(system_name, system_instance.run_cycle))
             else:
-                logger.warning(f"[CentralOrchestrator] No known run method for {system_name}")
+if __name__ == "__main__":
+                    logger.warning(f"[CentralOrchestrator] No known run method for {system_name}")
         
         if tasks:
             await asyncio.gather(*tasks, return_exceptions=True)
         
-        logger.info("[CentralOrchestrator] Comprehensive autonomous cycle completed.")
+if __name__ == "__main__":
+            logger.info("[CentralOrchestrator] Comprehensive autonomous cycle completed.")
     
     async def _run_system_task(self, system_name, method):
         """Helper to run an individual system's method with error handling."""
         try:
-            logger.info(f"[CentralOrchestrator] Running cycle for: {system_name}...")
+if __name__ == "__main__":
+                logger.info(f"[CentralOrchestrator] Running cycle for: {system_name}...")
             await method()
-            logger.info(f"[CentralOrchestrator] ✅ {system_name} cycle completed.")
+if __name__ == "__main__":
+                logger.info(f"[CentralOrchestrator] ✅ {system_name} cycle completed.")
             self.system_status[system_name] = 'ran_successfully'
         except Exception as e:
-            logger.error(f"[CentralOrchestrator] ❌ Error in {system_name} cycle: {e}")
+if __name__ == "__main__":
+                logger.error(f"[CentralOrchestrator] ❌ Error in {system_name} cycle: {e}")
             self.system_status[system_name] = 'runtime_error'
     
     def get_system_status(self):
@@ -183,7 +198,8 @@ class CentralAutonomousOrchestrator:
         This is where Eliza starts using her tools dynamically.
         """
         query_lower = query.lower()
-        logger.info(f"[CentralOrchestrator] Processing chat query for tools: {query_lower[:50]}...")
+if __name__ == "__main__":
+            logger.info(f"[CentralOrchestrator] Processing chat query for tools: {query_lower[:50]}...")
 
         # Example: Direct routing to specific capabilities based on keywords
         if "github commit" in query_lower or "make commit" in query_lower:
@@ -193,7 +209,8 @@ class CentralAutonomousOrchestrator:
                     # This is a conceptual call; actual implementation needs careful design
                     # e.g., prompt for commit message, file list
                     # For now, just indicate it's trying to use the tool
-                    logger.info("[CentralOrchestrator] Attempting to use GitHubClientManager for commit.")
+if __name__ == "__main__":
+                        logger.info("[CentralOrchestrator] Attempting to use GitHubClientManager for commit.")
                     # await github_manager.commit_and_push("Autonomous test commit")
                     return f"I can make GitHub commits. I'm initiating a process to prepare a commit for you. What changes should I commit and with what message?"
                 except Exception as e:
@@ -203,7 +220,8 @@ class CentralAutonomousOrchestrator:
         elif "improve code" in query_lower or "self improve" in query_lower:
             improvement_agent = self.active_systems.get('AutonomousImprovement') or self.active_systems.get('SelfImprovementAgent')
             if improvement_agent and hasattr(improvement_agent, 'run_improvement_cycle'):
-                logger.info("[CentralOrchestrator] Attempting to use AutonomousImprovement for self-improvement.")
+if __name__ == "__main__":
+                    logger.info("[CentralOrchestrator] Attempting to use AutonomousImprovement for self-improvement.")
                 # await improvement_agent.run_improvement_cycle() # This would trigger a full cycle
                 return "Yes, I can improve my own code! I'm constantly analyzing my performance and identifying areas for enhancement. Would you like me to focus on a specific aspect?"
             return "I have self-improvement capabilities, but the direct trigger from chat is still under development."

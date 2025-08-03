@@ -33,7 +33,8 @@ class AIUtils:
         self.telegram_token = os.getenv('TELEGRAM_BOT_TOKEN')
         self.github_token = os.getenv('GITHUB_TOKEN')
 
-        logger.info("AI utilities initialized")
+if __name__ == "__main__":
+            logger.info("AI utilities initialized")
 
     async def analyze_proposal(self, description: str, calldata: str, target: str, value: float) -> Dict[str, Any]:
         """Analyze a governance proposal using AI"""
@@ -74,7 +75,8 @@ class AIUtils:
             return analysis
 
         except Exception as e:
-            logger.error(f"Error analyzing proposal: {e}")
+if __name__ == "__main__":
+                logger.error(f"Error analyzing proposal: {e}")
             return {
                 'technical_feasibility': 0.5,
                 'economic_impact': 0.5,
@@ -115,7 +117,8 @@ class AIUtils:
             return analysis
 
         except Exception as e:
-            logger.error(f"Error in emergency analysis: {e}")
+if __name__ == "__main__":
+                logger.error(f"Error in emergency analysis: {e}")
             return {
                 'legitimate_emergency': False,
                 'confidence': 0.3,
@@ -154,7 +157,8 @@ class AIUtils:
             return validation
 
         except Exception as e:
-            logger.error(f"Error validating proposal: {e}")
+if __name__ == "__main__":
+                logger.error(f"Error validating proposal: {e}")
             return {'valid': False, 'reason': 'Validation error'}
 
     async def analyze_community_sentiment(self) -> Dict[str, Any]:
@@ -187,7 +191,8 @@ class AIUtils:
             }
 
         except Exception as e:
-            logger.error(f"Error analyzing community sentiment: {e}")
+if __name__ == "__main__":
+                logger.error(f"Error analyzing community sentiment: {e}")
             return {'overall_sentiment': 0.5, 'confidence': 0.1}
 
     async def optimize_portfolio(self, current_allocations: Dict[str, float], 
@@ -226,7 +231,8 @@ class AIUtils:
             return optimization
 
         except Exception as e:
-            logger.error(f"Error optimizing portfolio: {e}")
+if __name__ == "__main__":
+                logger.error(f"Error optimizing portfolio: {e}")
             return {
                 'allocations': current_allocations,
                 'expected_return': 0.5,
@@ -246,7 +252,8 @@ class AIUtils:
             }
 
         except Exception as e:
-            logger.error(f"Error getting market data: {e}")
+if __name__ == "__main__":
+                logger.error(f"Error getting market data: {e}")
             return {}
 
     async def generate_support_response(self, request: str, category: str, user_history: Dict[str, Any]) -> str:
@@ -267,7 +274,8 @@ class AIUtils:
             return response
 
         except Exception as e:
-            logger.error(f"Error generating support response: {e}")
+if __name__ == "__main__":
+                logger.error(f"Error generating support response: {e}")
             return "I apologize, but I'm having trouble processing your request right now. Please try again later or contact our support team."
 
     async def classify_support_request(self, message: Dict[str, Any]) -> Dict[str, Any]:
@@ -304,7 +312,8 @@ class AIUtils:
             return classification
 
         except Exception as e:
-            logger.error(f"Error classifying support request: {e}")
+if __name__ == "__main__":
+                logger.error(f"Error classifying support request: {e}")
             return {
                 'is_support_request': False,
                 'category': 'general',
@@ -349,7 +358,8 @@ class AIUtils:
             return sentiment
 
         except Exception as e:
-            logger.error(f"Error analyzing sentiment: {e}")
+if __name__ == "__main__":
+                logger.error(f"Error analyzing sentiment: {e}")
             return {'score': 0.5, 'confidence': 0.1}
 
     async def call_openai(self, prompt: str, max_tokens: int = None, temperature: float = None) -> str:
@@ -365,17 +375,20 @@ class AIUtils:
             return response.choices[0].message.content
 
         except Exception as e:
-            logger.error(f"Error calling OpenAI: {e}")
+if __name__ == "__main__":
+                logger.error(f"Error calling OpenAI: {e}")
             return "AI analysis unavailable"
 
     async def send_alert(self, alert_data: Dict[str, Any]):
         """Send alert to administrators"""
         try:
-            logger.warning(f"ALERT: {alert_data}")
+if __name__ == "__main__":
+                logger.warning(f"ALERT: {alert_data}")
             # In production, send to Discord, Slack, email, etc.
 
         except Exception as e:
-            logger.error(f"Error sending alert: {e}")
+if __name__ == "__main__":
+                logger.error(f"Error sending alert: {e}")
 
     # Mock implementations for community monitoring
     async def get_discord_data(self) -> Dict[str, Any]:
@@ -431,7 +444,8 @@ class AIUtils:
 
     async def send_message(self, user_id: str, content: str, platform: str, reply_to: str = None):
         """Send message to user"""
-        logger.info(f"Sending message to {user_id} on {platform}: {content[:50]}...")
+if __name__ == "__main__":
+            logger.info(f"Sending message to {user_id} on {platform}: {content[:50]}...")
 
     async def moderate_content(self, content: str) -> Dict[str, Any]:
         """Moderate content for inappropriate material"""
@@ -498,7 +512,8 @@ class AIUtils:
             return analysis
 
         except Exception as e:
-            logger.error(f"Error analyzing proposal urgency: {e}")
+if __name__ == "__main__":
+                logger.error(f"Error analyzing proposal urgency: {e}")
             return {
                 'urgency_level': 0.5,
                 'requires_immediate_action': False,
@@ -541,13 +556,15 @@ class AIUtils:
             return content
 
         except Exception as e:
-            logger.error(f"Error generating engaging content: {e}")
+if __name__ == "__main__":
+                logger.error(f"Error generating engaging content: {e}")
             return f"🚀 Exciting updates coming to XMRT DAO! What features would you like to see next? Share your thoughts below! #XMRT #DAO"
 
     async def post_content(self, content: str, platform: str):
         """Post content to specified platform"""
         try:
-            logger.info(f"📝 Posting content to {platform}: {content[:50]}...")
+if __name__ == "__main__":
+                logger.info(f"📝 Posting content to {platform}: {content[:50]}...")
             
             # In production, implement actual API calls for each platform
             if platform == 'discord':
@@ -559,10 +576,12 @@ class AIUtils:
             elif platform == 'github':
                 await self._post_to_github(content)
             else:
-                logger.warning(f"Unknown platform: {platform}")
+if __name__ == "__main__":
+                    logger.warning(f"Unknown platform: {platform}")
 
         except Exception as e:
-            logger.error(f"Error posting content to {platform}: {e}")
+if __name__ == "__main__":
+                logger.error(f"Error posting content to {platform}: {e}")
 
     async def generate_positive_message(self, platform: str) -> str:
         """Generate positive message to counter negative sentiment"""
@@ -584,28 +603,33 @@ class AIUtils:
             return message
 
         except Exception as e:
-            logger.error(f"Error generating positive message: {e}")
+if __name__ == "__main__":
+                logger.error(f"Error generating positive message: {e}")
             return "🌟 Thank you to our amazing XMRT DAO community! Your support and participation make this project stronger every day. Together, we're building something incredible! 💪"
 
     async def _post_to_discord(self, content: str):
         """Post content to Discord"""
         # Mock implementation - replace with actual Discord bot API calls
-        logger.info(f"Discord: {content}")
+if __name__ == "__main__":
+            logger.info(f"Discord: {content}")
 
     async def _post_to_twitter(self, content: str):
         """Post content to Twitter"""
         # Mock implementation - replace with actual Twitter API calls
-        logger.info(f"Twitter: {content}")
+if __name__ == "__main__":
+            logger.info(f"Twitter: {content}")
 
     async def _post_to_telegram(self, content: str):
         """Post content to Telegram"""
         # Mock implementation - replace with actual Telegram bot API calls
-        logger.info(f"Telegram: {content}")
+if __name__ == "__main__":
+            logger.info(f"Telegram: {content}")
 
     async def _post_to_github(self, content: str):
         """Post content to GitHub (as discussion or announcement)"""
         # Mock implementation - replace with actual GitHub API calls
-        logger.info(f"GitHub: {content}")
+if __name__ == "__main__":
+            logger.info(f"GitHub: {content}")
 
     async def analyze_mention_importance(self, mention: Dict[str, Any]) -> Dict[str, Any]:
         """Analyze the importance of a social media mention"""
@@ -652,7 +676,8 @@ class AIUtils:
             return analysis
 
         except Exception as e:
-            logger.error(f"Error analyzing mention importance: {e}")
+if __name__ == "__main__":
+                logger.error(f"Error analyzing mention importance: {e}")
             return {
                 'should_respond': False,
                 'priority': 'low',
@@ -681,17 +706,20 @@ class AIUtils:
             return response
 
         except Exception as e:
-            logger.error(f"Error generating Twitter response: {e}")
+if __name__ == "__main__":
+                logger.error(f"Error generating Twitter response: {e}")
             return "Thanks for your interest in XMRT DAO! Feel free to join our community for more updates. #XMRT #DAO"
 
     async def send_twitter_response(self, mention_id: str, response: str):
         """Send Twitter response to a mention"""
         try:
-            logger.info(f"Sending Twitter response to {mention_id}: {response}")
+if __name__ == "__main__":
+                logger.info(f"Sending Twitter response to {mention_id}: {response}")
             # In production, implement actual Twitter API call
             
         except Exception as e:
-            logger.error(f"Error sending Twitter response: {e}")
+if __name__ == "__main__":
+                logger.error(f"Error sending Twitter response: {e}")
 
     async def analyze_github_issue(self, issue: Dict[str, Any]) -> Dict[str, Any]:
         """Analyze GitHub issue for automated response"""
@@ -733,7 +761,8 @@ class AIUtils:
             return analysis
 
         except Exception as e:
-            logger.error(f"Error analyzing GitHub issue: {e}")
+if __name__ == "__main__":
+                logger.error(f"Error analyzing GitHub issue: {e}")
             return {
                 'should_respond': False,
                 'issue_type': 'unknown',
@@ -766,26 +795,31 @@ class AIUtils:
             return response
 
         except Exception as e:
-            logger.error(f"Error generating GitHub response: {e}")
+if __name__ == "__main__":
+                logger.error(f"Error generating GitHub response: {e}")
             return "Thank you for opening this issue! Our team will review it and get back to you soon."
 
     async def post_github_comment(self, issue_number: int, comment: str):
         """Post comment on GitHub issue"""
         try:
-            logger.info(f"Posting GitHub comment on issue #{issue_number}: {comment[:50]}...")
+if __name__ == "__main__":
+                logger.info(f"Posting GitHub comment on issue #{issue_number}: {comment[:50]}...")
             # In production, implement actual GitHub API call
             
         except Exception as e:
-            logger.error(f"Error posting GitHub comment: {e}")
+if __name__ == "__main__":
+                logger.error(f"Error posting GitHub comment: {e}")
 
     async def add_github_labels(self, issue_number: int, labels: List[str]):
         """Add labels to GitHub issue"""
         try:
-            logger.info(f"Adding labels to issue #{issue_number}: {labels}")
+if __name__ == "__main__":
+                logger.info(f"Adding labels to issue #{issue_number}: {labels}")
             # In production, implement actual GitHub API call
             
         except Exception as e:
-            logger.error(f"Error adding GitHub labels: {e}")
+if __name__ == "__main__":
+                logger.error(f"Error adding GitHub labels: {e}")
 
     async def generate_warning_message(self, reason: str) -> str:
         """Generate warning message for moderation"""
@@ -806,17 +840,20 @@ class AIUtils:
             return message
 
         except Exception as e:
-            logger.error(f"Error generating warning message: {e}")
+if __name__ == "__main__":
+                logger.error(f"Error generating warning message: {e}")
             return f"Please note that your recent message may violate our community guidelines regarding {reason}. We appreciate your understanding and cooperation in maintaining a positive environment."
 
     async def delete_message(self, message_id: str, platform: str):
         """Delete message on specified platform"""
         try:
-            logger.info(f"Deleting message {message_id} on {platform}")
+if __name__ == "__main__":
+                logger.info(f"Deleting message {message_id} on {platform}")
             # In production, implement actual API calls for message deletion
             
         except Exception as e:
-            logger.error(f"Error deleting message: {e}")
+if __name__ == "__main__":
+                logger.error(f"Error deleting message: {e}")
 
     def generate_structured_response(self, prompt):
         # AUTOPATCHED: placeholder

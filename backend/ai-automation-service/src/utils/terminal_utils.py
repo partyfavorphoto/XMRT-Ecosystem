@@ -32,15 +32,18 @@ class TerminalUtils:
             
             if process.returncode == 0:
                 result = stdout.decode().strip()
-                logger.info(f"[Terminal] Command succeeded: {command}")
+if __name__ == "__main__":
+                    logger.info(f"[Terminal] Command succeeded: {command}")
                 return result
             else:
                 error_msg = stderr.decode().strip()
-                logger.warning(f"[Terminal] Command failed: {command} - {error_msg}")
+if __name__ == "__main__":
+                    logger.warning(f"[Terminal] Command failed: {command} - {error_msg}")
                 return f"Command failed: {error_msg}"
                 
         except Exception as e:
-            logger.error(f"[Terminal] Execution error: {e}")
+if __name__ == "__main__":
+                logger.error(f"[Terminal] Execution error: {e}")
             return f"Execution error: {str(e)}"
     
     async def run_tests(self):
@@ -48,7 +51,8 @@ class TerminalUtils:
         # First check if tests directory exists
         tests_dir = self.base_path / "tests"
         if not tests_dir.exists():
-            logger.info("[Terminal] Creating tests directory...")
+if __name__ == "__main__":
+                logger.info("[Terminal] Creating tests directory...")
             tests_dir.mkdir(exist_ok=True)
             
             # Create a basic test file if none exists
@@ -74,7 +78,8 @@ def test_import_modules():
         try:
             await self.execute("python -m pytest --version")
         except:
-            logger.info("[Terminal] Installing pytest...")
+if __name__ == "__main__":
+                logger.info("[Terminal] Installing pytest...")
             await self.execute("pip install pytest")
         
         return await self.execute("python -m pytest tests/ -v")

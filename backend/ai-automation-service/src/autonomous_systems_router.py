@@ -21,7 +21,8 @@ class AutonomousSystemsRouter:
         
     async def initialize_all_systems(self):
         """Initialize all of Eliza's existing autonomous systems"""
-        logger.info("[AutonomousRouter] Initializing all autonomous systems...")
+if __name__ == "__main__":
+            logger.info("[AutonomousRouter] Initializing all autonomous systems...")
         
         systems_to_initialize = [
             ('EvolutionaryElizaOrchestrator', self.init_evolutionary_orchestrator),
@@ -38,15 +39,19 @@ class AutonomousSystemsRouter:
                 if system:
                     self.active_systems[system_name] = system
                     self.system_status[system_name] = 'active'
-                    logger.info(f"[AutonomousRouter] ✅ {system_name} initialized")
+if __name__ == "__main__":
+                        logger.info(f"[AutonomousRouter] ✅ {system_name} initialized")
                 else:
                     self.system_status[system_name] = 'failed'
-                    logger.warning(f"[AutonomousRouter] ⚠️ {system_name} failed to initialize")
+if __name__ == "__main__":
+                        logger.warning(f"[AutonomousRouter] ⚠️ {system_name} failed to initialize")
             except Exception as e:
                 self.system_status[system_name] = 'error'
-                logger.error(f"[AutonomousRouter] ❌ {system_name} error: {e}")
+if __name__ == "__main__":
+                    logger.error(f"[AutonomousRouter] ❌ {system_name} error: {e}")
         
-        logger.info(f"[AutonomousRouter] Initialized {len(self.active_systems)} autonomous systems")
+if __name__ == "__main__":
+            logger.info(f"[AutonomousRouter] Initialized {len(self.active_systems)} autonomous systems")
     
     async def init_evolutionary_orchestrator(self):
         """Initialize EvolutionaryElizaOrchestrator"""
@@ -55,7 +60,8 @@ class AutonomousSystemsRouter:
             orchestrator = EvolutionaryElizaOrchestrator()
             return orchestrator
         except Exception as e:
-            logger.error(f"[AutonomousRouter] EvolutionaryElizaOrchestrator init error: {e}")
+if __name__ == "__main__":
+                logger.error(f"[AutonomousRouter] EvolutionaryElizaOrchestrator init error: {e}")
             return None
     
     async def init_unified_system(self):
@@ -65,7 +71,8 @@ class AutonomousSystemsRouter:
             system = UnifiedAutonomousSystem()
             return system
         except Exception as e:
-            logger.error(f"[AutonomousRouter] UnifiedAutonomousSystem init error: {e}")
+if __name__ == "__main__":
+                logger.error(f"[AutonomousRouter] UnifiedAutonomousSystem init error: {e}")
             return None
     
     async def init_improvement_engine(self):
@@ -75,7 +82,8 @@ class AutonomousSystemsRouter:
             engine = AutonomousImprovement("autofix", "autotype", "medium", "Auto Title", "Auto Desc", [], {}, 0.8, "low", "neutral", [], "auto", None)
             return engine
         except Exception as e:
-            logger.error(f"[AutonomousRouter] AutonomousImprovement init error: {e}")
+if __name__ == "__main__":
+                logger.error(f"[AutonomousRouter] AutonomousImprovement init error: {e}")
             return None
     
     async def init_system_launcher(self):
@@ -85,7 +93,8 @@ class AutonomousSystemsRouter:
             launcher = AutonomousSystemLauncher()
             return launcher
         except Exception as e:
-            logger.error(f"[AutonomousRouter] AutonomousSystemLauncher init error: {e}")
+if __name__ == "__main__":
+                logger.error(f"[AutonomousRouter] AutonomousSystemLauncher init error: {e}")
             return None
     
     async def init_enhanced_eliza(self):
@@ -96,7 +105,8 @@ class AutonomousSystemsRouter:
             agent = EnhancedElizaAgent()
             return agent
         except Exception as e:
-            logger.error(f"[AutonomousRouter] EnhancedElizaAgent init error: {e}")
+if __name__ == "__main__":
+                logger.error(f"[AutonomousRouter] EnhancedElizaAgent init error: {e}")
             return None
     
     async def init_browser_automation(self):
@@ -107,12 +117,14 @@ class AutonomousSystemsRouter:
             automation = WebBrowserAutomation()
             return automation
         except Exception as e:
-            logger.error(f"[AutonomousRouter] WebBrowserAutomation init error: {e}")
+if __name__ == "__main__":
+                logger.error(f"[AutonomousRouter] WebBrowserAutomation init error: {e}")
             return None
     
     async def run_autonomous_cycle(self):
         """Run a complete autonomous cycle across all systems"""
-        logger.info("[AutonomousRouter] Starting comprehensive autonomous cycle...")
+if __name__ == "__main__":
+            logger.info("[AutonomousRouter] Starting comprehensive autonomous cycle...")
         
         # Run systems in parallel for efficiency
         tasks = []
@@ -127,21 +139,26 @@ class AutonomousSystemsRouter:
             elif hasattr(system, 'launch_autonomous_operations'):
                 tasks.append(self.run_system_cycle(system_name, system.launch_autonomous_operations))
             else:
-                logger.warning(f"[AutonomousRouter] {system_name} has no known cycle method")
+if __name__ == "__main__":
+                    logger.warning(f"[AutonomousRouter] {system_name} has no known cycle method")
         
         if tasks:
             await asyncio.gather(*tasks, return_exceptions=True)
         
-        logger.info("[AutonomousRouter] Autonomous cycle completed")
+if __name__ == "__main__":
+            logger.info("[AutonomousRouter] Autonomous cycle completed")
     
     async def run_system_cycle(self, system_name, cycle_method):
         """Run a single system's cycle with error handling"""
         try:
-            logger.info(f"[AutonomousRouter] Running {system_name} cycle...")
+if __name__ == "__main__":
+                logger.info(f"[AutonomousRouter] Running {system_name} cycle...")
             await cycle_method()
-            logger.info(f"[AutonomousRouter] ✅ {system_name} cycle completed")
+if __name__ == "__main__":
+                logger.info(f"[AutonomousRouter] ✅ {system_name} cycle completed")
         except Exception as e:
-            logger.error(f"[AutonomousRouter] ❌ {system_name} cycle error: {e}")
+if __name__ == "__main__":
+                logger.error(f"[AutonomousRouter] ❌ {system_name} cycle error: {e}")
     
     def get_system_status(self):
         """Get status of all autonomous systems"""
@@ -153,15 +170,19 @@ class AutonomousSystemsRouter:
     
     async def shutdown_all_systems(self):
         """Gracefully shutdown all autonomous systems"""
-        logger.info("[AutonomousRouter] Shutting down all autonomous systems...")
+if __name__ == "__main__":
+            logger.info("[AutonomousRouter] Shutting down all autonomous systems...")
         
         for system_name, system in self.active_systems.items():
             try:
                 if hasattr(system, 'shutdown'):
                     await system.shutdown()
-                logger.info(f"[AutonomousRouter] ✅ {system_name} shutdown")
+if __name__ == "__main__":
+                    logger.info(f"[AutonomousRouter] ✅ {system_name} shutdown")
             except Exception as e:
-                logger.error(f"[AutonomousRouter] {system_name} shutdown error: {e}")
+if __name__ == "__main__":
+                    logger.error(f"[AutonomousRouter] {system_name} shutdown error: {e}")
         
         self.active_systems.clear()
-        logger.info("[AutonomousRouter] All systems shutdown complete")
+if __name__ == "__main__":
+            logger.info("[AutonomousRouter] All systems shutdown complete")

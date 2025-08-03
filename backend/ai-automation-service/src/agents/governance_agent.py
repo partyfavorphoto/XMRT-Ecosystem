@@ -21,12 +21,14 @@ class GovernanceAgent:
         self.active = True
         self.last_check = None
         
-        logger.info("Governance Agent initialized")
+if __name__ == "__main__":
+            logger.info("Governance Agent initialized")
 
     async def check_proposals(self):
         """Check for new governance proposals"""
         try:
-            logger.info("Checking governance proposals...")
+if __name__ == "__main__":
+                logger.info("Checking governance proposals...")
             
             # Simulate proposal checking
             proposals = await self._fetch_proposals()
@@ -38,13 +40,15 @@ class GovernanceAgent:
             return proposals
             
         except Exception as e:
-            logger.error(f"Error checking proposals: {e}")
+if __name__ == "__main__":
+                logger.error(f"Error checking proposals: {e}")
             return []
 
     async def analyze_sentiment(self):
         """Analyze community sentiment on proposals"""
         try:
-            logger.info("Analyzing community sentiment...")
+if __name__ == "__main__":
+                logger.info("Analyzing community sentiment...")
             
             # Simulate sentiment analysis
             sentiment_data = {
@@ -57,7 +61,8 @@ class GovernanceAgent:
             return sentiment_data
             
         except Exception as e:
-            logger.error(f"Error analyzing sentiment: {e}")
+if __name__ == "__main__":
+                logger.error(f"Error analyzing sentiment: {e}")
             return {}
 
     async def check_emergency_proposals(self):
@@ -75,13 +80,15 @@ class GovernanceAgent:
             return emergency_proposals
             
         except Exception as e:
-            logger.error(f"Error checking emergency proposals: {e}")
+if __name__ == "__main__":
+                logger.error(f"Error checking emergency proposals: {e}")
             return []
 
     async def handle_emergency_proposal(self, proposal):
         """Handle emergency proposal with immediate action"""
         try:
-            logger.warning(f"Handling emergency proposal: {proposal.get('id')}")
+if __name__ == "__main__":
+                logger.warning(f"Handling emergency proposal: {proposal.get('id')}")
             
             # Analyze proposal urgency
             analysis = await self.ai_utils.analyze_proposal_urgency(proposal)
@@ -91,7 +98,8 @@ class GovernanceAgent:
                 await self._execute_emergency_response(proposal, analysis)
                 
         except Exception as e:
-            logger.error(f"Error handling emergency proposal: {e}")
+if __name__ == "__main__":
+                logger.error(f"Error handling emergency proposal: {e}")
 
     async def get_status(self):
         """Get current status of governance agent"""
@@ -119,7 +127,8 @@ class GovernanceAgent:
                 raise ValueError(f"Unknown action: {action}")
                 
         except Exception as e:
-            logger.error(f"Error executing action {action}: {e}")
+if __name__ == "__main__":
+                logger.error(f"Error executing action {action}: {e}")
             raise
 
     async def _fetch_proposals(self):
@@ -153,12 +162,14 @@ class GovernanceAgent:
             analysis = await self.ai_utils.analyze_proposal(proposal)
             
             # Log analysis results
-            logger.info(f"Proposal {proposal['id']} analysis: {analysis}")
+if __name__ == "__main__":
+                logger.info(f"Proposal {proposal['id']} analysis: {analysis}")
             
             return analysis
             
         except Exception as e:
-            logger.error(f"Error analyzing proposal {proposal.get('id')}: {e}")
+if __name__ == "__main__":
+                logger.error(f"Error analyzing proposal {proposal.get('id')}: {e}")
             return {}
 
     async def _execute_emergency_response(self, proposal, analysis):
@@ -174,32 +185,38 @@ class GovernanceAgent:
                 await self._execute_automated_vote(proposal, analysis)
                 
         except Exception as e:
-            logger.error(f"Error executing emergency response: {e}")
+if __name__ == "__main__":
+                logger.error(f"Error executing emergency response: {e}")
 
     async def _notify_stakeholders(self, proposal, analysis):
         """Notify key stakeholders about emergency proposal"""
         # Simulate stakeholder notification
-        logger.info(f"Notifying stakeholders about emergency proposal {proposal['id']}")
+if __name__ == "__main__":
+            logger.info(f"Notifying stakeholders about emergency proposal {proposal['id']}")
 
     async def _execute_automated_vote(self, proposal, analysis):
         """Execute automated voting based on AI analysis"""
         # Simulate automated voting
-        logger.info(f"Executing automated vote for proposal {proposal['id']}")
+if __name__ == "__main__":
+            logger.info(f"Executing automated vote for proposal {proposal['id']}")
 
     async def run_cycle(self):
         """Execute a governance cycle - analyze proposals, update status, etc."""
         try:
-            print(f"[{self.__class__.__name__}] Starting governance cycle...")
+if __name__ == "__main__":
+                print(f"[{self.__class__.__name__}] Starting governance cycle...")
             
             # Use existing methods from your GovernanceAgent class
             await self.check_proposals()
             await self.analyze_sentiment()
             await self.check_emergency_proposals()
             
-            print(f"[{self.__class__.__name__}] Governance cycle completed successfully")
+if __name__ == "__main__":
+                print(f"[{self.__class__.__name__}] Governance cycle completed successfully")
             
         except Exception as e:
-            print(f"[{self.__class__.__name__}] Error in governance cycle: {e}")
+if __name__ == "__main__":
+                print(f"[{self.__class__.__name__}] Error in governance cycle: {e}")
             # Don't re-raise - let the system continue with other agents
 
 

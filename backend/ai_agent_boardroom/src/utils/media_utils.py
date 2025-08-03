@@ -16,13 +16,15 @@ def generate_speech_audio(text: str, file_path: str, voice_type: str) -> Dict[st
         # Simulate audio file creation
         with open(file_path, 'w') as f:
             f.write(f"Simulated audio for: {text}\nVoice: {voice_type}")
-        logger.info(f"Simulated speech audio generated at: {file_path}")
+if __name__ == "__main__":
+            logger.info(f"Simulated speech audio generated at: {file_path}")
         return {
             'success': True,
             'message': 'Simulated audio generation successful'
         }
     except Exception as e:
-        logger.error(f"Error simulating speech audio generation: {str(e)}")
+if __name__ == "__main__":
+            logger.error(f"Error simulating speech audio generation: {str(e)}")
         return {
             'success': False,
             'error': str(e)

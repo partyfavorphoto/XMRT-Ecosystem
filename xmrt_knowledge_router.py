@@ -118,7 +118,8 @@ class XMRTKnowledgeRouter:
             }
             
         except Exception as e:
-            print(f"Error fetching insights: {e}")
+if __name__ == "__main__":
+                print(f"Error fetching insights: {e}")
         
         return insights[:8]  # Return top 8 most relevant
     
@@ -221,15 +222,19 @@ async def enhance_eliza_response(user_message: str, conversation_context: str = 
 # Test function
 def test_knowledge_integration():
     """Test the knowledge integration"""
-    print("🧪 Testing XMRT Knowledge Integration...")
+if __name__ == "__main__":
+        print("🧪 Testing XMRT Knowledge Integration...")
     
     # Test knowledge stats
     stats = knowledge_router.get_knowledge_stats()
     if 'total_cycles' in stats:
-        print(f"✅ Connected to {stats['total_cycles']} autonomous cycles")
-        print(f"✅ Categories: {list(stats.get('categories', {}).keys())}")
+if __name__ == "__main__":
+            print(f"✅ Connected to {stats['total_cycles']} autonomous cycles")
+if __name__ == "__main__":
+            print(f"✅ Categories: {list(stats.get('categories', {}).keys())}")
     else:
-        print("⚠️ Knowledge API connection issue")
+if __name__ == "__main__":
+            print("⚠️ Knowledge API connection issue")
     
     return stats.get('total_cycles', 0) > 0
 

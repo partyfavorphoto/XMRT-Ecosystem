@@ -49,7 +49,8 @@ class TypefullyService:
             
             if response.status_code in [200, 201]:
                 result = response.json()
-                logger.info(f"Successfully posted tweet via Typefully: {result.get('id')}")
+if __name__ == "__main__":
+                    logger.info(f"Successfully posted tweet via Typefully: {result.get('id')}")
                 return {
                     "success": True,
                     "draft_id": result.get("id"),
@@ -59,7 +60,8 @@ class TypefullyService:
                     "posted_at": datetime.utcnow().isoformat()
                 }
             else:
-                logger.error(f"Failed to post tweet via Typefully: {response.status_code} - {response.text}")
+if __name__ == "__main__":
+                    logger.error(f"Failed to post tweet via Typefully: {response.status_code} - {response.text}")
                 return {
                     "success": False,
                     "error": f"API Error: {response.status_code}",
@@ -67,7 +69,8 @@ class TypefullyService:
                 }
                 
         except Exception as e:
-            logger.error(f"Error posting tweet via Typefully: {str(e)}")
+if __name__ == "__main__":
+                logger.error(f"Error posting tweet via Typefully: {str(e)}")
             return {
                 "success": False,
                 "error": str(e)
@@ -102,7 +105,8 @@ class TypefullyService:
             
             if response.status_code in [200, 201]:
                 result = response.json()
-                logger.info(f"Successfully posted thread via Typefully: {result.get('id')}")
+if __name__ == "__main__":
+                    logger.info(f"Successfully posted thread via Typefully: {result.get('id')}")
                 return {
                     "success": True,
                     "draft_id": result.get("id"),
@@ -113,7 +117,8 @@ class TypefullyService:
                     "posted_at": datetime.utcnow().isoformat()
                 }
             else:
-                logger.error(f"Failed to post thread via Typefully: {response.status_code} - {response.text}")
+if __name__ == "__main__":
+                    logger.error(f"Failed to post thread via Typefully: {response.status_code} - {response.text}")
                 return {
                     "success": False,
                     "error": f"API Error: {response.status_code}",
@@ -121,7 +126,8 @@ class TypefullyService:
                 }
                 
         except Exception as e:
-            logger.error(f"Error posting thread via Typefully: {str(e)}")
+if __name__ == "__main__":
+                logger.error(f"Error posting thread via Typefully: {str(e)}")
             return {
                 "success": False,
                 "error": str(e)
@@ -157,7 +163,8 @@ class TypefullyService:
             return self.post_tweet(announcement)
             
         except Exception as e:
-            logger.error(f"Error posting boardroom announcement: {str(e)}")
+if __name__ == "__main__":
+                logger.error(f"Error posting boardroom announcement: {str(e)}")
             return {
                 "success": False,
                 "error": str(e)
@@ -204,7 +211,8 @@ class TypefullyService:
             return self.post_tweet(vote_tweet)
             
         except Exception as e:
-            logger.error(f"Error posting vote results: {str(e)}")
+if __name__ == "__main__":
+                logger.error(f"Error posting vote results: {str(e)}")
             return {
                 "success": False,
                 "error": str(e)
@@ -237,7 +245,8 @@ class TypefullyService:
             return self.post_tweet(agent_tweet)
             
         except Exception as e:
-            logger.error(f"Error posting agent message: {str(e)}")
+if __name__ == "__main__":
+                logger.error(f"Error posting agent message: {str(e)}")
             return {
                 "success": False,
                 "error": str(e)
@@ -287,7 +296,8 @@ Join us for the next session!
             return self.post_thread(summary_tweets)
             
         except Exception as e:
-            logger.error(f"Error posting session summary: {str(e)}")
+if __name__ == "__main__":
+                logger.error(f"Error posting session summary: {str(e)}")
             return {
                 "success": False,
                 "error": str(e)
@@ -322,7 +332,8 @@ Set your notifications! 🔔
             return self.post_tweet(reminder_tweet, schedule_time)
             
         except Exception as e:
-            logger.error(f"Error scheduling session reminder: {str(e)}")
+if __name__ == "__main__":
+                logger.error(f"Error scheduling session reminder: {str(e)}")
             return {
                 "success": False,
                 "error": str(e)
@@ -352,7 +363,8 @@ Set your notifications! 🔔
                 }
                 
         except Exception as e:
-            logger.error(f"Error getting drafts: {str(e)}")
+if __name__ == "__main__":
+                logger.error(f"Error getting drafts: {str(e)}")
             return {
                 "success": False,
                 "error": str(e)
@@ -386,7 +398,8 @@ Set your notifications! 🔔
                 }
                 
         except Exception as e:
-            logger.error(f"Error deleting draft: {str(e)}")
+if __name__ == "__main__":
+                logger.error(f"Error deleting draft: {str(e)}")
             return {
                 "success": False,
                 "error": str(e)

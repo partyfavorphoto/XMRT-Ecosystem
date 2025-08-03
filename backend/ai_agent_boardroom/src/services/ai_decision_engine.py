@@ -70,7 +70,8 @@ class AIDecisionEngine:
             return analysis
             
         except Exception as e:
-            logger.error(f"Error analyzing proposal: {str(e)}")
+if __name__ == "__main__":
+                logger.error(f"Error analyzing proposal: {str(e)}")
             return {
                 'error': str(e),
                 'recommendation': 'abstain',
@@ -112,7 +113,8 @@ class AIDecisionEngine:
             return response.choices[0].message.content.strip()
             
         except Exception as e:
-            logger.error(f"Error generating agent response: {str(e)}")
+if __name__ == "__main__":
+                logger.error(f"Error generating agent response: {str(e)}")
             return "I need more time to analyze this matter before providing my input."
     
     def moderate_discussion(self, messages: List[Dict[str, Any]]) -> Dict[str, Any]:
@@ -159,7 +161,8 @@ class AIDecisionEngine:
             return json.loads(response.choices[0].message.content)
             
         except Exception as e:
-            logger.error(f"Error moderating discussion: {str(e)}")
+if __name__ == "__main__":
+                logger.error(f"Error moderating discussion: {str(e)}")
             return {
                 'discussion_quality': 'neutral',
                 'suggested_next_steps': ['Continue discussion'],
@@ -204,7 +207,8 @@ class AIDecisionEngine:
             return response.choices[0].message.content.strip()
             
         except Exception as e:
-            logger.error(f"Error generating vote reasoning: {str(e)}")
+if __name__ == "__main__":
+                logger.error(f"Error generating vote reasoning: {str(e)}")
             return f"I voted {vote_value} based on my analysis of the proposal."
     
     def suggest_agenda_items(self, dao_context: Dict[str, Any]) -> List[Dict[str, Any]]:
@@ -247,7 +251,8 @@ class AIDecisionEngine:
             return json.loads(response.choices[0].message.content)
             
         except Exception as e:
-            logger.error(f"Error suggesting agenda items: {str(e)}")
+if __name__ == "__main__":
+                logger.error(f"Error suggesting agenda items: {str(e)}")
             return []
     
     def assess_agent_performance(self, agent_data: Dict[str, Any]) -> Dict[str, Any]:
@@ -291,7 +296,8 @@ class AIDecisionEngine:
             return json.loads(response.choices[0].message.content)
             
         except Exception as e:
-            logger.error(f"Error assessing agent performance: {str(e)}")
+if __name__ == "__main__":
+                logger.error(f"Error assessing agent performance: {str(e)}")
             return {
                 'participation_level': 'unknown',
                 'decision_quality_score': 50,

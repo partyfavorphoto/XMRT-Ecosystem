@@ -21,7 +21,8 @@ class BrowserUtils:
     async def search(self, query):
         """Search for information online using multiple search strategies"""
         try:
-            logger.info(f"[Browser] Searching for: {query}")
+if __name__ == "__main__":
+                logger.info(f"[Browser] Searching for: {query}")
             
             # Use DuckDuckGo as it's more API-friendly
             search_urls = []
@@ -49,7 +50,8 @@ class BrowserUtils:
             return search_urls + doc_sites
                     
         except Exception as e:
-            logger.error(f"[Browser] Search error: {e}")
+if __name__ == "__main__":
+                logger.error(f"[Browser] Search error: {e}")
             return []
     
     async def get_content(self, urls):
@@ -61,7 +63,8 @@ class BrowserUtils:
             async with aiohttp.ClientSession(timeout=timeout, headers=self.headers) as session:
                 for url in urls[:5]:  # Limit to first 5 URLs
                     try:
-                        logger.info(f"[Browser] Fetching content from: {url}")
+if __name__ == "__main__":
+                            logger.info(f"[Browser] Fetching content from: {url}")
                         async with session.get(url) as response:
                             if response.status == 200:
                                 html = await response.text()
@@ -86,21 +89,24 @@ class BrowserUtils:
                                     'status': 'success'
                                 })
                             else:
-                                logger.warning(f"[Browser] HTTP {response.status} for {url}")
+if __name__ == "__main__":
+                                    logger.warning(f"[Browser] HTTP {response.status} for {url}")
                                 content_data.append({
                                     'url': url,
                                     'status': f'error_http_{response.status}',
                                     'content': ''
                                 })
                     except asyncio.TimeoutError:
-                        logger.warning(f"[Browser] Timeout for {url}")
+if __name__ == "__main__":
+                            logger.warning(f"[Browser] Timeout for {url}")
                         content_data.append({
                             'url': url,
                             'status': 'timeout',
                             'content': ''
                         })
                     except Exception as e:
-                        logger.warning(f"[Browser] Error fetching {url}: {e}")
+if __name__ == "__main__":
+                            logger.warning(f"[Browser] Error fetching {url}: {e}")
                         content_data.append({
                             'url': url,
                             'status': f'error_{type(e).__name__}',
@@ -108,12 +114,14 @@ class BrowserUtils:
                         })
             
             successful_fetches = len([item for item in content_data if item['status'] == 'success'])
-            logger.info(f"[Browser] Successfully fetched {successful_fetches}/{len(urls)} URLs")
+if __name__ == "__main__":
+                logger.info(f"[Browser] Successfully fetched {successful_fetches}/{len(urls)} URLs")
             
             return content_data
             
         except Exception as e:
-            logger.error(f"[Browser] Content retrieval error: {e}")
+if __name__ == "__main__":
+                logger.error(f"[Browser] Content retrieval error: {e}")
             return []
     
     async def search_documentation(self, topic):
@@ -134,7 +142,8 @@ class BrowserUtils:
             return all_results
             
         except Exception as e:
-            logger.error(f"[Browser] Documentation search error: {e}")
+if __name__ == "__main__":
+                logger.error(f"[Browser] Documentation search error: {e}")
             return []
     
     async def get_github_examples(self, search_term):
@@ -158,9 +167,11 @@ class BrowserUtils:
                         
                         return examples
                     else:
-                        logger.warning(f"[Browser] GitHub API returned {response.status}")
+if __name__ == "__main__":
+                            logger.warning(f"[Browser] GitHub API returned {response.status}")
                         return []
             
         except Exception as e:
-            logger.error(f"[Browser] GitHub search error: {e}")
+if __name__ == "__main__":
+                logger.error(f"[Browser] GitHub search error: {e}")
             return []

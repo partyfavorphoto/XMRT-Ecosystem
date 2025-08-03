@@ -95,8 +95,10 @@ def check_stop_flag():
         with open('STOP_FAKE_TASKS.flag', 'r') as f:
             if 'STOP_FAKE_TASKS=true' in f.read():
                 logger.critical("🛑 STOP FLAG DETECTED - Terminating fake task cycles")
-                logger.info("📋 Verification system must be implemented")
-                logger.error("❌ Fake task cycles are now prohibited")
+if __name__ == "__main__":
+                    logger.info("📋 Verification system must be implemented")
+if __name__ == "__main__":
+                    logger.error("❌ Fake task cycles are now prohibited")
                 sys.exit(0)
     except FileNotFoundError:
         pass
@@ -166,7 +168,8 @@ class LearningEngine:
             return performance_score
             
         except Exception as e:
-            logger.error(f"Error analyzing cycle performance: {e}")
+if __name__ == "__main__":
+                logger.error(f"Error analyzing cycle performance: {e}")
             return 0.0
     
     def _generate_evolution_notes(self, cycle_data: Dict[str, Any]) -> str:
@@ -199,7 +202,8 @@ class LearningEngine:
             return min(avg_performance * trend_factor, 1.0)
             
         except Exception as e:
-            logger.error(f"Error calculating learning score: {e}")
+if __name__ == "__main__":
+                logger.error(f"Error calculating learning score: {e}")
             return 0.0
     
     def _calculate_trend_factor(self, records: List[LearningRecord]) -> float:
@@ -252,7 +256,8 @@ class LearningEngine:
             return suggestions
             
         except Exception as e:
-            logger.error(f"Error generating optimization suggestions: {e}")
+if __name__ == "__main__":
+                logger.error(f"Error generating optimization suggestions: {e}")
             return ["Error generating suggestions - check system health"]
 
 class EcosystemEvolutionEngine:
@@ -290,7 +295,8 @@ class EcosystemEvolutionEngine:
             return evolution_result
             
         except Exception as e:
-            logger.error(f"Error in ecosystem evolution: {e}")
+if __name__ == "__main__":
+                logger.error(f"Error in ecosystem evolution: {e}")
             return {'error': str(e)}
     
     def _advanced_evolution(self, result: Dict[str, Any]) -> Dict[str, Any]:
@@ -356,7 +362,8 @@ class EcosystemEvolutionEngine:
             ECOSYSTEM_SIZE.set(total_repos)
             
         except Exception as e:
-            logger.error(f"Error updating ecosystem state: {e}")
+if __name__ == "__main__":
+                logger.error(f"Error updating ecosystem state: {e}")
     
     def _determine_next_target(self) -> str:
         """Determine next evolution target based on current state"""
@@ -378,12 +385,14 @@ class AdvancedWebSocketManager:
     async def connect(self, websocket: WebSocket):
         await websocket.accept()
         self.active_connections.append(websocket)
-        logger.info(f"WebSocket client connected. Total: {len(self.active_connections)}")
+if __name__ == "__main__":
+            logger.info(f"WebSocket client connected. Total: {len(self.active_connections)}")
         
     def disconnect(self, websocket: WebSocket):
         if websocket in self.active_connections:
             self.active_connections.remove(websocket)
-        logger.info(f"WebSocket client disconnected. Total: {len(self.active_connections)}")
+if __name__ == "__main__":
+            logger.info(f"WebSocket client disconnected. Total: {len(self.active_connections)}")
         
     async def broadcast(self, message: dict):
         """Broadcast message to all connected clients"""
@@ -393,7 +402,8 @@ class AdvancedWebSocketManager:
                 try:
                     await connection.send_json(message)
                 except Exception as e:
-                    logger.error(f"Error broadcasting to WebSocket: {e}")
+if __name__ == "__main__":
+                        logger.error(f"Error broadcasting to WebSocket: {e}")
                     disconnected.append(connection)
             
             # Remove disconnected clients
@@ -465,13 +475,15 @@ class EvolutionaryElizaOrchestrator:
         """Setup learning engine"""
         if self.config.enable_learning:
             self.learning_engine = LearningEngine(self.db_session)
-            logger.info("🧠 Learning engine initialized")
+if __name__ == "__main__":
+                logger.info("🧠 Learning engine initialized")
     
     def setup_evolution_engine(self):
         """Setup evolution engine"""
         if self.config.enable_evolution:
             self.evolution_engine = EcosystemEvolutionEngine(self.db_session, self.github)
-            logger.info("🧬 Evolution engine initialized")
+if __name__ == "__main__":
+                logger.info("🧬 Evolution engine initialized")
     
     def _load_cycle(self):
         """Load cycle count (original method)"""
@@ -479,10 +491,12 @@ class EvolutionaryElizaOrchestrator:
             if os.path.exists(self.config.cycle_file):
                 with open(self.config.cycle_file, "r") as f:
                     c = int(f.read().strip())
-                    logger.info(f"Loaded persistent cycle count: {c}")
+if __name__ == "__main__":
+                        logger.info(f"Loaded persistent cycle count: {c}")
                     return c
         except Exception as e:
-            logger.error(f"Error loading persistent cycle count: {e}")
+if __name__ == "__main__":
+                logger.error(f"Error loading persistent cycle count: {e}")
         return 0
     
     def _save_cycle(self, value):
@@ -491,7 +505,8 @@ class EvolutionaryElizaOrchestrator:
             with open(self.config.cycle_file, "w") as f:
                 f.write(str(value))
         except Exception as e:
-            logger.error(f"Error saving persistent cycle count: {e}")
+if __name__ == "__main__":
+                logger.error(f"Error saving persistent cycle count: {e}")
     
     def _load_repositories(self):
         """Load repositories (enhanced version)"""
@@ -513,9 +528,11 @@ class EvolutionaryElizaOrchestrator:
                         xmrt_repos.append(info)
                     else:
                         other_repos.append(info)
-            logger.info(f"Loaded {len(xmrt_repos)} xmrt* repos, {len(other_repos)} other repos.")
+if __name__ == "__main__":
+                logger.info(f"Loaded {len(xmrt_repos)} xmrt* repos, {len(other_repos)} other repos.")
         except Exception as e:
-            logger.error(f"Failed to load repositories: {e}")
+if __name__ == "__main__":
+                logger.error(f"Failed to load repositories: {e}")
         return xmrt_repos, other_repos
     
     def _commit_proof(self, repo_full_name, filename, content, message):
@@ -549,7 +566,8 @@ class EvolutionaryElizaOrchestrator:
             return True
             
         except Exception as e:
-            logger.error(f"❌ GitHub commit failed for {repo_full_name}/{filename}: {e}")
+if __name__ == "__main__":
+                logger.error(f"❌ GitHub commit failed for {repo_full_name}/{filename}: {e}")
             ERROR_COUNTER.inc()
             return False
     
@@ -601,7 +619,8 @@ class EvolutionaryElizaOrchestrator:
             return success
             
         except Exception as e:
-            logger.error(f"Error in enhanced proof of work: {e}")
+if __name__ == "__main__":
+                logger.error(f"Error in enhanced proof of work: {e}")
             ERROR_COUNTER.inc()
             return False
         finally:
@@ -632,7 +651,8 @@ class EvolutionaryElizaOrchestrator:
                 insights.extend(suggestions[:3])  # Top 3 suggestions
             
         except Exception as e:
-            logger.error(f"Error generating learning insights: {e}")
+if __name__ == "__main__":
+                logger.error(f"Error generating learning insights: {e}")
             insights.append("Error generating insights - system needs attention")
         
         return insights
@@ -660,7 +680,8 @@ class EvolutionaryElizaOrchestrator:
                 ])
             
         except Exception as e:
-            logger.error(f"Error generating evolution suggestions: {e}")
+if __name__ == "__main__":
+                logger.error(f"Error generating evolution suggestions: {e}")
         
         return suggestions[:5]  # Return top 5
     
@@ -676,7 +697,8 @@ class EvolutionaryElizaOrchestrator:
                 "success_rate": sum(self.performance_history[-10:]) / min(10, len(self.performance_history)) if self.performance_history else 0.0
             }
         except Exception as e:
-            logger.error(f"Error getting performance metrics: {e}")
+if __name__ == "__main__":
+                logger.error(f"Error getting performance metrics: {e}")
             return {"error": str(e)}
     
     async def _get_ecosystem_status(self) -> Dict[str, Any]:
@@ -690,7 +712,8 @@ class EvolutionaryElizaOrchestrator:
                 "evolution_ready": self.cycle_count % self.config.evolution_frequency == 0
             }
         except Exception as e:
-            logger.error(f"Error getting ecosystem status: {e}")
+if __name__ == "__main__":
+                logger.error(f"Error getting ecosystem status: {e}")
             return {"error": str(e)}
     
     async def build_evolutionary_utility(self, cycle):

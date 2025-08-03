@@ -12,9 +12,12 @@ try:
     
     # Test connection by trying to fetch from a table
     response = supabase.table('test').select("*").execute()
-    print("Supabase client connection successful!")
-    print(f"Response: {response}")
+if __name__ == "__main__":
+        print("Supabase client connection successful!")
+if __name__ == "__main__":
+        print(f"Response: {response}")
     
 except Exception as e:
-    print(f"Supabase client connection failed: {e}")
+if __name__ == "__main__":
+        print(f"Supabase client connection failed: {e}")
 

@@ -59,7 +59,8 @@ class AutonomousEliza:
     
     async def analyze_governance_proposal(self, proposal: Dict[str, Any]) -> Dict[str, Any]:
         """Analyze a governance proposal using MCDA and XAI."""
-        logger.info(f"Analyzing governance proposal: {proposal.get('id', 'unknown')}")
+if __name__ == "__main__":
+            logger.info(f"Analyzing governance proposal: {proposal.get('id', 'unknown')}")
         
         # Perform MCDA analysis
         mcda_scores = await self._perform_mcda_analysis(proposal)
@@ -160,7 +161,8 @@ class AutonomousEliza:
             return 0.7  # Placeholder
             
         except Exception as e:
-            logger.warning(f"Error in AI assessment: {e}")
+if __name__ == "__main__":
+                logger.warning(f"Error in AI assessment: {e}")
             return 0.5  # Default neutral score
     
     async def _assess_technical_feasibility(self, proposal: Dict[str, Any]) -> float:
@@ -342,7 +344,8 @@ class AutonomousEliza:
             elif success_rate < 0.8:
                 self.confidence_threshold = min(0.9, self.confidence_threshold + 0.01)
         
-        logger.info(f"Updated confidence threshold to {self.confidence_threshold:.3f}")
+if __name__ == "__main__":
+            logger.info(f"Updated confidence threshold to {self.confidence_threshold:.3f}")
     
     async def get_governance_insights(self) -> Dict[str, Any]:
         """Get insights about governance patterns and performance."""
@@ -385,11 +388,13 @@ async def main():
     
     # Analyze proposal
     result = await eliza.analyze_governance_proposal(proposal)
-    print(f"Analysis result: {json.dumps(result, indent=2)}")
+if __name__ == "__main__":
+        print(f"Analysis result: {json.dumps(result, indent=2)}")
     
     # Get insights
     insights = await eliza.get_governance_insights()
-    print(f"Governance insights: {json.dumps(insights, indent=2)}")
+if __name__ == "__main__":
+        print(f"Governance insights: {json.dumps(insights, indent=2)}")
 
 if __name__ == "__main__":
     asyncio.run(main())

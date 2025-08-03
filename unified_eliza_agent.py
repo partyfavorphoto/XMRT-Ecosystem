@@ -188,11 +188,13 @@ class UnifiedElizaAgent:
             self.github = Github(github_token)
         else:
             self.github = None
-            logger.warning("GitHub token not provided, GitHub integration disabled")
+if __name__ == "__main__":
+                logger.warning("GitHub token not provided, GitHub integration disabled")
     
     async def initialize(self):
         """Initialize the unified agent."""
-        logger.info("Initializing Unified Eliza Agent...")
+if __name__ == "__main__":
+            logger.info("Initializing Unified Eliza Agent...")
         
         # Initialize core components
         self.components['decision_making'] = {'status': 'active', 'last_update': datetime.now()}
@@ -200,11 +202,13 @@ class UnifiedElizaAgent:
         self.components['explanation'] = {'status': 'active', 'last_update': datetime.now()}
         self.components['github_integration'] = {'status': 'active' if self.github else 'disabled', 'last_update': datetime.now()}
         
-        logger.info("Unified Eliza Agent initialized successfully")
+if __name__ == "__main__":
+            logger.info("Unified Eliza Agent initialized successfully")
     
     async def process_governance_proposal(self, proposal: Dict[str, Any]) -> Dict[str, Any]:
         """Process a governance proposal with full analysis."""
-        logger.info(f"Processing governance proposal: {proposal.get('id', 'unknown')}")
+if __name__ == "__main__":
+            logger.info(f"Processing governance proposal: {proposal.get('id', 'unknown')}")
         
         try:
             # Perform MCDA analysis
@@ -232,7 +236,8 @@ class UnifiedElizaAgent:
             return result
             
         except Exception as e:
-            logger.error(f"Error processing governance proposal: {e}")
+if __name__ == "__main__":
+                logger.error(f"Error processing governance proposal: {e}")
             return {
                 'error': str(e),
                 'timestamp': datetime.now().isoformat(),
@@ -326,7 +331,8 @@ class UnifiedElizaAgent:
                 return f"I understand you're asking about: '{user_message}'. I'm here to help with XMRT DAO operations including governance, treasury management, and system coordination. Could you provide more specific details about what you'd like to know or accomplish?"
                 
         except Exception as e:
-            logger.error(f"Error generating chat response: {e}")
+if __name__ == "__main__":
+                logger.error(f"Error generating chat response: {e}")
             return "I apologize, but I encountered an error processing your request. Please try again, and if the issue persists, please check the system status."
 
 # FastAPI application for deployment
@@ -1014,3 +1020,8 @@ if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
 
+
+
+@app.head(\"/\")
+def root_head():
+    return {}

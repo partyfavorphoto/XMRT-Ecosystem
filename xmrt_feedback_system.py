@@ -199,15 +199,20 @@ class XMRTFeedbackSystem:
                 }
             }
             
-            print(f"📤 Generated feedback for autonomous system:")
-            print(f"   🎯 Priority adjustments: {len(adjustments['priority_changes'])}")
-            print(f"   📋 New focus areas: {len(adjustments['focus_areas'])}")
-            print(f"   ⚡ New tasks: {len(adjustments['new_tasks'])}")
+if __name__ == "__main__":
+                print(f"📤 Generated feedback for autonomous system:")
+if __name__ == "__main__":
+                print(f"   🎯 Priority adjustments: {len(adjustments['priority_changes'])}")
+if __name__ == "__main__":
+                print(f"   📋 New focus areas: {len(adjustments['focus_areas'])}")
+if __name__ == "__main__":
+                print(f"   ⚡ New tasks: {len(adjustments['new_tasks'])}")
             
             return True
             
         except Exception as e:
-            print(f"❌ Failed to send feedback: {e}")
+if __name__ == "__main__":
+                print(f"❌ Failed to send feedback: {e}")
             return False
     
     def get_learning_summary(self) -> Dict[str, Any]:
@@ -251,8 +256,10 @@ def enhanced_conversation_with_feedback(user_query: str, eliza_response: str,
 def test_feedback_system():
     """Test the feedback system with sample conversations"""
     
-    print("🧪 TESTING FEEDBACK SYSTEM")
-    print("=" * 40)
+if __name__ == "__main__":
+        print("🧪 TESTING FEEDBACK SYSTEM")
+if __name__ == "__main__":
+        print("=" * 40)
     
     # Simulate some conversations
     sample_conversations = [
@@ -269,14 +276,19 @@ def test_feedback_system():
     # Generate learning summary
     summary = feedback_system.get_learning_summary()
     
-    print(f"✅ Recorded {summary['total_conversations']} conversations")
-    print(f"✅ Top topics: {list(summary['learning_patterns']['frequent_topics'].keys())[:3]}")
-    print(f"✅ Knowledge gaps: {summary['learning_patterns']['knowledge_gaps']}")
-    print(f"✅ Pain points: {summary['learning_patterns']['user_pain_points']}")
+if __name__ == "__main__":
+        print(f"✅ Recorded {summary['total_conversations']} conversations")
+if __name__ == "__main__":
+        print(f"✅ Top topics: {list(summary['learning_patterns']['frequent_topics'].keys())[:3]}")
+if __name__ == "__main__":
+        print(f"✅ Knowledge gaps: {summary['learning_patterns']['knowledge_gaps']}")
+if __name__ == "__main__":
+        print(f"✅ Pain points: {summary['learning_patterns']['user_pain_points']}")
     
     # Test feedback generation
     adjustments = feedback_system.generate_priority_adjustments()
-    print(f"✅ Generated {len(adjustments['new_tasks'])} new tasks for autonomous system")
+if __name__ == "__main__":
+        print(f"✅ Generated {len(adjustments['new_tasks'])} new tasks for autonomous system")
     
     return True
 

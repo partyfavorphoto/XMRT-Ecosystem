@@ -76,7 +76,8 @@ class SelfMonitoringSystem:
         }
         
         self._init_database()
-        logger.info("Self-monitoring system initialized")
+if __name__ == "__main__":
+            logger.info("Self-monitoring system initialized")
 
     def _init_database(self):
         """Initialize SQLite database for metrics storage"""
@@ -116,11 +117,13 @@ class SelfMonitoringSystem:
             conn.close()
             
         except Exception as e:
-            logger.error(f"Failed to initialize database: {e}")
+if __name__ == "__main__":
+                logger.error(f"Failed to initialize database: {e}")
 
     async def start_monitoring(self):
         """Start the monitoring loop"""
-        logger.info("Starting self-monitoring system...")
+if __name__ == "__main__":
+            logger.info("Starting self-monitoring system...")
         
         monitoring_tasks = [
             asyncio.create_task(self._monitor_system_resources()),
@@ -134,7 +137,8 @@ class SelfMonitoringSystem:
         try:
             await asyncio.gather(*monitoring_tasks)
         except Exception as e:
-            logger.error(f"Monitoring system error: {e}")
+if __name__ == "__main__":
+                logger.error(f"Monitoring system error: {e}")
 
     async def _monitor_system_resources(self):
         """Monitor system resource usage"""
@@ -181,7 +185,8 @@ class SelfMonitoringSystem:
                 await asyncio.sleep(30)  # Check every 30 seconds
                 
             except Exception as e:
-                logger.error(f"Error monitoring system resources: {e}")
+if __name__ == "__main__":
+                    logger.error(f"Error monitoring system resources: {e}")
                 await asyncio.sleep(60)
 
     async def _monitor_blockchain_health(self):
@@ -224,7 +229,8 @@ class SelfMonitoringSystem:
                 await asyncio.sleep(60)  # Check every minute
                 
             except Exception as e:
-                logger.error(f"Error monitoring blockchain health: {e}")
+if __name__ == "__main__":
+                    logger.error(f"Error monitoring blockchain health: {e}")
                 await asyncio.sleep(120)
 
     async def _monitor_ai_decisions(self):
@@ -254,7 +260,8 @@ class SelfMonitoringSystem:
                 await asyncio.sleep(300)  # Check every 5 minutes
                 
             except Exception as e:
-                logger.error(f"Error monitoring AI decisions: {e}")
+if __name__ == "__main__":
+                    logger.error(f"Error monitoring AI decisions: {e}")
                 await asyncio.sleep(600)
 
     async def _monitor_performance(self):
@@ -275,7 +282,8 @@ class SelfMonitoringSystem:
                 await asyncio.sleep(120)  # Check every 2 minutes
                 
             except Exception as e:
-                logger.error(f"Error monitoring performance: {e}")
+if __name__ == "__main__":
+                    logger.error(f"Error monitoring performance: {e}")
                 await asyncio.sleep(240)
 
     async def _record_metric(self, metric_type: MetricType, name: str, value: float, 
@@ -348,7 +356,8 @@ class SelfMonitoringSystem:
             conn.close()
             
         except Exception as e:
-            logger.error(f"Failed to store metric in database: {e}")
+if __name__ == "__main__":
+                logger.error(f"Failed to store metric in database: {e}")
 
     async def _create_alert(self, alert_id: str, severity: str, message: str):
         """Create a new alert"""
@@ -388,9 +397,11 @@ class SelfMonitoringSystem:
             conn.close()
             
         except Exception as e:
-            logger.error(f"Failed to store alert in database: {e}")
+if __name__ == "__main__":
+                logger.error(f"Failed to store alert in database: {e}")
         
-        logger.warning(f"Alert created: {severity.upper()} - {message}")
+if __name__ == "__main__":
+            logger.warning(f"Alert created: {severity.upper()} - {message}")
 
     async def _process_alerts(self):
         """Process and potentially resolve alerts"""
@@ -405,7 +416,8 @@ class SelfMonitoringSystem:
                 await asyncio.sleep(60)  # Check every minute
                 
             except Exception as e:
-                logger.error(f"Error processing alerts: {e}")
+if __name__ == "__main__":
+                    logger.error(f"Error processing alerts: {e}")
                 await asyncio.sleep(120)
 
     async def _check_alert_resolution(self, alert: SystemAlert) -> bool:
@@ -441,9 +453,11 @@ class SelfMonitoringSystem:
             conn.close()
             
         except Exception as e:
-            logger.error(f"Failed to update alert resolution in database: {e}")
+if __name__ == "__main__":
+                logger.error(f"Failed to update alert resolution in database: {e}")
         
-        logger.info(f"Alert resolved: {alert.alert_id}")
+if __name__ == "__main__":
+            logger.info(f"Alert resolved: {alert.alert_id}")
 
     async def _analyze_recent_decisions(self) -> Dict[str, Any]:
         """Analyze recent AI decisions from logs"""
@@ -456,7 +470,8 @@ class SelfMonitoringSystem:
                 "error_rate": 2.0
             }
         except Exception as e:
-            logger.error(f"Error analyzing recent decisions: {e}")
+if __name__ == "__main__":
+                logger.error(f"Error analyzing recent decisions: {e}")
             return {}
 
     async def _measure_api_response_time(self) -> float:
@@ -468,7 +483,8 @@ class SelfMonitoringSystem:
             await asyncio.sleep(0.1)
             return time.time() - start_time
         except Exception as e:
-            logger.error(f"Error measuring API response time: {e}")
+if __name__ == "__main__":
+                logger.error(f"Error measuring API response time: {e}")
             return 10.0  # Return high value to trigger alert
 
     async def _cleanup_old_metrics(self):
@@ -494,7 +510,8 @@ class SelfMonitoringSystem:
                 await asyncio.sleep(86400)  # Run daily
                 
             except Exception as e:
-                logger.error(f"Error cleaning up old metrics: {e}")
+if __name__ == "__main__":
+                    logger.error(f"Error cleaning up old metrics: {e}")
                 await asyncio.sleep(3600)  # Retry in 1 hour
 
     def get_system_health(self) -> Dict[str, Any]:
@@ -552,7 +569,8 @@ class SelfMonitoringSystem:
     async def stop_monitoring(self):
         """Stop the monitoring system"""
         self.monitoring_enabled = False
-        logger.info("Self-monitoring system stopped")
+if __name__ == "__main__":
+            logger.info("Self-monitoring system stopped")
 
 # Global monitoring instance
 monitoring_system = SelfMonitoringSystem()

@@ -30,12 +30,14 @@ class CommunityAgent:
         self.sentiment_threshold = 0.3  # Below this triggers intervention
         self.engagement_target = 0.7  # Target engagement rate
 
-        logger.info("Community Agent initialized")
+if __name__ == "__main__":
+            logger.info("Community Agent initialized")
 
     async def monitor_community(self):
         """Monitor community channels and engagement"""
         try:
-            logger.info("👥 Monitoring community...")
+if __name__ == "__main__":
+                logger.info("👥 Monitoring community...")
 
             # Monitor Discord
             discord_data = await self.monitor_discord()
@@ -73,7 +75,8 @@ class CommunityAgent:
             await self.store_community_data(community_data, health_analysis)
 
         except Exception as e:
-            logger.error(f"Error monitoring community: {e}")
+if __name__ == "__main__":
+                logger.error(f"Error monitoring community: {e}")
 
     async def monitor_discord(self) -> Dict[str, Any]:
         """Monitor Discord community"""
@@ -100,7 +103,8 @@ class CommunityAgent:
             }
 
         except Exception as e:
-            logger.error(f"Error monitoring Discord: {e}")
+if __name__ == "__main__":
+                logger.error(f"Error monitoring Discord: {e}")
             return {}
 
     async def monitor_twitter(self) -> Dict[str, Any]:
@@ -128,7 +132,8 @@ class CommunityAgent:
             }
 
         except Exception as e:
-            logger.error(f"Error monitoring Twitter: {e}")
+if __name__ == "__main__":
+                logger.error(f"Error monitoring Twitter: {e}")
             return {}
 
     async def monitor_telegram(self) -> Dict[str, Any]:
@@ -155,7 +160,8 @@ class CommunityAgent:
             }
 
         except Exception as e:
-            logger.error(f"Error monitoring Telegram: {e}")
+if __name__ == "__main__":
+                logger.error(f"Error monitoring Telegram: {e}")
             return {}
 
     async def monitor_github(self) -> Dict[str, Any]:
@@ -179,7 +185,8 @@ class CommunityAgent:
             }
 
         except Exception as e:
-            logger.error(f"Error monitoring GitHub: {e}")
+if __name__ == "__main__":
+                logger.error(f"Error monitoring GitHub: {e}")
             return {}
 
     async def identify_support_requests(self, messages: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
@@ -215,7 +222,8 @@ class CommunityAgent:
             message = request['message']
             classification = request['classification']
 
-            logger.info(f"🎧 Handling support request on {platform}: {classification.get('category', 'general')}")
+if __name__ == "__main__":
+                logger.info(f"🎧 Handling support request on {platform}: {classification.get('category', 'general')}")
 
             # Generate response using AI
             response = await self.ai_utils.generate_support_response(
@@ -240,7 +248,8 @@ class CommunityAgent:
                 await self.escalate_to_human(request, platform)
 
         except Exception as e:
-            logger.error(f"Error handling support request: {e}")
+if __name__ == "__main__":
+                logger.error(f"Error handling support request: {e}")
 
     async def identify_influential_mentions(self, mentions: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         """Identify influential mentions that need response"""
@@ -272,7 +281,8 @@ class CommunityAgent:
             mention = mention_data['mention']
             analysis = mention_data['analysis']
 
-            logger.info(f"🐦 Responding to influential mention from @{mention.get('user', {}).get('username')}")
+if __name__ == "__main__":
+                logger.info(f"🐦 Responding to influential mention from @{mention.get('user', {}).get('username')}")
 
             # Generate appropriate response
             response = await self.ai_utils.generate_twitter_response(
@@ -285,7 +295,8 @@ class CommunityAgent:
             await self.ai_utils.send_twitter_response(mention.get('id'), response)
 
         except Exception as e:
-            logger.error(f"Error responding to mention: {e}")
+if __name__ == "__main__":
+                logger.error(f"Error responding to mention: {e}")
 
     async def check_moderation_issues(self, messages: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         """Check for moderation issues in messages"""
@@ -311,7 +322,8 @@ class CommunityAgent:
             message = issue['message']
             action = issue['action']
 
-            logger.warning(f"⚠️ Moderation issue on {platform}: {issue['reason']}")
+if __name__ == "__main__":
+                logger.warning(f"⚠️ Moderation issue on {platform}: {issue['reason']}")
 
             if action == 'warn':
                 # Send warning to user
@@ -330,12 +342,14 @@ class CommunityAgent:
             await self.log_moderation_action(issue, action, platform)
 
         except Exception as e:
-            logger.error(f"Error handling moderation issue: {e}")
+if __name__ == "__main__":
+                logger.error(f"Error handling moderation issue: {e}")
 
     async def respond_to_github_issue(self, issue: Dict[str, Any]):
         """Respond to a GitHub issue"""
         try:
-            logger.info(f"🐙 Responding to GitHub issue #{issue.get('number')}")
+if __name__ == "__main__":
+                logger.info(f"🐙 Responding to GitHub issue #{issue.get('number')}")
 
             # Analyze issue
             analysis = await self.ai_utils.analyze_github_issue(issue)
@@ -355,7 +369,8 @@ class CommunityAgent:
                     await self.ai_utils.add_github_labels(issue.get('number'), analysis['labels'])
 
         except Exception as e:
-            logger.error(f"Error responding to GitHub issue: {e}")
+if __name__ == "__main__":
+                logger.error(f"Error responding to GitHub issue: {e}")
 
     async def analyze_community_health(self, community_data: Dict[str, Any]) -> Dict[str, Any]:
         """Analyze overall community health"""
@@ -414,7 +429,8 @@ class CommunityAgent:
             }
 
         except Exception as e:
-            logger.error(f"Error analyzing community health: {e}")
+if __name__ == "__main__":
+                logger.error(f"Error analyzing community health: {e}")
             return {'health_score': 0, 'status': 'error'}
 
     def get_health_status(self, health_score: float) -> str:
@@ -433,7 +449,8 @@ class CommunityAgent:
     async def handle_community_issues(self, issues: List[Dict[str, Any]]):
         """Handle community issues"""
         for issue in issues:
-            logger.warning(f"Community issue: {issue['type']} on {issue['platform']}")
+if __name__ == "__main__":
+                logger.warning(f"Community issue: {issue['type']} on {issue['platform']}")
 
             if issue['type'] == 'low_engagement':
                 await self.boost_engagement(issue['platform'])
@@ -443,7 +460,8 @@ class CommunityAgent:
     async def boost_engagement(self, platform: str):
         """Boost engagement on a platform"""
         try:
-            logger.info(f"🚀 Boosting engagement on {platform}")
+if __name__ == "__main__":
+                logger.info(f"🚀 Boosting engagement on {platform}")
 
             # Generate engaging content
             content = await self.ai_utils.generate_engaging_content(platform)
@@ -458,12 +476,14 @@ class CommunityAgent:
                 await self.start_twitter_campaign()
 
         except Exception as e:
-            logger.error(f"Error boosting engagement: {e}")
+if __name__ == "__main__":
+                logger.error(f"Error boosting engagement: {e}")
 
     async def address_negative_sentiment(self, platform: str):
         """Address negative sentiment on a platform"""
         try:
-            logger.info(f"💬 Addressing negative sentiment on {platform}")
+if __name__ == "__main__":
+                logger.info(f"💬 Addressing negative sentiment on {platform}")
 
             # Generate positive messaging
             message = await self.ai_utils.generate_positive_message(platform)
@@ -475,12 +495,14 @@ class CommunityAgent:
             await self.increase_community_engagement(platform)
 
         except Exception as e:
-            logger.error(f"Error addressing negative sentiment: {e}")
+if __name__ == "__main__":
+                logger.error(f"Error addressing negative sentiment: {e}")
 
     async def generate_reports(self):
         """Generate community reports"""
         try:
-            logger.info("📊 Generating community reports...")
+if __name__ == "__main__":
+                logger.info("📊 Generating community reports...")
 
             # Generate daily report
             daily_report = await self.generate_daily_report()
@@ -494,7 +516,8 @@ class CommunityAgent:
             await self.store_reports(daily_report)
 
         except Exception as e:
-            logger.error(f"Error generating reports: {e}")
+if __name__ == "__main__":
+                logger.error(f"Error generating reports: {e}")
 
     async def generate_daily_report(self) -> Dict[str, Any]:
         """Generate daily community report"""
@@ -551,7 +574,8 @@ class CommunityAgent:
                 await self.handle_low_engagement_alert()
 
         except Exception as e:
-            logger.error(f"Error handling alert: {e}")
+if __name__ == "__main__":
+                logger.error(f"Error handling alert: {e}")
 
     async def check_overdue_conversations(self) -> List[str]:
         """Check for overdue conversations"""
@@ -570,7 +594,8 @@ class CommunityAgent:
         try:
             return await self.blockchain_utils.get_user_history(user_id)
         except Exception as e:
-            logger.error(f"Error getting user history: {e}")
+if __name__ == "__main__":
+                logger.error(f"Error getting user history: {e}")
             return {}
 
     async def send_response(self, message: Dict[str, Any], response: str, platform: str):
@@ -583,7 +608,8 @@ class CommunityAgent:
                 reply_to=message.get('id')
             )
         except Exception as e:
-            logger.error(f"Error sending response: {e}")
+if __name__ == "__main__":
+                logger.error(f"Error sending response: {e}")
 
     async def escalate_to_human(self, request: Dict[str, Any], platform: str):
         """Escalate request to human support"""
@@ -598,7 +624,8 @@ class CommunityAgent:
             await self.ai_utils.send_alert(escalation_data)
 
         except Exception as e:
-            logger.error(f"Error escalating to human: {e}")
+if __name__ == "__main__":
+                logger.error(f"Error escalating to human: {e}")
 
     async def store_community_data(self, community_data: Dict[str, Any], health_analysis: Dict[str, Any]):
         """Store community monitoring data"""
@@ -613,7 +640,8 @@ class CommunityAgent:
             await self.blockchain_utils.store_community_data(data)
 
         except Exception as e:
-            logger.error(f"Error storing community data: {e}")
+if __name__ == "__main__":
+                logger.error(f"Error storing community data: {e}")
 
     async def execute_action(self, action: str, params: Dict[str, Any]) -> Dict[str, Any]:
         """Execute a manual action"""
@@ -649,7 +677,8 @@ class CommunityAgent:
     async def handle_low_engagement_alert(self):
         """Handle low engagement alert by implementing engagement boost strategies"""
         try:
-            logger.warning("🚨 Handling low engagement alert")
+if __name__ == "__main__":
+                logger.warning("🚨 Handling low engagement alert")
 
             # Get current engagement metrics
             current_metrics = self.community_metrics
@@ -668,7 +697,8 @@ class CommunityAgent:
                         })
 
             if not low_engagement_platforms:
-                logger.info("No low engagement platforms found")
+if __name__ == "__main__":
+                    logger.info("No low engagement platforms found")
                 return
 
             # Generate engagement boost strategies for each platform
@@ -676,7 +706,8 @@ class CommunityAgent:
                 platform = platform_data['platform']
                 deficit = platform_data['deficit']
 
-                logger.info(f"Boosting engagement on {platform} (deficit: {deficit:.2f})")
+if __name__ == "__main__":
+                    logger.info(f"Boosting engagement on {platform} (deficit: {deficit:.2f})")
 
                 # Generate platform-specific engagement content
                 engagement_content = await self.ai_utils.generate_engaging_content(platform)
@@ -706,10 +737,12 @@ class CommunityAgent:
             }
             await self.ai_utils.send_alert(alert_data)
 
-            logger.info(f"✅ Low engagement alert handled for {len(low_engagement_platforms)} platforms")
+if __name__ == "__main__":
+                logger.info(f"✅ Low engagement alert handled for {len(low_engagement_platforms)} platforms")
 
         except Exception as e:
-            logger.error(f"Error handling low engagement alert: {e}")
+if __name__ == "__main__":
+                logger.error(f"Error handling low engagement alert: {e}")
 
     async def start_discord_engagement_activities(self):
         """Start Discord-specific engagement activities"""
@@ -722,12 +755,14 @@ class CommunityAgent:
             ]
 
             for activity in activities:
-                logger.info(f"Discord activity: {activity}")
+if __name__ == "__main__":
+                    logger.info(f"Discord activity: {activity}")
                 # In production, implement actual Discord bot actions
                 await asyncio.sleep(1)  # Simulate activity execution
 
         except Exception as e:
-            logger.error(f"Error starting Discord engagement activities: {e}")
+if __name__ == "__main__":
+                logger.error(f"Error starting Discord engagement activities: {e}")
 
     async def start_twitter_engagement_campaign(self):
         """Start Twitter engagement campaign"""
@@ -740,12 +775,14 @@ class CommunityAgent:
             ]
 
             for action in campaign_actions:
-                logger.info(f"Twitter campaign: {action}")
+if __name__ == "__main__":
+                    logger.info(f"Twitter campaign: {action}")
                 # In production, implement actual Twitter API actions
                 await asyncio.sleep(1)  # Simulate action execution
 
         except Exception as e:
-            logger.error(f"Error starting Twitter engagement campaign: {e}")
+if __name__ == "__main__":
+                logger.error(f"Error starting Twitter engagement campaign: {e}")
 
     async def start_telegram_engagement_activities(self):
         """Start Telegram engagement activities"""
@@ -758,12 +795,14 @@ class CommunityAgent:
             ]
 
             for activity in activities:
-                logger.info(f"Telegram activity: {activity}")
+if __name__ == "__main__":
+                    logger.info(f"Telegram activity: {activity}")
                 # In production, implement actual Telegram bot actions
                 await asyncio.sleep(1)  # Simulate activity execution
 
         except Exception as e:
-            logger.error(f"Error starting Telegram engagement activities: {e}")
+if __name__ == "__main__":
+                logger.error(f"Error starting Telegram engagement activities: {e}")
 
     async def start_github_engagement_activities(self):
         """Start GitHub engagement activities"""
@@ -776,26 +815,31 @@ class CommunityAgent:
             ]
 
             for activity in activities:
-                logger.info(f"GitHub activity: {activity}")
+if __name__ == "__main__":
+                    logger.info(f"GitHub activity: {activity}")
                 # In production, implement actual GitHub API actions
                 await asyncio.sleep(1)  # Simulate activity execution
 
         except Exception as e:
-            logger.error(f"Error starting GitHub engagement activities: {e}")
+if __name__ == "__main__":
+                logger.error(f"Error starting GitHub engagement activities: {e}")
 
     async def schedule_engagement_followup(self):
         """Schedule follow-up monitoring after engagement boost"""
         try:
             # In production, integrate with task scheduler
-            logger.info("📅 Scheduled engagement follow-up monitoring in 2 hours")
+if __name__ == "__main__":
+                logger.info("📅 Scheduled engagement follow-up monitoring in 2 hours")
 
         except Exception as e:
-            logger.error(f"Error scheduling engagement follow-up: {e}")
+if __name__ == "__main__":
+                logger.error(f"Error scheduling engagement follow-up: {e}")
 
     async def handle_negative_sentiment_alert(self):
         """Handle negative sentiment alert"""
         try:
-            logger.warning("😟 Handling negative sentiment alert")
+if __name__ == "__main__":
+                logger.warning("😟 Handling negative sentiment alert")
 
             # Analyze sentiment sources
             sentiment_data = await self.ai_utils.analyze_community_sentiment()
@@ -811,15 +855,18 @@ class CommunityAgent:
             # Increase community engagement
             await self.increase_community_engagement('all')
 
-            logger.info("✅ Negative sentiment alert handled")
+if __name__ == "__main__":
+                logger.info("✅ Negative sentiment alert handled")
 
         except Exception as e:
-            logger.error(f"Error handling negative sentiment alert: {e}")
+if __name__ == "__main__":
+                logger.error(f"Error handling negative sentiment alert: {e}")
 
     async def handle_overdue_conversations(self):
         """Handle overdue conversations"""
         try:
-            logger.warning("⏰ Handling overdue conversations")
+if __name__ == "__main__":
+                logger.warning("⏰ Handling overdue conversations")
 
             overdue_users = await self.check_overdue_conversations()
 
@@ -840,10 +887,12 @@ class CommunityAgent:
                         platform=conversation.get('platform', 'discord')
                     )
 
-            logger.info(f"✅ Handled {len(overdue_users)} overdue conversations")
+if __name__ == "__main__":
+                logger.info(f"✅ Handled {len(overdue_users)} overdue conversations")
 
         except Exception as e:
-            logger.error(f"Error handling overdue conversations: {e}")
+if __name__ == "__main__":
+                logger.error(f"Error handling overdue conversations: {e}")
 
     async def increase_community_engagement(self, platform: str):
         """Increase community engagement on specified platform(s)"""
@@ -854,55 +903,66 @@ class CommunityAgent:
                 platforms = [platform]
 
             for p in platforms:
-                logger.info(f"Increasing engagement on {p}")
+if __name__ == "__main__":
+                    logger.info(f"Increasing engagement on {p}")
                 # Generate engaging content
                 content = await self.ai_utils.generate_engaging_content(p)
                 await self.ai_utils.post_content(content, p)
 
         except Exception as e:
-            logger.error(f"Error increasing community engagement: {e}")
+if __name__ == "__main__":
+                logger.error(f"Error increasing community engagement: {e}")
 
     async def run_cycle(self):
         """Execute a community cycle - analyze engagement, moderate, etc."""
         try:
-            print(f"[{self.__class__.__name__}] Starting community cycle...")
+if __name__ == "__main__":
+                print(f"[{self.__class__.__name__}] Starting community cycle...")
             
             # Community-specific cycle logic
             await self.analyze_community_sentiment()
             await self.moderate_discussions()
             await self.generate_community_insights()
             
-            print(f"[{self.__class__.__name__}] Community cycle completed successfully")
+if __name__ == "__main__":
+                print(f"[{self.__class__.__name__}] Community cycle completed successfully")
             
         except Exception as e:
-            print(f"[{self.__class__.__name__}] Error in community cycle: {e}")
+if __name__ == "__main__":
+                print(f"[{self.__class__.__name__}] Error in community cycle: {e}")
     
     async def analyze_community_sentiment(self):
         """Analyze community sentiment and engagement"""
         try:
             # TODO: Implement community sentiment analysis
-            print(f"[{self.__class__.__name__}] Analyzing community sentiment...")
+if __name__ == "__main__":
+                print(f"[{self.__class__.__name__}] Analyzing community sentiment...")
             pass
         except Exception as e:
-            print(f"[{self.__class__.__name__}] Community sentiment error: {e}")
+if __name__ == "__main__":
+                print(f"[{self.__class__.__name__}] Community sentiment error: {e}")
     
     async def moderate_discussions(self):
         """Moderate community discussions"""
         try:
             # TODO: Implement discussion moderation
-            print(f"[{self.__class__.__name__}] Moderating discussions...")
+if __name__ == "__main__":
+                print(f"[{self.__class__.__name__}] Moderating discussions...")
             pass
         except Exception as e:
-            print(f"[{self.__class__.__name__}] Discussion moderation error: {e}")
+if __name__ == "__main__":
+                print(f"[{self.__class__.__name__}] Discussion moderation error: {e}")
     
     async def generate_community_insights(self):
         """Generate insights about community activity"""
         try:
             # TODO: Implement community insight generation
-            print(f"[{self.__class__.__name__}] Generating community insights...")
+if __name__ == "__main__":
+                print(f"[{self.__class__.__name__}] Generating community insights...")
             pass
         except Exception as e:
-            print(f"[{self.__class__.__name__}] Community insights error: {e}")
+if __name__ == "__main__":
+                print(f"[{self.__class__.__name__}] Community insights error: {e}")
 
 
 

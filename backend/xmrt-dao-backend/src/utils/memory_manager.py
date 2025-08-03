@@ -79,7 +79,8 @@ class MemoryManager:
                     if embedding:
                         memory.embedding = np.array(embedding).tobytes()
                 except Exception as e:
-                    print(f"Warning: Failed to generate embedding: {e}")
+if __name__ == "__main__":
+                        print(f"Warning: Failed to generate embedding: {e}")
             
             # Save to database
             db.session.add(memory)
@@ -91,7 +92,8 @@ class MemoryManager:
             return memory
             
         except Exception as e:
-            print(f"Error storing memory: {e}")
+if __name__ == "__main__":
+                print(f"Error storing memory: {e}")
             db.session.rollback()
             return None
     
@@ -144,7 +146,8 @@ class MemoryManager:
             return query_obj.limit(limit).all()
             
         except Exception as e:
-            print(f"Error retrieving memories: {e}")
+if __name__ == "__main__":
+                print(f"Error retrieving memories: {e}")
             return []
     
     def search_memories_semantic(self, user_id: str, query_text: str, 
@@ -196,7 +199,8 @@ class MemoryManager:
                     if similarity >= self.similarity_threshold:
                         similarities.append((memory, similarity))
                 except Exception as e:
-                    print(f"Error calculating similarity for memory {memory.id}: {e}")
+if __name__ == "__main__":
+                        print(f"Error calculating similarity for memory {memory.id}: {e}")
                     continue
             
             # Sort by similarity and return top results
@@ -204,7 +208,8 @@ class MemoryManager:
             return similarities[:limit]
             
         except Exception as e:
-            print(f"Error in semantic search: {e}")
+if __name__ == "__main__":
+                print(f"Error in semantic search: {e}")
             return []
     
     def create_memory_association(self, source_id: int, target_id: int, 
@@ -249,7 +254,8 @@ class MemoryManager:
             return association
             
         except Exception as e:
-            print(f"Error creating memory association: {e}")
+if __name__ == "__main__":
+                print(f"Error creating memory association: {e}")
             db.session.rollback()
             return None
     
@@ -278,7 +284,8 @@ class MemoryManager:
             return query_obj.all()
             
         except Exception as e:
-            print(f"Error getting memory associations: {e}")
+if __name__ == "__main__":
+                print(f"Error getting memory associations: {e}")
             return []
     
     def store_conversation(self, user_id: str, session_id: str, role: str, content: str,
@@ -323,7 +330,8 @@ class MemoryManager:
             return conversation
             
         except Exception as e:
-            print(f"Error storing conversation: {e}")
+if __name__ == "__main__":
+                print(f"Error storing conversation: {e}")
             db.session.rollback()
             return None
     
@@ -351,7 +359,8 @@ class MemoryManager:
             return query_obj.limit(limit).all()
             
         except Exception as e:
-            print(f"Error getting conversation history: {e}")
+if __name__ == "__main__":
+                print(f"Error getting conversation history: {e}")
             return []
     
     def prune_old_memories(self, user_id: str, days_threshold: int = None) -> int:
@@ -388,7 +397,8 @@ class MemoryManager:
             return pruned_count
             
         except Exception as e:
-            print(f"Error pruning memories: {e}")
+if __name__ == "__main__":
+                print(f"Error pruning memories: {e}")
             db.session.rollback()
             return 0
     
@@ -447,7 +457,8 @@ class MemoryManager:
             }
             
         except Exception as e:
-            print(f"Error getting memory analytics: {e}")
+if __name__ == "__main__":
+                print(f"Error getting memory analytics: {e}")
             return {}
     
     def _generate_embedding(self, text: str) -> Optional[List[float]]:
@@ -462,7 +473,8 @@ class MemoryManager:
             )
             return response.data[0].embedding
         except Exception as e:
-            print(f"Error generating embedding: {e}")
+if __name__ == "__main__":
+                print(f"Error generating embedding: {e}")
             return None
     
     def _cosine_similarity(self, vec1: np.ndarray, vec2: np.ndarray) -> float:
@@ -505,7 +517,8 @@ class MemoryManager:
                 db.session.commit()
                 
         except Exception as e:
-            print(f"Error in auto-pruning: {e}")
+if __name__ == "__main__":
+                print(f"Error in auto-pruning: {e}")
             db.session.rollback()
 
 

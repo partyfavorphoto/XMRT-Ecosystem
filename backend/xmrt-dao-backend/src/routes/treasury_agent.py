@@ -66,7 +66,8 @@ class TreasuryAgent:
         )
         
         self.scheduler.start()
-        logger.info("Treasury Agent initialized with autonomous scheduling")
+if __name__ == "__main__":
+            logger.info("Treasury Agent initialized with autonomous scheduling")
     
     def check_inbox_task(self):
         """Scheduled task to check for new messages"""
@@ -75,7 +76,8 @@ class TreasuryAgent:
             for message in messages:
                 self.handle_message(message)
         except Exception as e:
-            logger.error(f"Treasury inbox check error: {e}")
+if __name__ == "__main__":
+                logger.error(f"Treasury inbox check error: {e}")
     
     def handle_message(self, message: Dict[str, Any]):
         """Handle incoming messages from other agents"""
@@ -84,7 +86,8 @@ class TreasuryAgent:
             sender = message.get('sender', '')
             message_type = message.get('message_type', 'general')
             
-            logger.info(f"Treasury agent received {message_type} from {sender}")
+if __name__ == "__main__":
+                logger.info(f"Treasury agent received {message_type} from {sender}")
             
             if message_type == 'optimization_request':
                 result = self.optimize_portfolio(message.get('metadata', {}))
@@ -108,7 +111,8 @@ class TreasuryAgent:
                 self.send_response(sender, result, 'treasury_advice')
                 
         except Exception as e:
-            logger.error(f"Treasury message handling error: {e}")
+if __name__ == "__main__":
+                logger.error(f"Treasury message handling error: {e}")
     
     def send_response(self, receiver: str, content: Any, message_type: str):
         """Send response to another agent"""
@@ -120,19 +124,22 @@ class TreasuryAgent:
                 message_type=message_type
             )
         except Exception as e:
-            logger.error(f"Treasury response sending error: {e}")
+if __name__ == "__main__":
+                logger.error(f"Treasury response sending error: {e}")
     
     def autonomous_optimization_check(self):
         """Autonomous check for portfolio optimization needs"""
         try:
-            logger.info("Treasury agent performing autonomous optimization check")
+if __name__ == "__main__":
+                logger.info("Treasury agent performing autonomous optimization check")
             
             # Get current portfolio data
             portfolio_data = self.get_current_portfolio()
             
             # Check if optimization is needed
             if self.needs_optimization(portfolio_data):
-                logger.info("Portfolio optimization needed, executing autonomous rebalance")
+if __name__ == "__main__":
+                    logger.info("Portfolio optimization needed, executing autonomous rebalance")
                 
                 # Notify other agents about optimization
                 send_agent_message(
@@ -161,7 +168,8 @@ class TreasuryAgent:
                 )
                 
         except Exception as e:
-            logger.error(f"Autonomous optimization check error: {e}")
+if __name__ == "__main__":
+                logger.error(f"Autonomous optimization check error: {e}")
     
     def get_current_portfolio(self) -> Dict[str, Any]:
         """Get current portfolio data (simulated for demo)"""
@@ -216,7 +224,8 @@ class TreasuryAgent:
             return False
             
         except Exception as e:
-            logger.error(f"Optimization check error: {e}")
+if __name__ == "__main__":
+                logger.error(f"Optimization check error: {e}")
             return False
     
     def optimize_portfolio(self, constraints: Dict[str, Any] = None) -> Dict[str, Any]:
@@ -258,7 +267,8 @@ class TreasuryAgent:
             return optimization_result
             
         except Exception as e:
-            logger.error(f"Portfolio optimization error: {e}")
+if __name__ == "__main__":
+                logger.error(f"Portfolio optimization error: {e}")
             return {
                 'success': False,
                 'error': str(e)
@@ -294,7 +304,8 @@ class TreasuryAgent:
             return risk_assessment
             
         except Exception as e:
-            logger.error(f"Risk assessment error: {e}")
+if __name__ == "__main__":
+                logger.error(f"Risk assessment error: {e}")
             return {
                 'success': False,
                 'error': str(e)
@@ -361,7 +372,8 @@ class TreasuryAgent:
             return execution_result
             
         except Exception as e:
-            logger.error(f"Rebalance execution error: {e}")
+if __name__ == "__main__":
+                logger.error(f"Rebalance execution error: {e}")
             return {
                 'success': False,
                 'error': str(e)
@@ -412,7 +424,8 @@ class TreasuryAgent:
             return advice
             
         except Exception as e:
-            logger.error(f"Treasury advice error: {e}")
+if __name__ == "__main__":
+                logger.error(f"Treasury advice error: {e}")
             return {
                 'success': False,
                 'error': str(e)
@@ -442,7 +455,8 @@ class TreasuryAgent:
             return status
             
         except Exception as e:
-            logger.error(f"Treasury status error: {e}")
+if __name__ == "__main__":
+                logger.error(f"Treasury status error: {e}")
             return {
                 'success': False,
                 'error': str(e)
@@ -454,7 +468,8 @@ class TreasuryAgent:
             with open(f'{self.agent_name}_memory.json', 'w') as f:
                 json.dump(self.memory, f, indent=2)
         except Exception as e:
-            logger.error(f"Memory save error: {e}")
+if __name__ == "__main__":
+                logger.error(f"Memory save error: {e}")
     
     def load_memory(self):
         """Load agent memory from persistent storage"""
@@ -462,9 +477,11 @@ class TreasuryAgent:
             with open(f'{self.agent_name}_memory.json', 'r') as f:
                 self.memory = json.load(f)
         except FileNotFoundError:
-            logger.info("No existing memory file found, starting fresh")
+if __name__ == "__main__":
+                logger.info("No existing memory file found, starting fresh")
         except Exception as e:
-            logger.error(f"Memory load error: {e}")
+if __name__ == "__main__":
+                logger.error(f"Memory load error: {e}")
 
 # Global treasury agent instance
 treasury_agent = TreasuryAgent()

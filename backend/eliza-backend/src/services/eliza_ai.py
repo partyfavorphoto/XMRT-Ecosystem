@@ -31,12 +31,15 @@ class ElizaAI:
                 openai.api_key = self.api_key
                 self.client = openai.OpenAI(api_key=self.api_key)
                 self.model = "gpt-4"
-                logger.info("OpenAI client initialized successfully")
+if __name__ == "__main__":
+                    logger.info("OpenAI client initialized successfully")
             except Exception as e:
-                logger.warning(f"OpenAI client initialization failed: {e}. Using emulation.")
+if __name__ == "__main__":
+                    logger.warning(f"OpenAI client initialization failed: {e}. Using emulation.")
                 self.use_emulation = False
         else:
-            logger.info("Using AI emulation for testing")
+if __name__ == "__main__":
+                logger.info("Using AI emulation for testing")
             self.use_emulation = False
         
         # Eliza's personality and knowledge base for OpenAI
@@ -140,7 +143,8 @@ Remember: You are representing a cutting-edge project that's pioneering the futu
             # Calculate tokens used
             tokens_used = response.usage.total_tokens if response.usage else 0
             
-            logger.info(f"Generated Eliza response in {response_time_ms}ms using {tokens_used} tokens")
+if __name__ == "__main__":
+                logger.info(f"Generated Eliza response in {response_time_ms}ms using {tokens_used} tokens")
             
             return {
                 "success": True,
@@ -152,7 +156,8 @@ Remember: You are representing a cutting-edge project that's pioneering the futu
             }
             
         except Exception as e:
-            logger.error(f"Error generating Eliza response: {str(e)}")
+if __name__ == "__main__":
+                logger.error(f"Error generating Eliza response: {str(e)}")
             # Fallback to emulation
             return self.emulation.generate_response(user_message, conversation_history, investor_context)
     
@@ -258,7 +263,8 @@ Only return valid JSON."""
                 }
                 
         except Exception as e:
-            logger.error(f"Error analyzing investor intent: {str(e)}")
+if __name__ == "__main__":
+                logger.error(f"Error analyzing investor intent: {str(e)}")
             # Fallback to emulation
             return self.emulation.analyze_investor_intent(message)
     
@@ -309,7 +315,8 @@ Return only the questions, one per line."""
             return suggestions[:5] if suggestions else default_questions
             
         except Exception as e:
-            logger.error(f"Error generating follow-up questions: {str(e)}")
+if __name__ == "__main__":
+                logger.error(f"Error generating follow-up questions: {str(e)}")
             # Fallback to emulation
             return self.emulation.suggest_follow_up_questions(conversation_history)
 

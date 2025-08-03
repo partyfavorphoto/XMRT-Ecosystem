@@ -105,7 +105,8 @@ class XAPIService:
             
             if response.status_code == 201:
                 space_data = response.json()
-                logger.info(f"Successfully created Space: {space_data.get('data', {}).get('id')}")
+if __name__ == "__main__":
+                    logger.info(f"Successfully created Space: {space_data.get('data', {}).get('id')}")
                 return {
                     "success": True,
                     "space_id": space_data.get("data", {}).get("id"),
@@ -114,7 +115,8 @@ class XAPIService:
                     "created_at": datetime.utcnow().isoformat()
                 }
             else:
-                logger.error(f"Failed to create Space: {response.status_code} - {response.text}")
+if __name__ == "__main__":
+                    logger.error(f"Failed to create Space: {response.status_code} - {response.text}")
                 return {
                     "success": False,
                     "error": f"API Error: {response.status_code}",
@@ -122,7 +124,8 @@ class XAPIService:
                 }
                 
         except Exception as e:
-            logger.error(f"Error creating Space: {str(e)}")
+if __name__ == "__main__":
+                logger.error(f"Error creating Space: {str(e)}")
             return {
                 "success": False,
                 "error": str(e)
@@ -155,14 +158,16 @@ class XAPIService:
             response = requests.post(url, headers=headers)
             
             if response.status_code == 200:
-                logger.info(f"Successfully ended Space: {space_id}")
+if __name__ == "__main__":
+                    logger.info(f"Successfully ended Space: {space_id}")
                 return {
                     "success": True,
                     "space_id": space_id,
                     "ended_at": datetime.utcnow().isoformat()
                 }
             else:
-                logger.error(f"Failed to end Space: {response.status_code} - {response.text}")
+if __name__ == "__main__":
+                    logger.error(f"Failed to end Space: {response.status_code} - {response.text}")
                 return {
                     "success": False,
                     "error": f"API Error: {response.status_code}",
@@ -170,7 +175,8 @@ class XAPIService:
                 }
                 
         except Exception as e:
-            logger.error(f"Error ending Space: {str(e)}")
+if __name__ == "__main__":
+                logger.error(f"Error ending Space: {str(e)}")
             return {
                 "success": False,
                 "error": str(e)
@@ -208,7 +214,8 @@ class XAPIService:
                     "data": response.json()
                 }
             else:
-                logger.error(f"Failed to get Space info: {response.status_code} - {response.text}")
+if __name__ == "__main__":
+                    logger.error(f"Failed to get Space info: {response.status_code} - {response.text}")
                 return {
                     "success": False,
                     "error": f"API Error: {response.status_code}",
@@ -216,7 +223,8 @@ class XAPIService:
                 }
                 
         except Exception as e:
-            logger.error(f"Error getting Space info: {str(e)}")
+if __name__ == "__main__":
+                logger.error(f"Error getting Space info: {str(e)}")
             return {
                 "success": False,
                 "error": str(e)
@@ -261,7 +269,8 @@ class XAPIService:
             
             if response.status_code == 201:
                 tweet_data = response.json()
-                logger.info(f"Successfully posted tweet: {tweet_data.get('data', {}).get('id')}")
+if __name__ == "__main__":
+                    logger.info(f"Successfully posted tweet: {tweet_data.get('data', {}).get('id')}")
                 return {
                     "success": True,
                     "tweet_id": tweet_data.get("data", {}).get("id"),
@@ -269,7 +278,8 @@ class XAPIService:
                     "posted_at": datetime.utcnow().isoformat()
                 }
             else:
-                logger.error(f"Failed to post tweet: {response.status_code} - {response.text}")
+if __name__ == "__main__":
+                    logger.error(f"Failed to post tweet: {response.status_code} - {response.text}")
                 return {
                     "success": False,
                     "error": f"API Error: {response.status_code}",
@@ -277,7 +287,8 @@ class XAPIService:
                 }
                 
         except Exception as e:
-            logger.error(f"Error posting tweet: {str(e)}")
+if __name__ == "__main__":
+                logger.error(f"Error posting tweet: {str(e)}")
             return {
                 "success": False,
                 "error": str(e)
@@ -312,7 +323,8 @@ class XAPIService:
             }
             
         except Exception as e:
-            logger.error(f"Error searching Spaces: {str(e)}")
+if __name__ == "__main__":
+                logger.error(f"Error searching Spaces: {str(e)}")
             return {
                 "success": False,
                 "error": str(e)
@@ -352,7 +364,8 @@ class XAPIService:
                     "name": user_data.get("data", {}).get("name")
                 }
             else:
-                logger.error(f"Failed to validate credentials: {response.status_code} - {response.text}")
+if __name__ == "__main__":
+                    logger.error(f"Failed to validate credentials: {response.status_code} - {response.text}")
                 return {
                     "success": False,
                     "error": f"API Error: {response.status_code}",
@@ -360,7 +373,8 @@ class XAPIService:
                 }
                 
         except Exception as e:
-            logger.error(f"Error validating credentials: {str(e)}")
+if __name__ == "__main__":
+                logger.error(f"Error validating credentials: {str(e)}")
             return {
                 "success": False,
                 "error": str(e)

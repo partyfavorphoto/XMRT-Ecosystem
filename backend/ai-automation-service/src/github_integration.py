@@ -83,13 +83,15 @@ class GitHubSelfImprovementEngine:
         
         self.improvement_history: List[ImprovementPlan] = []
         
-        logger.info(f"GitHub Self-Improvement Engine initialized for {repo_owner}/{repo_name}")
+if __name__ == "__main__":
+            logger.info(f"GitHub Self-Improvement Engine initialized for {repo_owner}/{repo_name}")
 
     async def analyze_repository_for_improvements(self) -> List[ImprovementPlan]:
         """
         Analyze the entire repository for potential improvements
         """
-        logger.info("Starting repository analysis for improvements...")
+if __name__ == "__main__":
+            logger.info("Starting repository analysis for improvements...")
         
         try:
             # Clone or update local repository
@@ -123,18 +125,21 @@ class GitHubSelfImprovementEngine:
             
             self.improvement_history.extend(improvements)
             
-            logger.info(f"Found {len(improvements)} potential improvements")
+if __name__ == "__main__":
+                logger.info(f"Found {len(improvements)} potential improvements")
             return improvements
             
         except Exception as e:
-            logger.error(f"Error analyzing repository: {e}")
+if __name__ == "__main__":
+                logger.error(f"Error analyzing repository: {e}")
             return []
 
     async def implement_improvements_autonomously(self, improvements: List[ImprovementPlan]) -> Dict[str, Any]:
         """
         Autonomously implement improvements based on confidence and risk levels
         """
-        logger.info(f"Starting autonomous implementation of {len(improvements)} improvements...")
+if __name__ == "__main__":
+            logger.info(f"Starting autonomous implementation of {len(improvements)} improvements...")
         
         results = {
             "implemented": [],
@@ -186,14 +191,16 @@ class GitHubSelfImprovementEngine:
                     })
                     
             except Exception as e:
-                logger.error(f"Error implementing improvement {improvement.improvement_id}: {e}")
+if __name__ == "__main__":
+                    logger.error(f"Error implementing improvement {improvement.improvement_id}: {e}")
                 results["failed"].append({
                     "improvement_id": improvement.improvement_id,
                     "title": improvement.title,
                     "error": str(e)
                 })
         
-        logger.info(f"Implementation complete: {len(results['implemented'])} implemented, "
+if __name__ == "__main__":
+            logger.info(f"Implementation complete: {len(results['implemented'])} implemented, "
                    f"{len(results['pending_review'])} pending review, "
                    f"{len(results['failed'])} failed, {len(results['skipped'])} skipped")
         
@@ -213,10 +220,12 @@ class GitHubSelfImprovementEngine:
                     self.local_repo_path
                 )
             
-            logger.info("Local repository updated successfully")
+if __name__ == "__main__":
+                logger.info("Local repository updated successfully")
             
         except Exception as e:
-            logger.error(f"Error updating local repository: {e}")
+if __name__ == "__main__":
+                logger.error(f"Error updating local repository: {e}")
             raise
 
     async def _analyze_code_quality(self) -> List[ImprovementPlan]:
@@ -260,7 +269,8 @@ class GitHubSelfImprovementEngine:
                         improvements.append(improvement)
             
         except Exception as e:
-            logger.error(f"Error analyzing code quality: {e}")
+if __name__ == "__main__":
+                logger.error(f"Error analyzing code quality: {e}")
         
         return improvements
 
@@ -321,7 +331,8 @@ class GitHubSelfImprovementEngine:
             return result
             
         except Exception as e:
-            logger.error(f"Error in AI code analysis: {e}")
+if __name__ == "__main__":
+                logger.error(f"Error in AI code analysis: {e}")
             return None
 
     async def _analyze_security_issues(self) -> List[ImprovementPlan]:
@@ -354,7 +365,8 @@ class GitHubSelfImprovementEngine:
                 improvements.append(improvement)
                 
         except Exception as e:
-            logger.error(f"Error analyzing security issues: {e}")
+if __name__ == "__main__":
+                logger.error(f"Error analyzing security issues: {e}")
         
         return improvements
 
@@ -378,7 +390,8 @@ class GitHubSelfImprovementEngine:
             ]
             
         except Exception as e:
-            logger.error(f"Error running security scan: {e}")
+if __name__ == "__main__":
+                logger.error(f"Error running security scan: {e}")
         
         return issues
 
@@ -489,7 +502,8 @@ class GitHubSelfImprovementEngine:
             }
             
         except Exception as e:
-            logger.error(f"Error implementing improvement autonomously: {e}")
+if __name__ == "__main__":
+                logger.error(f"Error implementing improvement autonomously: {e}")
             return {"success": False, "error": str(e)}
 
     async def _create_improvement_pr(self, improvement: ImprovementPlan) -> Dict[str, Any]:
@@ -536,7 +550,8 @@ class GitHubSelfImprovementEngine:
             return {"success": True, "pr_url": pr.html_url}
             
         except Exception as e:
-            logger.error(f"Error creating improvement PR: {e}")
+if __name__ == "__main__":
+                logger.error(f"Error creating improvement PR: {e}")
             return {"success": False, "error": str(e)}
 
     def _format_changes_for_pr(self, changes: List[CodeChange]) -> str:
@@ -579,7 +594,8 @@ class GitHubSelfImprovementEngine:
             }
             
         except Exception as e:
-            logger.error(f"Error monitoring autonomous changes: {e}")
+if __name__ == "__main__":
+                logger.error(f"Error monitoring autonomous changes: {e}")
             return {"error": str(e)}
 
 # Global instance

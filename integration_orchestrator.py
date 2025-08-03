@@ -27,7 +27,8 @@ class IntegrationOrchestrator:
         
     async def initialize(self):
         """Initialize the integration orchestrator."""
-        logger.info("Initializing Integration Orchestrator...")
+if __name__ == "__main__":
+            logger.info("Initializing Integration Orchestrator...")
         
         # Initialize system integrations
         await self._initialize_system_integrations()
@@ -38,7 +39,8 @@ class IntegrationOrchestrator:
         # Start optimization engine
         await self._start_optimization_engine()
         
-        logger.info("Integration Orchestrator initialized successfully")
+if __name__ == "__main__":
+            logger.info("Integration Orchestrator initialized successfully")
     
     async def _initialize_system_integrations(self):
         """Initialize integrations with all system components."""
@@ -115,7 +117,8 @@ class IntegrationOrchestrator:
     
     async def _start_optimization_engine(self):
         """Start the optimization engine."""
-        logger.info("Starting optimization engine...")
+if __name__ == "__main__":
+            logger.info("Starting optimization engine...")
         
         # Initialize performance baselines
         await self._establish_performance_baselines()
@@ -125,7 +128,8 @@ class IntegrationOrchestrator:
     
     async def _perform_health_checks(self):
         """Perform health checks on all integrated systems."""
-        logger.info("Performing system health checks...")
+if __name__ == "__main__":
+            logger.info("Performing system health checks...")
         
         for system_name, system_config in self.system_integrations.items():
             try:
@@ -134,10 +138,12 @@ class IntegrationOrchestrator:
                 system_config['health_status'] = health_status
                 
                 if health_status['status'] != 'healthy':
-                    logger.warning(f"System {system_name} health check failed: {health_status}")
+if __name__ == "__main__":
+                        logger.warning(f"System {system_name} health check failed: {health_status}")
                 
             except Exception as e:
-                logger.error(f"Health check failed for {system_name}: {e}")
+if __name__ == "__main__":
+                    logger.error(f"Health check failed for {system_name}: {e}")
                 system_config['status'] = 'error'
                 system_config['error'] = str(e)
     
@@ -154,7 +160,8 @@ class IntegrationOrchestrator:
     
     async def coordinate_cross_system_operation(self, operation_type: str, operation_data: Dict[str, Any]) -> Dict[str, Any]:
         """Coordinate an operation across multiple systems."""
-        logger.info(f"Coordinating cross-system operation: {operation_type}")
+if __name__ == "__main__":
+            logger.info(f"Coordinating cross-system operation: {operation_type}")
         
         # Get coordination rule
         coordination_rule = self.coordination_rules.get(operation_type)
@@ -180,7 +187,8 @@ class IntegrationOrchestrator:
                 
                 # Check if step failed
                 if step_result['status'] != 'success':
-                    logger.warning(f"Coordination step failed: {step}")
+if __name__ == "__main__":
+                        logger.warning(f"Coordination step failed: {step}")
                     
                     # Execute fallback if available
                     if coordination_rule.get('fallback'):
@@ -194,7 +202,8 @@ class IntegrationOrchestrator:
                 coordination_result['overall_status'] = 'success'
             
         except Exception as e:
-            logger.error(f"Error in cross-system coordination: {e}")
+if __name__ == "__main__":
+                logger.error(f"Error in cross-system coordination: {e}")
             coordination_result['overall_status'] = 'error'
             coordination_result['error'] = str(e)
         
@@ -208,7 +217,8 @@ class IntegrationOrchestrator:
         system_name = step['system']
         action = step['action']
         
-        logger.info(f"Executing step: {system_name}.{action}")
+if __name__ == "__main__":
+            logger.info(f"Executing step: {system_name}.{action}")
         
         # Check if system is available
         system_config = self.system_integrations.get(system_name)
@@ -303,7 +313,8 @@ class IntegrationOrchestrator:
     
     async def _execute_fallback(self, fallback_type: str, operation_data: Dict[str, Any]) -> Dict[str, Any]:
         """Execute fallback procedure."""
-        logger.info(f"Executing fallback: {fallback_type}")
+if __name__ == "__main__":
+            logger.info(f"Executing fallback: {fallback_type}")
         
         if fallback_type == 'human_review':
             return {
@@ -332,7 +343,8 @@ class IntegrationOrchestrator:
     
     async def _establish_performance_baselines(self):
         """Establish performance baselines for optimization."""
-        logger.info("Establishing performance baselines...")
+if __name__ == "__main__":
+            logger.info("Establishing performance baselines...")
         
         self.performance_metrics = {
             'response_times': {
@@ -381,7 +393,8 @@ class IntegrationOrchestrator:
                 await asyncio.sleep(300)  # 5 minutes
                 
             except Exception as e:
-                logger.error(f"Error in optimization loop: {e}")
+if __name__ == "__main__":
+                    logger.error(f"Error in optimization loop: {e}")
                 await asyncio.sleep(60)  # Wait 1 minute before retry
     
     async def _collect_performance_metrics(self) -> Dict[str, Any]:
@@ -500,7 +513,8 @@ class IntegrationOrchestrator:
         for suggestion in high_priority_suggestions[:3]:  # Execute up to 3 at a time
             try:
                 # Simulate optimization execution
-                logger.info(f"Executing optimization: {suggestion['title']}")
+if __name__ == "__main__":
+                    logger.info(f"Executing optimization: {suggestion['title']}")
                 
                 # Mark as executed
                 suggestion['executed'] = True
@@ -515,7 +529,8 @@ class IntegrationOrchestrator:
                 })
                 
             except Exception as e:
-                logger.error(f"Error executing optimization {suggestion['id']}: {e}")
+if __name__ == "__main__":
+                    logger.error(f"Error executing optimization {suggestion['id']}: {e}")
                 suggestion['status'] = 'failed'
                 suggestion['error'] = str(e)
     
@@ -547,7 +562,8 @@ class IntegrationOrchestrator:
             try:
                 await self._simulate_system_call(system_name, 'emergency_notification', emergency_data)
             except Exception as e:
-                logger.error(f"Failed to notify {system_name} of emergency: {e}")
+if __name__ == "__main__":
+                    logger.error(f"Failed to notify {system_name} of emergency: {e}")
         
         return result
 
@@ -563,11 +579,13 @@ async def main():
         'amount': 50000
     })
     
-    print(f"Coordination result: {json.dumps(result, indent=2)}")
+if __name__ == "__main__":
+        print(f"Coordination result: {json.dumps(result, indent=2)}")
     
     # Get status
     status = await orchestrator.get_coordination_status()
-    print(f"Coordination status: {json.dumps(status, indent=2)}")
+if __name__ == "__main__":
+        print(f"Coordination status: {json.dumps(status, indent=2)}")
 
 if __name__ == "__main__":
     asyncio.run(main())

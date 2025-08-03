@@ -23,9 +23,11 @@ class GitHubUtils:
         try:
             self.github = Github(self.token)
             self.repo = self.github.get_repo(f"{self.username}/{self.repo_name}")
-            logger.info(f"[GitHub] Successfully connected to {self.username}/{self.repo_name}")
+if __name__ == "__main__":
+                logger.info(f"[GitHub] Successfully connected to {self.username}/{self.repo_name}")
         except Exception as e:
-            logger.error(f"[GitHub] Failed to initialize GitHub client: {e}")
+if __name__ == "__main__":
+                logger.error(f"[GitHub] Failed to initialize GitHub client: {e}")
             self.github = None
             self.repo = None
     
@@ -40,11 +42,13 @@ class GitHubUtils:
             remote_url = f"https://{self.token}@github.com/{self.username}/{self.repo_name}.git"
             subprocess.run(['git', 'remote', 'set-url', 'origin', remote_url], check=True)
             
-            logger.info("[GitHub] Git configuration completed successfully")
+if __name__ == "__main__":
+                logger.info("[GitHub] Git configuration completed successfully")
             return True
             
         except Exception as e:
-            logger.error(f"[GitHub] Git configuration error: {e}")
+if __name__ == "__main__":
+                logger.error(f"[GitHub] Git configuration error: {e}")
             return False
         
     async def commit_changes(self, message, files=None):
@@ -64,7 +68,8 @@ class GitHubUtils:
             result = subprocess.run(['git', 'status', '--porcelain'], 
                                   capture_output=True, text=True)
             if not result.stdout.strip():
-                logger.info("[GitHub] No changes to commit")
+if __name__ == "__main__":
+                    logger.info("[GitHub] No changes to commit")
                 return True
             
             # Commit
@@ -73,14 +78,17 @@ class GitHubUtils:
             # Push
             subprocess.run(['git', 'push', 'origin', 'main'], check=True)
             
-            logger.info(f"[GitHub] Successfully committed: {message[:50]}...")
+if __name__ == "__main__":
+                logger.info(f"[GitHub] Successfully committed: {message[:50]}...")
             return True
             
         except subprocess.CalledProcessError as e:
-            logger.error(f"[GitHub] Git command failed: {e}")
+if __name__ == "__main__":
+                logger.error(f"[GitHub] Git command failed: {e}")
             return False
         except Exception as e:
-            logger.error(f"[GitHub] Commit error: {e}")
+if __name__ == "__main__":
+                logger.error(f"[GitHub] Commit error: {e}")
             return False
     
     async def create_branch(self, branch_name):
@@ -90,22 +98,26 @@ class GitHubUtils:
             result = subprocess.run(['git', 'branch', '--list', branch_name], 
                                   capture_output=True, text=True)
             if result.stdout.strip():
-                logger.info(f"[GitHub] Branch {branch_name} already exists, switching to it")
+if __name__ == "__main__":
+                    logger.info(f"[GitHub] Branch {branch_name} already exists, switching to it")
                 subprocess.run(['git', 'checkout', branch_name], check=True)
             else:
                 subprocess.run(['git', 'checkout', '-b', branch_name], check=True)
-                logger.info(f"[GitHub] Created and switched to branch: {branch_name}")
+if __name__ == "__main__":
+                    logger.info(f"[GitHub] Created and switched to branch: {branch_name}")
             
             return True
         except Exception as e:
-            logger.error(f"[GitHub] Branch creation error: {e}")
+if __name__ == "__main__":
+                logger.error(f"[GitHub] Branch creation error: {e}")
             return False
     
     async def create_pull_request(self, title, body, head_branch, base_branch='main'):
         """Create a pull request using PyGithub"""
         try:
             if not self.repo:
-                logger.error("[GitHub] Repository not initialized")
+if __name__ == "__main__":
+                    logger.error("[GitHub] Repository not initialized")
                 return None
             
             pr = self.repo.create_pull(
@@ -115,11 +127,13 @@ class GitHubUtils:
                 base=base_branch
             )
             
-            logger.info(f"[GitHub] Created pull request #{pr.number}: {title}")
+if __name__ == "__main__":
+                logger.info(f"[GitHub] Created pull request #{pr.number}: {title}")
             return pr
             
         except Exception as e:
-            logger.error(f"[GitHub] Pull request creation error: {e}")
+if __name__ == "__main__":
+                logger.error(f"[GitHub] Pull request creation error: {e}")
             return None
     
     async def get_repository_info(self):
@@ -142,7 +156,8 @@ class GitHubUtils:
             return info
             
         except Exception as e:
-            logger.error(f"[GitHub] Repository info error: {e}")
+if __name__ == "__main__":
+                logger.error(f"[GitHub] Repository info error: {e}")
             return None
     
     async def analyze_recent_commits(self, limit=10):
@@ -166,7 +181,8 @@ class GitHubUtils:
             return commit_data
             
         except Exception as e:
-            logger.error(f"[GitHub] Commit analysis error: {e}")
+if __name__ == "__main__":
+                logger.error(f"[GitHub] Commit analysis error: {e}")
             return []
 
 

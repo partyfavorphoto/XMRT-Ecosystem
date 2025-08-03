@@ -550,9 +550,12 @@ async def main():
         session_id
     )
     
-    print(f"Response: {response['response']}")
-    print(f"Context used: {len(response['context_used'])} memories")
-    print(f"Confidence: {response['confidence']}")
+if __name__ == "__main__":
+        print(f"Response: {response['response']}")
+if __name__ == "__main__":
+        print(f"Context used: {len(response['context_used'])} memories")
+if __name__ == "__main__":
+        print(f"Confidence: {response['confidence']}")
     
     # Learn from interaction
     await memory_manager.learn_from_interaction(
@@ -563,7 +566,8 @@ async def main():
     
     # Get stats
     stats = memory_manager.get_memory_stats()
-    print(f"Memory stats: {stats}")
+if __name__ == "__main__":
+        print(f"Memory stats: {stats}")
 
 if __name__ == "__main__":
     asyncio.run(main())

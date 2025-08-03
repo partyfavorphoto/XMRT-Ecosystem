@@ -52,9 +52,11 @@ class MessageQueue:
                 )
                 # Test connection
                 self.redis_client.ping()
-                logger.info("Connected to Redis for message queue")
+if __name__ == "__main__":
+                    logger.info("Connected to Redis for message queue")
             except Exception as e:
-                logger.warning(f"Redis connection failed, falling back to local queue: {e}")
+if __name__ == "__main__":
+                    logger.warning(f"Redis connection failed, falling back to local queue: {e}")
                 self.use_redis = False
                 self.redis_client = None
         else:
@@ -67,9 +69,11 @@ class MessageQueue:
                 # Use Redis list for message queue
                 queue_key = f"agent_queue:{message.receiver}"
                 self.redis_client.lpush(queue_key, json.dumps(message.to_dict()))
-                logger.info(f"Message queued for {message.receiver} via Redis")
+if __name__ == "__main__":
+                    logger.info(f"Message queued for {message.receiver} via Redis")
             except Exception as e:
-                logger.error(f"Redis queue error, falling back to local: {e}")
+if __name__ == "__main__":
+                    logger.error(f"Redis queue error, falling back to local: {e}")
                 self.local_queue.put(message)
         else:
             self.local_queue.put(message)
@@ -85,7 +89,8 @@ class MessageQueue:
                     return AgentMessage(**message_dict)
                 return None
             except Exception as e:
-                logger.error(f"Redis get error: {e}")
+if __name__ == "__main__":
+                    logger.error(f"Redis get error: {e}")
                 return None
         else:
             try:
@@ -112,7 +117,8 @@ class MessageQueue:
                     message_dict = json.loads(message_data)
                     messages.append(AgentMessage(**message_dict))
             except Exception as e:
-                logger.error(f"Redis get_all error: {e}")
+if __name__ == "__main__":
+                    logger.error(f"Redis get_all error: {e}")
         else:
             # For local queue, we need to check all messages
             temp_messages = []
@@ -151,7 +157,8 @@ class AgentRegistry:
         }
         self.agent_capabilities[agent_name] = capabilities
         self.agent_status[agent_name] = 'active'
-        logger.info(f"Agent {agent_name} registered with capabilities: {capabilities}")
+if __name__ == "__main__":
+            logger.info(f"Agent {agent_name} registered with capabilities: {capabilities}")
     
     def update_agent_status(self, agent_name: str, status: str):
         """Update agent status"""
@@ -183,7 +190,8 @@ class AgentHub:
         
         # Start scheduler
         self.scheduler.start()
-        logger.info("Agent Hub initialized")
+if __name__ == "__main__":
+            logger.info("Agent Hub initialized")
     
     def _register_default_agents(self):
         """Register default XMRT DAO agents"""
@@ -246,7 +254,8 @@ class AgentHub:
         # Add to history
         self.message_history.append(message.to_dict())
         
-        logger.info(f"Message sent from {sender} to {receiver}: {message_type}")
+if __name__ == "__main__":
+            logger.info(f"Message sent from {sender} to {receiver}: {message_type}")
         return message_id
     
     def get_messages(self, agent_name: str) -> List[Dict[str, Any]]:
@@ -303,7 +312,8 @@ class AgentHub:
             id=job_id,
             args=[agent_name]
         )
-        logger.info(f"Scheduled task added for {agent_name} every {interval_seconds} seconds")
+if __name__ == "__main__":
+            logger.info(f"Scheduled task added for {agent_name} every {interval_seconds} seconds")
         return job_id
     
     def get_agent_logs(self, limit: int = 100) -> List[Dict[str, Any]]:

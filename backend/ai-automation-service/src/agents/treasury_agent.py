@@ -22,12 +22,14 @@ class TreasuryAgent:
         self.last_check = None
         self.treasury_health = 'healthy'
         
-        logger.info("Treasury Agent initialized")
+if __name__ == "__main__":
+            logger.info("Treasury Agent initialized")
 
     async def monitor_treasury(self):
         """Monitor treasury health and balances"""
         try:
-            logger.info("Monitoring treasury...")
+if __name__ == "__main__":
+                logger.info("Monitoring treasury...")
             
             # Fetch treasury data
             treasury_data = await self._fetch_treasury_data()
@@ -42,13 +44,15 @@ class TreasuryAgent:
             return treasury_data
             
         except Exception as e:
-            logger.error(f"Error monitoring treasury: {e}")
+if __name__ == "__main__":
+                logger.error(f"Error monitoring treasury: {e}")
             return {}
 
     async def optimize_allocations(self):
         """Optimize treasury asset allocations"""
         try:
-            logger.info("Optimizing treasury allocations...")
+if __name__ == "__main__":
+                logger.info("Optimizing treasury allocations...")
             
             # Get current allocations
             current_allocations = await self._get_current_allocations()
@@ -63,13 +67,15 @@ class TreasuryAgent:
             return optimal_allocations
             
         except Exception as e:
-            logger.error(f"Error optimizing allocations: {e}")
+if __name__ == "__main__":
+                logger.error(f"Error optimizing allocations: {e}")
             return {}
 
     async def rebalance_portfolio(self):
         """Rebalance treasury portfolio based on market conditions"""
         try:
-            logger.info("Rebalancing treasury portfolio...")
+if __name__ == "__main__":
+                logger.info("Rebalancing treasury portfolio...")
             
             # Analyze market conditions
             market_analysis = await self.ai_utils.analyze_market_conditions()
@@ -83,7 +89,8 @@ class TreasuryAgent:
             return result
             
         except Exception as e:
-            logger.error(f"Error rebalancing portfolio: {e}")
+if __name__ == "__main__":
+                logger.error(f"Error rebalancing portfolio: {e}")
             return {}
 
     async def check_treasury_health(self):
@@ -107,7 +114,8 @@ class TreasuryAgent:
             }
             
         except Exception as e:
-            logger.error(f"Error checking treasury health: {e}")
+if __name__ == "__main__":
+                logger.error(f"Error checking treasury health: {e}")
             return {'status': 'unknown', 'error': str(e)}
 
     async def emergency_rebalance(self):
@@ -127,7 +135,8 @@ class TreasuryAgent:
             return result
             
         except Exception as e:
-            logger.error(f"Error in emergency rebalance: {e}")
+if __name__ == "__main__":
+                logger.error(f"Error in emergency rebalance: {e}")
             return {}
 
     async def get_status(self):
@@ -161,7 +170,8 @@ class TreasuryAgent:
                 raise ValueError(f"Unknown action: {action}")
                 
         except Exception as e:
-            logger.error(f"Error executing action {action}: {e}")
+if __name__ == "__main__":
+                logger.error(f"Error executing action {action}: {e}")
             raise
 
     async def _fetch_treasury_data(self):
@@ -218,7 +228,8 @@ class TreasuryAgent:
 
     async def _execute_rebalancing(self, target_allocations):
         """Execute portfolio rebalancing"""
-        logger.info(f"Executing rebalancing to target allocations: {target_allocations}")
+if __name__ == "__main__":
+            logger.info(f"Executing rebalancing to target allocations: {target_allocations}")
         # Simulate rebalancing execution
         return {'status': 'completed', 'allocations': target_allocations}
 
@@ -236,7 +247,8 @@ class TreasuryAgent:
 
     async def _execute_portfolio_rebalancing(self, strategy):
         """Execute portfolio rebalancing based on strategy"""
-        logger.info(f"Executing portfolio rebalancing with strategy: {strategy['strategy']}")
+if __name__ == "__main__":
+            logger.info(f"Executing portfolio rebalancing with strategy: {strategy['strategy']}")
         # Simulate portfolio rebalancing
         return {'status': 'completed', 'strategy': strategy}
 
@@ -296,43 +308,52 @@ class TreasuryAgent:
     async def run_cycle(self):
         """Execute a treasury cycle - analyze funds, optimize yields, etc."""
         try:
-            print(f"[{self.__class__.__name__}] Starting treasury cycle...")
+if __name__ == "__main__":
+                print(f"[{self.__class__.__name__}] Starting treasury cycle...")
             
             # Treasury-specific cycle logic
             await self.analyze_treasury_status()
             await self.optimize_yields()
             await self.check_risk_parameters()
             
-            print(f"[{self.__class__.__name__}] Treasury cycle completed successfully")
+if __name__ == "__main__":
+                print(f"[{self.__class__.__name__}] Treasury cycle completed successfully")
             
         except Exception as e:
-            print(f"[{self.__class__.__name__}] Error in treasury cycle: {e}")
+if __name__ == "__main__":
+                print(f"[{self.__class__.__name__}] Error in treasury cycle: {e}")
     
     async def analyze_treasury_status(self):
         """Analyze current treasury status"""
         try:
             # TODO: Implement actual treasury analysis
-            print(f"[{self.__class__.__name__}] Analyzing treasury status...")
+if __name__ == "__main__":
+                print(f"[{self.__class__.__name__}] Analyzing treasury status...")
             pass
         except Exception as e:
-            print(f"[{self.__class__.__name__}] Treasury analysis error: {e}")
+if __name__ == "__main__":
+                print(f"[{self.__class__.__name__}] Treasury analysis error: {e}")
     
     async def optimize_yields(self):
         """Optimize treasury yields"""
         try:
             # TODO: Implement yield optimization
-            print(f"[{self.__class__.__name__}] Optimizing yields...")
+if __name__ == "__main__":
+                print(f"[{self.__class__.__name__}] Optimizing yields...")
             pass
         except Exception as e:
-            print(f"[{self.__class__.__name__}] Yield optimization error: {e}")
+if __name__ == "__main__":
+                print(f"[{self.__class__.__name__}] Yield optimization error: {e}")
     
     async def check_risk_parameters(self):
         """Check and adjust risk parameters"""
         try:
             # TODO: Implement risk parameter checking
-            print(f"[{self.__class__.__name__}] Checking risk parameters...")
+if __name__ == "__main__":
+                print(f"[{self.__class__.__name__}] Checking risk parameters...")
             pass
         except Exception as e:
-            print(f"[{self.__class__.__name__}] Risk parameter error: {e}")
+if __name__ == "__main__":
+                print(f"[{self.__class__.__name__}] Risk parameter error: {e}")
 
 

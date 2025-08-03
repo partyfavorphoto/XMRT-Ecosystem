@@ -35,10 +35,13 @@ try:
     
     with app.app_context():
         db.create_all()
-        print("Database initialized successfully")
+if __name__ == "__main__":
+            print("Database initialized successfully")
 except Exception as e:
-    print(f"Database initialization failed: {e}")
-    print("Running without database - some features may not work")
+if __name__ == "__main__":
+        print(f"Database initialization failed: {e}")
+if __name__ == "__main__":
+        print("Running without database - some features may not work")
 
 @app.route('/health')
 def health_check():

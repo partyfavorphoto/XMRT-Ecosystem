@@ -25,80 +25,98 @@ logger = logging.getLogger(__name__)
 
 async def test_terminal_utils():
     """Test terminal utilities"""
-    logger.info("Testing Terminal Utils...")
+if __name__ == "__main__":
+        logger.info("Testing Terminal Utils...")
     
     terminal = TerminalUtils()
     
     # Test basic command execution
     result = await terminal.execute("echo 'Hello from Eliza terminal'")
-    logger.info(f"Echo test result: {result}")
+if __name__ == "__main__":
+        logger.info(f"Echo test result: {result}")
     
     # Test system status check
     status = await terminal.check_system_status()
-    logger.info(f"System status: {status}")
+if __name__ == "__main__":
+        logger.info(f"System status: {status}")
     
     # Test log checking
     logs = await terminal.check_logs()
-    logger.info(f"Log check result: {logs[:100]}...")
+if __name__ == "__main__":
+        logger.info(f"Log check result: {logs[:100]}...")
     
     # Test pytest setup and execution
     test_result = await terminal.run_tests()
-    logger.info(f"Test execution result: {test_result[:200]}...")
+if __name__ == "__main__":
+        logger.info(f"Test execution result: {test_result[:200]}...")
     
     return True
 
 async def test_browser_utils():
     """Test browser utilities"""
-    logger.info("Testing Browser Utils...")
+if __name__ == "__main__":
+        logger.info("Testing Browser Utils...")
     
     browser = BrowserUtils()
     
     # Test search functionality
     search_results = await browser.search("python async programming")
-    logger.info(f"Search returned {len(search_results)} URLs")
+if __name__ == "__main__":
+        logger.info(f"Search returned {len(search_results)} URLs")
     
     # Test content retrieval (limit to 2 URLs to avoid timeout)
     if search_results:
         content = await browser.get_content(search_results[:2])
-        logger.info(f"Content retrieval: {len(content)} results")
+if __name__ == "__main__":
+            logger.info(f"Content retrieval: {len(content)} results")
         for item in content:
-            logger.info(f"  - {item['url']}: {item['status']}")
+if __name__ == "__main__":
+                logger.info(f"  - {item['url']}: {item['status']}")
     
     # Test documentation search
     docs = await browser.search_documentation("asyncio")
-    logger.info(f"Documentation search returned {len(docs)} results")
+if __name__ == "__main__":
+        logger.info(f"Documentation search returned {len(docs)} results")
     
     return True
 
 async def test_github_utils():
     """Test GitHub utilities"""
-    logger.info("Testing GitHub Utils...")
+if __name__ == "__main__":
+        logger.info("Testing GitHub Utils...")
     
     github = GitHubUtils()
     
     # Test repository info
     repo_info = await github.get_repository_info()
     if repo_info:
-        logger.info(f"Repository: {repo_info['full_name']}")
-        logger.info(f"Stars: {repo_info['stars']}, Forks: {repo_info['forks']}")
+if __name__ == "__main__":
+            logger.info(f"Repository: {repo_info['full_name']}")
+if __name__ == "__main__":
+            logger.info(f"Stars: {repo_info['stars']}, Forks: {repo_info['forks']}")
     else:
-        logger.warning("Could not retrieve repository info")
+if __name__ == "__main__":
+            logger.warning("Could not retrieve repository info")
     
     # Test recent commits analysis
     commits = await github.analyze_recent_commits(5)
-    logger.info(f"Recent commits analysis: {len(commits)} commits")
+if __name__ == "__main__":
+        logger.info(f"Recent commits analysis: {len(commits)} commits")
     for commit in commits[:3]:
-        logger.info(f"  - {commit['sha']}: {commit['message'][:50]}...")
+if __name__ == "__main__":
+            logger.info(f"  - {commit['sha']}: {commit['message'][:50]}...")
     
     # Test git configuration
     config_result = await github.setup_git_config()
-    logger.info(f"Git configuration: {'Success' if config_result else 'Failed'}")
+if __name__ == "__main__":
+        logger.info(f"Git configuration: {'Success' if config_result else 'Failed'}")
     
     return True
 
 async def test_self_improvement_integration():
     """Test the integration of all components"""
-    logger.info("Testing Self-Improvement Integration...")
+if __name__ == "__main__":
+        logger.info("Testing Self-Improvement Integration...")
     
     # Create a mock AI utils class for testing
     class MockAIUtils:
@@ -133,25 +151,30 @@ async def test_self_improvement_integration():
         
         # Test performance analysis
         await agent.analyze_performance()
-        logger.info("Performance analysis completed")
+if __name__ == "__main__":
+            logger.info("Performance analysis completed")
         
         # Test improvement identification
         improvements = await agent.identify_improvements()
-        logger.info(f"Identified {len(improvements)} improvements")
+if __name__ == "__main__":
+            logger.info(f"Identified {len(improvements)} improvements")
         
         # Test validation (without actual implementation)
         await agent.validate_improvements()
-        logger.info("Validation test completed")
+if __name__ == "__main__":
+            logger.info("Validation test completed")
         
         return True
         
     except Exception as e:
-        logger.error(f"Self-improvement integration test failed: {e}")
+if __name__ == "__main__":
+            logger.error(f"Self-improvement integration test failed: {e}")
         return False
 
 async def main():
     """Run all tests"""
-    logger.info("Starting Eliza Self-Improvement Agent Tests...")
+if __name__ == "__main__":
+        logger.info("Starting Eliza Self-Improvement Agent Tests...")
     
     tests = [
         ("Terminal Utils", test_terminal_utils),
@@ -164,35 +187,46 @@ async def main():
     
     for test_name, test_func in tests:
         try:
-            logger.info(f"\n{'='*50}")
-            logger.info(f"Running {test_name} Test")
-            logger.info(f"{'='*50}")
+if __name__ == "__main__":
+                logger.info(f"\n{'='*50}")
+if __name__ == "__main__":
+                logger.info(f"Running {test_name} Test")
+if __name__ == "__main__":
+                logger.info(f"{'='*50}")
             
             result = await test_func()
             results[test_name] = "PASSED" if result else "FAILED"
             
         except Exception as e:
-            logger.error(f"{test_name} test failed with exception: {e}")
+if __name__ == "__main__":
+                logger.error(f"{test_name} test failed with exception: {e}")
             results[test_name] = "ERROR"
     
     # Print summary
-    logger.info(f"\n{'='*50}")
-    logger.info("TEST SUMMARY")
-    logger.info(f"{'='*50}")
+if __name__ == "__main__":
+        logger.info(f"\n{'='*50}")
+if __name__ == "__main__":
+        logger.info("TEST SUMMARY")
+if __name__ == "__main__":
+        logger.info(f"{'='*50}")
     
     for test_name, result in results.items():
         status_symbol = "✅" if result == "PASSED" else "❌" if result == "FAILED" else "⚠️"
-        logger.info(f"{status_symbol} {test_name}: {result}")
+if __name__ == "__main__":
+            logger.info(f"{status_symbol} {test_name}: {result}")
     
     passed = sum(1 for r in results.values() if r == "PASSED")
     total = len(results)
     
-    logger.info(f"\nOverall: {passed}/{total} tests passed")
+if __name__ == "__main__":
+        logger.info(f"\nOverall: {passed}/{total} tests passed")
     
     if passed == total:
-        logger.info("🎉 All tests passed! Eliza's self-improvement capabilities are ready!")
+if __name__ == "__main__":
+            logger.info("🎉 All tests passed! Eliza's self-improvement capabilities are ready!")
     else:
-        logger.warning("⚠️ Some tests failed. Review the logs above for details.")
+if __name__ == "__main__":
+            logger.warning("⚠️ Some tests failed. Review the logs above for details.")
     
     return passed == total
 

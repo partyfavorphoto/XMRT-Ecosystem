@@ -70,7 +70,8 @@ class BlockchainUtils:
         # Initialize contracts
         self.contracts = self.initialize_contracts()
 
-        logger.info("Blockchain utilities initialized")
+if __name__ == "__main__":
+            logger.info("Blockchain utilities initialized")
 
     def load_contract_abis(self) -> Dict[str, Any]:
         """Load contract ABIs"""
@@ -121,7 +122,8 @@ class BlockchainUtils:
                 ]
             }
         except Exception as e:
-            logger.error(f"Error loading contract ABIs: {e}")
+if __name__ == "__main__":
+                logger.error(f"Error loading contract ABIs: {e}")
             return {}
 
     def initialize_contracts(self) -> Dict[str, Any]:
@@ -136,11 +138,13 @@ class BlockchainUtils:
                         abi=self.contract_abis[name]
                     )
 
-            logger.info(f"Initialized {len(contracts)} contracts")
+if __name__ == "__main__":
+                logger.info(f"Initialized {len(contracts)} contracts")
             return contracts
 
         except Exception as e:
-            logger.error(f"Error initializing contracts: {e}")
+if __name__ == "__main__":
+                logger.error(f"Error initializing contracts: {e}")
             return {}
 
     async def get_active_proposals(self) -> List[Dict[str, Any]]:
@@ -172,7 +176,8 @@ class BlockchainUtils:
             return proposals
 
         except Exception as e:
-            logger.error(f"Error getting active proposals: {e}")
+if __name__ == "__main__":
+                logger.error(f"Error getting active proposals: {e}")
             return []
 
     async def cast_vote(self, proposal_id: int, support: bool) -> str:
@@ -209,11 +214,13 @@ class BlockchainUtils:
             # Wait for confirmation
             receipt = self.w3.eth.wait_for_transaction_receipt(tx_hash)
 
-            logger.info(f"Vote cast successfully - TX: {tx_hash.hex()}")
+if __name__ == "__main__":
+                logger.info(f"Vote cast successfully - TX: {tx_hash.hex()}")
             return tx_hash.hex()
 
         except Exception as e:
-            logger.error(f"Error casting vote: {e}")
+if __name__ == "__main__":
+                logger.error(f"Error casting vote: {e}")
             raise
 
     async def get_treasury_data(self) -> Dict[str, Any]:
@@ -236,13 +243,15 @@ class BlockchainUtils:
             return treasury_data
 
         except Exception as e:
-            logger.error(f"Error getting treasury data: {e}")
+if __name__ == "__main__":
+                logger.error(f"Error getting treasury data: {e}")
             return {}
 
     async def execute_trade(self, asset: str, action: str, amount: float) -> str:
         """Execute a trade"""
         try:
-            logger.info(f"Executing trade: {action} {amount} {asset}")
+if __name__ == "__main__":
+                logger.info(f"Executing trade: {action} {amount} {asset}")
 
             # Mock implementation - replace with actual DEX integration
             # This would integrate with Uniswap, 1inch, or other DEX protocols
@@ -255,7 +264,8 @@ class BlockchainUtils:
             return f"0x{tx_hash[:64]}"
 
         except Exception as e:
-            logger.error(f"Error executing trade: {e}")
+if __name__ == "__main__":
+                logger.error(f"Error executing trade: {e}")
             raise
 
     async def create_proposal(self, title: str, description: str, actions: List[Dict[str, Any]]) -> str:
@@ -277,7 +287,8 @@ class BlockchainUtils:
             calldatas = [action.get('calldata', '0x') for action in actions]
 
             # Build transaction (mock implementation)
-            logger.info(f"Creating proposal: {title}")
+if __name__ == "__main__":
+                logger.info(f"Creating proposal: {title}")
 
             # Generate mock transaction hash
             import hashlib
@@ -287,7 +298,8 @@ class BlockchainUtils:
             return f"0x{tx_hash[:64]}"
 
         except Exception as e:
-            logger.error(f"Error creating proposal: {e}")
+if __name__ == "__main__":
+                logger.error(f"Error creating proposal: {e}")
             raise
 
     async def validate_action(self, action: Dict[str, Any]) -> bool:
@@ -313,49 +325,60 @@ class BlockchainUtils:
             return True
 
         except Exception as e:
-            logger.error(f"Error validating action: {e}")
+if __name__ == "__main__":
+                logger.error(f"Error validating action: {e}")
             return False
 
     async def store_analysis(self, data: Dict[str, Any]):
         """Store analysis data"""
         try:
             # In production, store in IPFS or decentralized storage
-            logger.info(f"Storing analysis data for proposal {data.get('proposal_id')}")
+if __name__ == "__main__":
+                logger.info(f"Storing analysis data for proposal {data.get('proposal_id')}")
 
         except Exception as e:
-            logger.error(f"Error storing analysis: {e}")
+if __name__ == "__main__":
+                logger.error(f"Error storing analysis: {e}")
 
     async def store_sentiment(self, data: Dict[str, Any]):
         """Store sentiment analysis data"""
         try:
-            logger.info("Storing sentiment analysis data")
+if __name__ == "__main__":
+                logger.info("Storing sentiment analysis data")
 
         except Exception as e:
-            logger.error(f"Error storing sentiment: {e}")
+if __name__ == "__main__":
+                logger.error(f"Error storing sentiment: {e}")
 
     async def store_monitoring_data(self, data: Dict[str, Any]):
         """Store monitoring data"""
         try:
-            logger.info("Storing monitoring data")
+if __name__ == "__main__":
+                logger.info("Storing monitoring data")
 
         except Exception as e:
-            logger.error(f"Error storing monitoring data: {e}")
+if __name__ == "__main__":
+                logger.error(f"Error storing monitoring data: {e}")
 
     async def store_optimization_results(self, data: Dict[str, Any]):
         """Store optimization results"""
         try:
-            logger.info("Storing optimization results")
+if __name__ == "__main__":
+                logger.info("Storing optimization results")
 
         except Exception as e:
-            logger.error(f"Error storing optimization results: {e}")
+if __name__ == "__main__":
+                logger.error(f"Error storing optimization results: {e}")
 
     async def store_community_data(self, data: Dict[str, Any]):
         """Store community data"""
         try:
-            logger.info("Storing community data")
+if __name__ == "__main__":
+                logger.info("Storing community data")
 
         except Exception as e:
-            logger.error(f"Error storing community data: {e}")
+if __name__ == "__main__":
+                logger.error(f"Error storing community data: {e}")
 
     async def get_user_history(self, user_id: str) -> Dict[str, Any]:
         """Get user interaction history"""
@@ -369,7 +392,8 @@ class BlockchainUtils:
             }
 
         except Exception as e:
-            logger.error(f"Error getting user history: {e}")
+if __name__ == "__main__":
+                logger.error(f"Error getting user history: {e}")
             return {}
 
     def switch_network(self, network: str):
@@ -379,12 +403,14 @@ class BlockchainUtils:
                 self.primary_network = network
                 self.w3 = Web3(Web3.HTTPProvider(self.networks[network]['rpc_url']))
                 self.contracts = self.initialize_contracts()
-                logger.info(f"Switched to {network} network")
+if __name__ == "__main__":
+                    logger.info(f"Switched to {network} network")
             else:
                 raise ValueError(f"Unknown network: {network}")
 
         except Exception as e:
-            logger.error(f"Error switching network: {e}")
+if __name__ == "__main__":
+                logger.error(f"Error switching network: {e}")
             raise
 
     def get_network_info(self) -> Dict[str, Any]:
