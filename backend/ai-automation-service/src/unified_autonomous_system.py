@@ -58,7 +58,7 @@ class UnifiedSystemState(Enum):
 
 # Import all autonomous systems with error handling
 try:
-    from integration_orchestrator import AutonomousOrchestrator, OrchestrationConfig, SystemState
+    from integration_orchestrator import IntegrationOrchestrator as AutonomousOrchestrator, OrchestrationConfig, SystemState
 except ImportError as e:
     logging.warning(f"Could not import integration_orchestrator: {e}")
     AutonomousOrchestrator = None

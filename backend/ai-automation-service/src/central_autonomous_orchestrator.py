@@ -26,6 +26,8 @@ logger = logging.getLogger(__name__)
 
 class CentralAutonomousOrchestrator:
     def __init__(self, ai_utils, blockchain_utils):
+        import logging
+        self.logger = logging.getLogger(__name__)
         self.ai_utils = ai_utils
         self.blockchain_utils = blockchain_utils
         self.active_systems = {}
