@@ -261,7 +261,7 @@ async def call_ai_service(prompt: str) -> str:
     """
     try:
 if __name__ == "__main__":
-            print(f"[AI] Attempting to call AI services for prompt: {prompt[:100]}...")
+            logger.info(f"[AI] Attempting to call AI services for prompt: {prompt[:100]}...")
         
         # Try AI services in order of preference
         
@@ -275,7 +275,7 @@ if __name__ == "__main__":
         except Exception as e:
             pass  # <-- AUTO-INSERTED
 if __name__ == "__main__":
-                print(f"[AI] Anthropic failed: {e}")
+                logger.error(f"[AI] Anthropic failed: {e}")
         
         # 2. Try OpenAI
         try:
@@ -287,7 +287,7 @@ if __name__ == "__main__":
         except Exception as e:
             pass  # <-- AUTO-INSERTED
 if __name__ == "__main__":
-                print(f"[AI] OpenAI failed: {e}")
+                logger.error(f"[AI] OpenAI failed: {e}")
         
         # 3. Try Gemini
         try:
@@ -299,7 +299,7 @@ if __name__ == "__main__":
         except Exception as e:
             pass  # <-- AUTO-INSERTED
 if __name__ == "__main__":
-                print(f"[AI] Gemini failed: {e}")
+                logger.error(f"[AI] Gemini failed: {e}")
         
         # 4. Try Hugging Face
         try:
@@ -311,16 +311,16 @@ if __name__ == "__main__":
         except Exception as e:
             pass  # <-- AUTO-INSERTED
 if __name__ == "__main__":
-                print(f"[AI] Hugging Face failed: {e}")
+                logger.error(f"[AI] Hugging Face failed: {e}")
         
 if __name__ == "__main__":
-            print(f"[AI] All AI services failed, using enhanced fallback")
+            logger.warning(f"[AI] All AI services failed, using enhanced fallback")
         return None
         
     except Exception as e:
         pass  # <-- AUTO-INSERTED
 if __name__ == "__main__":
-            print(f"[AI Service] Critical error: {e}")
+            logger.critical(f"[AI Service] Critical error: {e}")
         return None
 
 async def call_anthropic(prompt: str) -> str:
@@ -329,7 +329,7 @@ async def call_anthropic(prompt: str) -> str:
         api_key = os.getenv('ANTHROPIC_API_KEY')
         if not api_key:
 if __name__ == "__main__":
-                print("[Anthropic] No API key found")
+                logger.warning("[Anthropic] No API key found")
             return None
         
         client = anthropic.Anthropic(api_key=api_key)
@@ -358,7 +358,7 @@ async def call_openai(prompt: str) -> str:
         api_key = os.getenv('OPENAI_API_KEY')
         if not api_key:
 if __name__ == "__main__":
-                print("[OpenAI] No API key found")
+                logger.warning("[OpenAI] No API key found")
             return None
         
         client = openai.AsyncOpenAI(api_key=api_key)
@@ -387,7 +387,7 @@ async def call_gemini(prompt: str) -> str:
         api_key = os.getenv('GEMINI_API_KEY') or os.getenv('GOOGLE_API_KEY')
         if not api_key:
 if __name__ == "__main__":
-                print("[Gemini] No API key found")
+                logger.warning("[Gemini] No API key found")
             return None
         
         genai.configure(api_key=api_key)
@@ -408,7 +408,7 @@ async def call_huggingface(prompt: str) -> str:
         api_key = os.getenv('HUGGINGFACE_API_KEY') or os.getenv('HF_TOKEN')
         if not api_key:
 if __name__ == "__main__":
-                print("[HuggingFace] No API key found")
+                logger.warning("[HuggingFace] No API key found")
             return None
         
         client = InferenceClient(token=api_key)
