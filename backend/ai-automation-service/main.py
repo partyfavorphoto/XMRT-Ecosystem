@@ -11,8 +11,7 @@ logger = logging.getLogger(__name__)
 
 class AIAutomationService:
     def __init__(self):
-        if __name__ == "__main__":
-            logger.info("Initializing AI Automation Service...")
+        logger.info("Initializing AI Automation Service...")
 
         # Initialize utilities
         blockchain_utils = BlockchainUtils()
@@ -27,36 +26,29 @@ class AIAutomationService:
         # Pass necessary utilities to the orchestrator for its own system initializations
         self.central_orchestrator = CentralAutonomousOrchestrator(ai_utils, blockchain_utils)
 
-if __name__ == "__main__":
-            logger.info("AIAutomationService engine initialized and ready.")
+        logger.info("AIAutomationService engine initialized and ready.")
 
     async def start_automation(self):
         """Start the main automation loop"""
-if __name__ == "__main__":
-            logger.info("🚀 AI Engine Starting: Beginning main automation loop...")
+        logger.info("🚀 AI Engine Starting: Beginning main automation loop...")
 
         # CRUCIAL: Initialize the CentralAutonomousOrchestrator's systems ONCE before the main loop
         await self.central_orchestrator.initialize()
-if __name__ == "__main__":
-            logger.info("[Main] Central Autonomous Orchestrator systems initialized.")
+        logger.info("[Main] Central Autonomous Orchestrator systems initialized.")
 
         while True:
             try:
-if __name__ == "__main__":
-                    logger.info("--- Starting new agent cycle ---")
+                logger.info("--- Starting new agent cycle ---")
 
                 # Run comprehensive autonomous cycle using the Central Orchestrator
                 # This will now correctly invoke all systems initialized by the orchestrator
                 await self.central_orchestrator.run_autonomous_cycle()
 
-if __name__ == "__main__":
-                    logger.info("--- Agent cycle complete. Sleeping for 60 seconds. ---")
+                logger.info("--- Agent cycle complete. Sleeping for 60 seconds. ---")
                 await asyncio.sleep(60)
 
             except Exception as e:
-                pass  # <-- AUTO-INSERTED
-if __name__ == "__main__":
-                    logger.error(f"FATAL ERROR in main agent cycle: {e}")
+                logger.error(f"FATAL ERROR in main agent cycle: {e}")
                 await asyncio.sleep(10)
 
 # Create global instance for launcher
