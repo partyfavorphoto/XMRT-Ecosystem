@@ -9,6 +9,8 @@ python-dotenv
 pydantic
 numpy
 loguru
+celery
+nbformat
 
 # --- Key Integrations & AI ---
 openai
