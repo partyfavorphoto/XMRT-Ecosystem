@@ -11,6 +11,7 @@ logger = logging.getLogger(__name__)
 
 class AIAutomationService:
     def __init__(self):
+
 if __name__ == "__main__":
             logger.info("Initializing AI Automation Service...")
 
