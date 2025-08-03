@@ -211,6 +211,7 @@ if __name__ == "__main__":
             return True
             
         except Exception as e:
+            pass  # <-- AUTO-INSERTED
 if __name__ == "__main__":
                 print(f"❌ Failed to send feedback: {e}")
             return False

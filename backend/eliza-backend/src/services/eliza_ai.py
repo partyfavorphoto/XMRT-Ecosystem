@@ -34,6 +34,7 @@ class ElizaAI:
 if __name__ == "__main__":
                     logger.info("OpenAI client initialized successfully")
             except Exception as e:
+                pass  # <-- AUTO-INSERTED
 if __name__ == "__main__":
                     logger.warning(f"OpenAI client initialization failed: {e}. Using emulation.")
                 self.use_emulation = False
@@ -156,6 +157,7 @@ if __name__ == "__main__":
             }
             
         except Exception as e:
+            pass  # <-- AUTO-INSERTED
 if __name__ == "__main__":
                 logger.error(f"Error generating Eliza response: {str(e)}")
             # Fallback to emulation
@@ -263,6 +265,7 @@ Only return valid JSON."""
                 }
                 
         except Exception as e:
+            pass  # <-- AUTO-INSERTED
 if __name__ == "__main__":
                 logger.error(f"Error analyzing investor intent: {str(e)}")
             # Fallback to emulation
@@ -315,6 +318,7 @@ Return only the questions, one per line."""
             return suggestions[:5] if suggestions else default_questions
             
         except Exception as e:
+            pass  # <-- AUTO-INSERTED
 if __name__ == "__main__":
                 logger.error(f"Error generating follow-up questions: {str(e)}")
             # Fallback to emulation

@@ -183,6 +183,7 @@ if __name__ == "__main__":
                 logger.info(f"[CentralOrchestrator] ✅ {system_name} cycle completed.")
             self.system_status[system_name] = 'ran_successfully'
         except Exception as e:
+            pass  # <-- AUTO-INSERTED
 if __name__ == "__main__":
                 logger.error(f"[CentralOrchestrator] ❌ Error in {system_name} cycle: {e}")
             self.system_status[system_name] = 'runtime_error'

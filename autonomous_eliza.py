@@ -161,6 +161,7 @@ if __name__ == "__main__":
             return 0.7  # Placeholder
             
         except Exception as e:
+            pass  # <-- AUTO-INSERTED
 if __name__ == "__main__":
                 logger.warning(f"Error in AI assessment: {e}")
             return 0.5  # Default neutral score

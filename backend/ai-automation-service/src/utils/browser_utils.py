@@ -50,6 +50,7 @@ if __name__ == "__main__":
             return search_urls + doc_sites
                     
         except Exception as e:
+            pass  # <-- AUTO-INSERTED
 if __name__ == "__main__":
                 logger.error(f"[Browser] Search error: {e}")
             return []
@@ -97,6 +98,7 @@ if __name__ == "__main__":
                                     'content': ''
                                 })
                     except asyncio.TimeoutError:
+                        pass  # <-- AUTO-INSERTED
 if __name__ == "__main__":
                             logger.warning(f"[Browser] Timeout for {url}")
                         content_data.append({
@@ -105,6 +107,7 @@ if __name__ == "__main__":
                             'content': ''
                         })
                     except Exception as e:
+                        pass  # <-- AUTO-INSERTED
 if __name__ == "__main__":
                             logger.warning(f"[Browser] Error fetching {url}: {e}")
                         content_data.append({
@@ -120,6 +123,7 @@ if __name__ == "__main__":
             return content_data
             
         except Exception as e:
+            pass  # <-- AUTO-INSERTED
 if __name__ == "__main__":
                 logger.error(f"[Browser] Content retrieval error: {e}")
             return []
@@ -142,6 +146,7 @@ if __name__ == "__main__":
             return all_results
             
         except Exception as e:
+            pass  # <-- AUTO-INSERTED
 if __name__ == "__main__":
                 logger.error(f"[Browser] Documentation search error: {e}")
             return []
@@ -172,6 +177,7 @@ if __name__ == "__main__":
                         return []
             
         except Exception as e:
+            pass  # <-- AUTO-INSERTED
 if __name__ == "__main__":
                 logger.error(f"[Browser] GitHub search error: {e}")
             return []

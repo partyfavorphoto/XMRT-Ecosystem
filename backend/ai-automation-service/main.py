@@ -54,6 +54,7 @@ if __name__ == "__main__":
                 await asyncio.sleep(60)
 
             except Exception as e:
+                pass  # <-- AUTO-INSERTED
 if __name__ == "__main__":
                     logger.error(f"FATAL ERROR in main agent cycle: {e}")
                 await asyncio.sleep(10)

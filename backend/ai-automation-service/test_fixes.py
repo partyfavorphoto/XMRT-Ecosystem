@@ -65,6 +65,7 @@ if __name__ == "__main__":
 if __name__ == "__main__":
                     print(f"✅ analyze_proposal_urgency executed successfully: {type(result)}")
             except Exception as e:
+                pass  # <-- AUTO-INSERTED
 if __name__ == "__main__":
                     print(f"⚠️ analyze_proposal_urgency execution error: {e}")
         else:
@@ -80,6 +81,7 @@ if __name__ == "__main__":
 if __name__ == "__main__":
                     print("✅ handle_low_engagement_alert executed successfully")
             except Exception as e:
+                pass  # <-- AUTO-INSERTED
 if __name__ == "__main__":
                     print(f"⚠️ handle_low_engagement_alert execution error: {e}")
         else:
@@ -94,6 +96,7 @@ if __name__ == "__main__":
 if __name__ == "__main__":
                 print("✅ Emergency proposal handling works")
         except Exception as e:
+            pass  # <-- AUTO-INSERTED
 if __name__ == "__main__":
                 print(f"⚠️ Emergency proposal handling error: {e}")
         
@@ -111,6 +114,7 @@ if __name__ == "__main__":
 if __name__ == "__main__":
                 print("✅ Community alert handling works")
         except Exception as e:
+            pass  # <-- AUTO-INSERTED
 if __name__ == "__main__":
                 print(f"⚠️ Community alert handling error: {e}")
         
@@ -119,10 +123,12 @@ if __name__ == "__main__":
         return True
         
     except ImportError as e:
+        pass  # <-- AUTO-INSERTED
 if __name__ == "__main__":
             print(f"❌ Import error: {e}")
         return False
     except Exception as e:
+        pass  # <-- AUTO-INSERTED
 if __name__ == "__main__":
             print(f"❌ Unexpected error: {e}")
         return False

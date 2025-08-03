@@ -124,6 +124,7 @@ if __name__ == "__main__":
                 }
                 
         except Exception as e:
+            pass  # <-- AUTO-INSERTED
 if __name__ == "__main__":
                 logger.error(f"Error creating Space: {str(e)}")
             return {
@@ -175,6 +176,7 @@ if __name__ == "__main__":
                 }
                 
         except Exception as e:
+            pass  # <-- AUTO-INSERTED
 if __name__ == "__main__":
                 logger.error(f"Error ending Space: {str(e)}")
             return {
@@ -223,6 +225,7 @@ if __name__ == "__main__":
                 }
                 
         except Exception as e:
+            pass  # <-- AUTO-INSERTED
 if __name__ == "__main__":
                 logger.error(f"Error getting Space info: {str(e)}")
             return {
@@ -287,6 +290,7 @@ if __name__ == "__main__":
                 }
                 
         except Exception as e:
+            pass  # <-- AUTO-INSERTED
 if __name__ == "__main__":
                 logger.error(f"Error posting tweet: {str(e)}")
             return {
@@ -323,6 +327,7 @@ if __name__ == "__main__":
             }
             
         except Exception as e:
+            pass  # <-- AUTO-INSERTED
 if __name__ == "__main__":
                 logger.error(f"Error searching Spaces: {str(e)}")
             return {
@@ -373,6 +378,7 @@ if __name__ == "__main__":
                 }
                 
         except Exception as e:
+            pass  # <-- AUTO-INSERTED
 if __name__ == "__main__":
                 logger.error(f"Error validating credentials: {str(e)}")
             return {

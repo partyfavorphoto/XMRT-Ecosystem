@@ -18,6 +18,7 @@ if __name__ == "__main__":
         print(f"Response: {response}")
     
 except Exception as e:
+    pass  # <-- AUTO-INSERTED
 if __name__ == "__main__":
         print(f"Supabase client connection failed: {e}")
 

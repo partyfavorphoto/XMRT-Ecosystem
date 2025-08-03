@@ -38,6 +38,7 @@ try:
 if __name__ == "__main__":
             print("Database initialized successfully")
 except Exception as e:
+    pass  # <-- AUTO-INSERTED
 if __name__ == "__main__":
         print(f"Database initialization failed: {e}")
 if __name__ == "__main__":

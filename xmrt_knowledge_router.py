@@ -118,6 +118,7 @@ class XMRTKnowledgeRouter:
             }
             
         except Exception as e:
+            pass  # <-- AUTO-INSERTED
 if __name__ == "__main__":
                 print(f"Error fetching insights: {e}")
         

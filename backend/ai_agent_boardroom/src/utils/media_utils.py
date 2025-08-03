@@ -23,6 +23,7 @@ if __name__ == "__main__":
             'message': 'Simulated audio generation successful'
         }
     except Exception as e:
+        pass  # <-- AUTO-INSERTED
 if __name__ == "__main__":
             logger.error(f"Error simulating speech audio generation: {str(e)}")
         return {

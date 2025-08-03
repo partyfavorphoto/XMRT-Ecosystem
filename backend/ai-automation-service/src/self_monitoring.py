@@ -117,6 +117,7 @@ if __name__ == "__main__":
             conn.close()
             
         except Exception as e:
+            pass  # <-- AUTO-INSERTED
 if __name__ == "__main__":
                 logger.error(f"Failed to initialize database: {e}")
 
@@ -137,6 +138,7 @@ if __name__ == "__main__":
         try:
             await asyncio.gather(*monitoring_tasks)
         except Exception as e:
+            pass  # <-- AUTO-INSERTED
 if __name__ == "__main__":
                 logger.error(f"Monitoring system error: {e}")
 
@@ -185,6 +187,7 @@ if __name__ == "__main__":
                 await asyncio.sleep(30)  # Check every 30 seconds
                 
             except Exception as e:
+                pass  # <-- AUTO-INSERTED
 if __name__ == "__main__":
                     logger.error(f"Error monitoring system resources: {e}")
                 await asyncio.sleep(60)
@@ -229,6 +232,7 @@ if __name__ == "__main__":
                 await asyncio.sleep(60)  # Check every minute
                 
             except Exception as e:
+                pass  # <-- AUTO-INSERTED
 if __name__ == "__main__":
                     logger.error(f"Error monitoring blockchain health: {e}")
                 await asyncio.sleep(120)
@@ -260,6 +264,7 @@ if __name__ == "__main__":
                 await asyncio.sleep(300)  # Check every 5 minutes
                 
             except Exception as e:
+                pass  # <-- AUTO-INSERTED
 if __name__ == "__main__":
                     logger.error(f"Error monitoring AI decisions: {e}")
                 await asyncio.sleep(600)
@@ -282,6 +287,7 @@ if __name__ == "__main__":
                 await asyncio.sleep(120)  # Check every 2 minutes
                 
             except Exception as e:
+                pass  # <-- AUTO-INSERTED
 if __name__ == "__main__":
                     logger.error(f"Error monitoring performance: {e}")
                 await asyncio.sleep(240)
@@ -356,6 +362,7 @@ if __name__ == "__main__":
             conn.close()
             
         except Exception as e:
+            pass  # <-- AUTO-INSERTED
 if __name__ == "__main__":
                 logger.error(f"Failed to store metric in database: {e}")
 
@@ -397,6 +404,7 @@ if __name__ == "__main__":
             conn.close()
             
         except Exception as e:
+            pass  # <-- AUTO-INSERTED
 if __name__ == "__main__":
                 logger.error(f"Failed to store alert in database: {e}")
         
@@ -416,6 +424,7 @@ if __name__ == "__main__":
                 await asyncio.sleep(60)  # Check every minute
                 
             except Exception as e:
+                pass  # <-- AUTO-INSERTED
 if __name__ == "__main__":
                     logger.error(f"Error processing alerts: {e}")
                 await asyncio.sleep(120)
@@ -453,6 +462,7 @@ if __name__ == "__main__":
             conn.close()
             
         except Exception as e:
+            pass  # <-- AUTO-INSERTED
 if __name__ == "__main__":
                 logger.error(f"Failed to update alert resolution in database: {e}")
         
@@ -470,6 +480,7 @@ if __name__ == "__main__":
                 "error_rate": 2.0
             }
         except Exception as e:
+            pass  # <-- AUTO-INSERTED
 if __name__ == "__main__":
                 logger.error(f"Error analyzing recent decisions: {e}")
             return {}
@@ -483,6 +494,7 @@ if __name__ == "__main__":
             await asyncio.sleep(0.1)
             return time.time() - start_time
         except Exception as e:
+            pass  # <-- AUTO-INSERTED
 if __name__ == "__main__":
                 logger.error(f"Error measuring API response time: {e}")
             return 10.0  # Return high value to trigger alert
@@ -510,6 +522,7 @@ if __name__ == "__main__":
                 await asyncio.sleep(86400)  # Run daily
                 
             except Exception as e:
+                pass  # <-- AUTO-INSERTED
 if __name__ == "__main__":
                     logger.error(f"Error cleaning up old metrics: {e}")
                 await asyncio.sleep(3600)  # Retry in 1 hour

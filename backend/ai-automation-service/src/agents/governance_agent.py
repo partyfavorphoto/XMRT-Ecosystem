@@ -40,6 +40,7 @@ if __name__ == "__main__":
             return proposals
             
         except Exception as e:
+            pass  # <-- AUTO-INSERTED
 if __name__ == "__main__":
                 logger.error(f"Error checking proposals: {e}")
             return []
@@ -61,6 +62,7 @@ if __name__ == "__main__":
             return sentiment_data
             
         except Exception as e:
+            pass  # <-- AUTO-INSERTED
 if __name__ == "__main__":
                 logger.error(f"Error analyzing sentiment: {e}")
             return {}
@@ -80,6 +82,7 @@ if __name__ == "__main__":
             return emergency_proposals
             
         except Exception as e:
+            pass  # <-- AUTO-INSERTED
 if __name__ == "__main__":
                 logger.error(f"Error checking emergency proposals: {e}")
             return []
@@ -98,6 +101,7 @@ if __name__ == "__main__":
                 await self._execute_emergency_response(proposal, analysis)
                 
         except Exception as e:
+            pass  # <-- AUTO-INSERTED
 if __name__ == "__main__":
                 logger.error(f"Error handling emergency proposal: {e}")
 
@@ -127,6 +131,7 @@ if __name__ == "__main__":
                 raise ValueError(f"Unknown action: {action}")
                 
         except Exception as e:
+            pass  # <-- AUTO-INSERTED
 if __name__ == "__main__":
                 logger.error(f"Error executing action {action}: {e}")
             raise
@@ -168,6 +173,7 @@ if __name__ == "__main__":
             return analysis
             
         except Exception as e:
+            pass  # <-- AUTO-INSERTED
 if __name__ == "__main__":
                 logger.error(f"Error analyzing proposal {proposal.get('id')}: {e}")
             return {}
@@ -185,6 +191,7 @@ if __name__ == "__main__":
                 await self._execute_automated_vote(proposal, analysis)
                 
         except Exception as e:
+            pass  # <-- AUTO-INSERTED
 if __name__ == "__main__":
                 logger.error(f"Error executing emergency response: {e}")
 
@@ -215,6 +222,7 @@ if __name__ == "__main__":
                 print(f"[{self.__class__.__name__}] Governance cycle completed successfully")
             
         except Exception as e:
+            pass  # <-- AUTO-INSERTED
 if __name__ == "__main__":
                 print(f"[{self.__class__.__name__}] Error in governance cycle: {e}")
             # Don't re-raise - let the system continue with other agents

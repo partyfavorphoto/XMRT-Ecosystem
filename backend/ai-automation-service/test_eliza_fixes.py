@@ -167,6 +167,7 @@ if __name__ == "__main__":
         return True
         
     except Exception as e:
+        pass  # <-- AUTO-INSERTED
 if __name__ == "__main__":
             logger.error(f"Self-improvement integration test failed: {e}")
         return False
@@ -198,6 +199,7 @@ if __name__ == "__main__":
             results[test_name] = "PASSED" if result else "FAILED"
             
         except Exception as e:
+            pass  # <-- AUTO-INSERTED
 if __name__ == "__main__":
                 logger.error(f"{test_name} test failed with exception: {e}")
             results[test_name] = "ERROR"

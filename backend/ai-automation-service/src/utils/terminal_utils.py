@@ -42,6 +42,7 @@ if __name__ == "__main__":
                 return f"Command failed: {error_msg}"
                 
         except Exception as e:
+            pass  # <-- AUTO-INSERTED
 if __name__ == "__main__":
                 logger.error(f"[Terminal] Execution error: {e}")
             return f"Execution error: {str(e)}"
@@ -78,6 +79,7 @@ def test_import_modules():
         try:
             await self.execute("python -m pytest --version")
         except:
+            pass  # <-- AUTO-INSERTED
 if __name__ == "__main__":
                 logger.info("[Terminal] Installing pytest...")
             await self.execute("pip install pytest")

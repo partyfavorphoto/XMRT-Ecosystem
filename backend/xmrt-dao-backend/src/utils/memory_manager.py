@@ -79,6 +79,7 @@ class MemoryManager:
                     if embedding:
                         memory.embedding = np.array(embedding).tobytes()
                 except Exception as e:
+                    pass  # <-- AUTO-INSERTED
 if __name__ == "__main__":
                         print(f"Warning: Failed to generate embedding: {e}")
             
@@ -92,6 +93,7 @@ if __name__ == "__main__":
             return memory
             
         except Exception as e:
+            pass  # <-- AUTO-INSERTED
 if __name__ == "__main__":
                 print(f"Error storing memory: {e}")
             db.session.rollback()
@@ -146,6 +148,7 @@ if __name__ == "__main__":
             return query_obj.limit(limit).all()
             
         except Exception as e:
+            pass  # <-- AUTO-INSERTED
 if __name__ == "__main__":
                 print(f"Error retrieving memories: {e}")
             return []
@@ -199,6 +202,7 @@ if __name__ == "__main__":
                     if similarity >= self.similarity_threshold:
                         similarities.append((memory, similarity))
                 except Exception as e:
+                    pass  # <-- AUTO-INSERTED
 if __name__ == "__main__":
                         print(f"Error calculating similarity for memory {memory.id}: {e}")
                     continue
@@ -208,6 +212,7 @@ if __name__ == "__main__":
             return similarities[:limit]
             
         except Exception as e:
+            pass  # <-- AUTO-INSERTED
 if __name__ == "__main__":
                 print(f"Error in semantic search: {e}")
             return []
@@ -254,6 +259,7 @@ if __name__ == "__main__":
             return association
             
         except Exception as e:
+            pass  # <-- AUTO-INSERTED
 if __name__ == "__main__":
                 print(f"Error creating memory association: {e}")
             db.session.rollback()
@@ -284,6 +290,7 @@ if __name__ == "__main__":
             return query_obj.all()
             
         except Exception as e:
+            pass  # <-- AUTO-INSERTED
 if __name__ == "__main__":
                 print(f"Error getting memory associations: {e}")
             return []
@@ -330,6 +337,7 @@ if __name__ == "__main__":
             return conversation
             
         except Exception as e:
+            pass  # <-- AUTO-INSERTED
 if __name__ == "__main__":
                 print(f"Error storing conversation: {e}")
             db.session.rollback()
@@ -359,6 +367,7 @@ if __name__ == "__main__":
             return query_obj.limit(limit).all()
             
         except Exception as e:
+            pass  # <-- AUTO-INSERTED
 if __name__ == "__main__":
                 print(f"Error getting conversation history: {e}")
             return []
@@ -397,6 +406,7 @@ if __name__ == "__main__":
             return pruned_count
             
         except Exception as e:
+            pass  # <-- AUTO-INSERTED
 if __name__ == "__main__":
                 print(f"Error pruning memories: {e}")
             db.session.rollback()
@@ -457,6 +467,7 @@ if __name__ == "__main__":
             }
             
         except Exception as e:
+            pass  # <-- AUTO-INSERTED
 if __name__ == "__main__":
                 print(f"Error getting memory analytics: {e}")
             return {}
@@ -473,6 +484,7 @@ if __name__ == "__main__":
             )
             return response.data[0].embedding
         except Exception as e:
+            pass  # <-- AUTO-INSERTED
 if __name__ == "__main__":
                 print(f"Error generating embedding: {e}")
             return None
@@ -517,6 +529,7 @@ if __name__ == "__main__":
                 db.session.commit()
                 
         except Exception as e:
+            pass  # <-- AUTO-INSERTED
 if __name__ == "__main__":
                 print(f"Error in auto-pruning: {e}")
             db.session.rollback()

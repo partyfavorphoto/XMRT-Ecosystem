@@ -112,6 +112,7 @@ async def get_chat_interface():
         with open("static/index.html", "r") as f:
             return HTMLResponse(content=f.read(), status_code=200)
     except FileNotFoundError:
+        pass  # <-- AUTO-INSERTED
 if __name__ == "__main__":
             logger.error("FATAL: static/index.html not found! The chat interface cannot be served.")
         return HTMLResponse(content="<h1>Error 500: Interface file not found.</h1><p>Server is running, but the admin needs to add the index.html file.</p>", status_code=500)
@@ -146,6 +147,7 @@ if __name__ == "__main__":
             return await general_ai_response(user_message)
             
     except Exception as e:
+        pass  # <-- AUTO-INSERTED
 if __name__ == "__main__":
             print(f"[Eliza] Error generating response: {e}")
         return f"I understand you're asking about '{user_message}'. I'm processing this with my AI systems and will provide a comprehensive response. Please give me a moment to analyze this properly."
@@ -169,6 +171,7 @@ async def enhanced_governance_response(message: str) -> str:
         return ai_response or "I'm analyzing current governance proposals and community sentiment. Would you like me to provide a detailed report on active proposals or explain how you can participate in DAO governance?"
         
     except Exception as e:
+        pass  # <-- AUTO-INSERTED
 if __name__ == "__main__":
             print(f"[Governance] AI error: {e}")
         return "I'm analyzing current governance proposals. Proposal #125 seems to have low community sentiment. Would you like a detailed report?"
@@ -191,6 +194,7 @@ async def enhanced_treasury_response(message: str) -> str:
         return ai_response or "Accessing treasury data. The current risk-adjusted yield is 4.7%. I've identified an opportunity to reallocate 5% of assets for a potential 0.5% APY increase. Shall I draft the proposal?"
         
     except Exception as e:
+        pass  # <-- AUTO-INSERTED
 if __name__ == "__main__":
             print(f"[Treasury] AI error: {e}")
         return "Accessing treasury data. The current risk-adjusted yield is 4.7%. I've identified an opportunity to reallocate 5% of assets for a potential 0.5% APY increase."
@@ -213,6 +217,7 @@ async def enhanced_greeting_response(message: str) -> str:
         return ai_response or "Hello! I'm Eliza, the autonomous AI for XMRT DAO. All systems are operational and I'm here to assist with governance, treasury management, and community operations. How can I help you today?"
         
     except Exception as e:
+        pass  # <-- AUTO-INSERTED
 if __name__ == "__main__":
             print(f"[Greeting] AI error: {e}")
         return "Hello! I'm Eliza, the autonomous AI for XMRT DAO. All systems are operational. How can I help you today?"
@@ -244,6 +249,7 @@ async def general_ai_response(message: str) -> str:
             return f"I understand you're asking about '{message}'. As XMRT DAO's autonomous AI, I can help with governance, treasury management, tokenomics, and development questions. Could you provide a bit more context so I can give you the most relevant information?"
             
     except Exception as e:
+        pass  # <-- AUTO-INSERTED
 if __name__ == "__main__":
             print(f"[General AI] Error: {e}")
         return f"I received your question about '{message}'. I'm processing this through my AI systems to provide you with the most accurate and helpful response. Please give me a moment to analyze this properly."
@@ -267,6 +273,7 @@ if __name__ == "__main__":
                     print(f"[AI] Success with Anthropic: {len(anthropic_response)} chars")
                 return anthropic_response
         except Exception as e:
+            pass  # <-- AUTO-INSERTED
 if __name__ == "__main__":
                 print(f"[AI] Anthropic failed: {e}")
         
@@ -278,6 +285,7 @@ if __name__ == "__main__":
                     print(f"[AI] Success with OpenAI: {len(openai_response)} chars")
                 return openai_response
         except Exception as e:
+            pass  # <-- AUTO-INSERTED
 if __name__ == "__main__":
                 print(f"[AI] OpenAI failed: {e}")
         
@@ -289,6 +297,7 @@ if __name__ == "__main__":
                     print(f"[AI] Success with Gemini: {len(gemini_response)} chars")
                 return gemini_response
         except Exception as e:
+            pass  # <-- AUTO-INSERTED
 if __name__ == "__main__":
                 print(f"[AI] Gemini failed: {e}")
         
@@ -300,6 +309,7 @@ if __name__ == "__main__":
                     print(f"[AI] Success with Hugging Face: {len(hf_response)} chars")
                 return hf_response
         except Exception as e:
+            pass  # <-- AUTO-INSERTED
 if __name__ == "__main__":
                 print(f"[AI] Hugging Face failed: {e}")
         
@@ -308,6 +318,7 @@ if __name__ == "__main__":
         return None
         
     except Exception as e:
+        pass  # <-- AUTO-INSERTED
 if __name__ == "__main__":
             print(f"[AI Service] Critical error: {e}")
         return None
@@ -336,6 +347,7 @@ if __name__ == "__main__":
         return message.content[0].text if message.content else None
         
     except Exception as e:
+        pass  # <-- AUTO-INSERTED
 if __name__ == "__main__":
             print(f"[Anthropic] Error: {e}")
         return None
@@ -364,6 +376,7 @@ if __name__ == "__main__":
         return response.choices[0].message.content if response.choices else None
         
     except Exception as e:
+        pass  # <-- AUTO-INSERTED
 if __name__ == "__main__":
             print(f"[OpenAI] Error: {e}")
         return None
@@ -384,6 +397,7 @@ if __name__ == "__main__":
         return response.text if response.text else None
         
     except Exception as e:
+        pass  # <-- AUTO-INSERTED
 if __name__ == "__main__":
             print(f"[Gemini] Error: {e}")
         return None
@@ -409,6 +423,7 @@ if __name__ == "__main__":
         return response if isinstance(response, str) else None
         
     except Exception as e:
+        pass  # <-- AUTO-INSERTED
 if __name__ == "__main__":
             print(f"[HuggingFace] Error: {e}")
         return None

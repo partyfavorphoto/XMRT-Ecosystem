@@ -784,6 +784,7 @@ def eliza_status():
                     metadata={'extracted_from': 'user_input', 'length': len(user_message), 'message_type': message_type}
                 )
         except Exception as e:
+            pass  # <-- AUTO-INSERTED
 if __name__ == "__main__":
                 print(f"Error extracting memories: {e}")
 =======

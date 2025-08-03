@@ -137,6 +137,7 @@ from src.utils.media_utils import generate_speech_audio
                 }
                 
         except Exception as e:
+            pass  # <-- AUTO-INSERTED
 if __name__ == "__main__":
                 logger.error(f"Error generating speech for agent {agent_id}: {str(e)}")
             return {
@@ -235,6 +236,7 @@ if __name__ == "__main__":
             )
             
         except Exception as e:
+            pass  # <-- AUTO-INSERTED
 if __name__ == "__main__":
                 logger.error(f"Error generating session intro: {str(e)}")
             return {
@@ -284,6 +286,7 @@ if __name__ == "__main__":
             )
             
         except Exception as e:
+            pass  # <-- AUTO-INSERTED
 if __name__ == "__main__":
                 logger.error(f"Error generating vote announcement: {str(e)}")
             return {
@@ -343,6 +346,7 @@ if __name__ == "__main__":
             }
             
         except Exception as e:
+            pass  # <-- AUTO-INSERTED
 if __name__ == "__main__":
                 logger.error(f"Error cleaning up audio files: {str(e)}")
             return {

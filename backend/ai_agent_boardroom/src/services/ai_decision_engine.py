@@ -70,6 +70,7 @@ class AIDecisionEngine:
             return analysis
             
         except Exception as e:
+            pass  # <-- AUTO-INSERTED
 if __name__ == "__main__":
                 logger.error(f"Error analyzing proposal: {str(e)}")
             return {
@@ -113,6 +114,7 @@ if __name__ == "__main__":
             return response.choices[0].message.content.strip()
             
         except Exception as e:
+            pass  # <-- AUTO-INSERTED
 if __name__ == "__main__":
                 logger.error(f"Error generating agent response: {str(e)}")
             return "I need more time to analyze this matter before providing my input."
@@ -161,6 +163,7 @@ if __name__ == "__main__":
             return json.loads(response.choices[0].message.content)
             
         except Exception as e:
+            pass  # <-- AUTO-INSERTED
 if __name__ == "__main__":
                 logger.error(f"Error moderating discussion: {str(e)}")
             return {
@@ -207,6 +210,7 @@ if __name__ == "__main__":
             return response.choices[0].message.content.strip()
             
         except Exception as e:
+            pass  # <-- AUTO-INSERTED
 if __name__ == "__main__":
                 logger.error(f"Error generating vote reasoning: {str(e)}")
             return f"I voted {vote_value} based on my analysis of the proposal."
@@ -251,6 +255,7 @@ if __name__ == "__main__":
             return json.loads(response.choices[0].message.content)
             
         except Exception as e:
+            pass  # <-- AUTO-INSERTED
 if __name__ == "__main__":
                 logger.error(f"Error suggesting agenda items: {str(e)}")
             return []
@@ -296,6 +301,7 @@ if __name__ == "__main__":
             return json.loads(response.choices[0].message.content)
             
         except Exception as e:
+            pass  # <-- AUTO-INSERTED
 if __name__ == "__main__":
                 logger.error(f"Error assessing agent performance: {str(e)}")
             return {

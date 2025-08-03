@@ -528,6 +528,7 @@ if __name__ == "__main__":
                 print("Please make sure the Flask application is running on localhost:5000")
             sys.exit(1)
     except requests.exceptions.RequestException:
+        pass  # <-- AUTO-INSERTED
 if __name__ == "__main__":
             print("❌ Error: Cannot connect to Eliza server")
 if __name__ == "__main__":

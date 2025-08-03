@@ -55,6 +55,7 @@ class MessageQueue:
 if __name__ == "__main__":
                     logger.info("Connected to Redis for message queue")
             except Exception as e:
+                pass  # <-- AUTO-INSERTED
 if __name__ == "__main__":
                     logger.warning(f"Redis connection failed, falling back to local queue: {e}")
                 self.use_redis = False
@@ -72,6 +73,7 @@ if __name__ == "__main__":
 if __name__ == "__main__":
                     logger.info(f"Message queued for {message.receiver} via Redis")
             except Exception as e:
+                pass  # <-- AUTO-INSERTED
 if __name__ == "__main__":
                     logger.error(f"Redis queue error, falling back to local: {e}")
                 self.local_queue.put(message)
@@ -89,6 +91,7 @@ if __name__ == "__main__":
                     return AgentMessage(**message_dict)
                 return None
             except Exception as e:
+                pass  # <-- AUTO-INSERTED
 if __name__ == "__main__":
                     logger.error(f"Redis get error: {e}")
                 return None
@@ -117,6 +120,7 @@ if __name__ == "__main__":
                     message_dict = json.loads(message_data)
                     messages.append(AgentMessage(**message_dict))
             except Exception as e:
+                pass  # <-- AUTO-INSERTED
 if __name__ == "__main__":
                     logger.error(f"Redis get_all error: {e}")
         else:

@@ -9,6 +9,7 @@ if __name__ == "__main__":
     cur.close()
     conn.close()
 except Exception as e:
+    pass  # <-- AUTO-INSERTED
 if __name__ == "__main__":
         print(f"Database connection failed: {e}")
 

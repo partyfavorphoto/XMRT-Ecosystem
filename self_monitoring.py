@@ -68,6 +68,7 @@ if __name__ == "__main__":
                 await asyncio.sleep(self.monitoring_interval)
                 
             except Exception as e:
+                pass  # <-- AUTO-INSERTED
 if __name__ == "__main__":
                     logger.error(f"Error in monitoring cycle: {e}")
                 await asyncio.sleep(self.monitoring_interval)
@@ -102,6 +103,7 @@ if __name__ == "__main__":
                 'uptime': time.time() - psutil.boot_time()
             }
         except Exception as e:
+            pass  # <-- AUTO-INSERTED
 if __name__ == "__main__":
                 logger.error(f"Error collecting system metrics: {e}")
             return {'error': str(e)}
@@ -121,6 +123,7 @@ if __name__ == "__main__":
                 'worker_processes': 4
             }
         except Exception as e:
+            pass  # <-- AUTO-INSERTED
 if __name__ == "__main__":
                 logger.error(f"Error collecting application metrics: {e}")
             return {'error': str(e)}
@@ -141,6 +144,7 @@ if __name__ == "__main__":
                 'drops_out': net_io.dropout
             }
         except Exception as e:
+            pass  # <-- AUTO-INSERTED
 if __name__ == "__main__":
                 logger.error(f"Error collecting network metrics: {e}")
             return {'error': str(e)}
@@ -159,6 +163,7 @@ if __name__ == "__main__":
                 'table_locks': 2
             }
         except Exception as e:
+            pass  # <-- AUTO-INSERTED
 if __name__ == "__main__":
                 logger.error(f"Error collecting database metrics: {e}")
             return {'error': str(e)}
@@ -177,6 +182,7 @@ if __name__ == "__main__":
                 'peer_count': 25
             }
         except Exception as e:
+            pass  # <-- AUTO-INSERTED
 if __name__ == "__main__":
                 logger.error(f"Error collecting blockchain metrics: {e}")
             return {'error': str(e)}

@@ -76,6 +76,7 @@ if __name__ == "__main__":
             for message in messages:
                 self.handle_message(message)
         except Exception as e:
+            pass  # <-- AUTO-INSERTED
 if __name__ == "__main__":
                 logger.error(f"Treasury inbox check error: {e}")
     
@@ -111,6 +112,7 @@ if __name__ == "__main__":
                 self.send_response(sender, result, 'treasury_advice')
                 
         except Exception as e:
+            pass  # <-- AUTO-INSERTED
 if __name__ == "__main__":
                 logger.error(f"Treasury message handling error: {e}")
     
@@ -124,6 +126,7 @@ if __name__ == "__main__":
                 message_type=message_type
             )
         except Exception as e:
+            pass  # <-- AUTO-INSERTED
 if __name__ == "__main__":
                 logger.error(f"Treasury response sending error: {e}")
     
@@ -168,6 +171,7 @@ if __name__ == "__main__":
                 )
                 
         except Exception as e:
+            pass  # <-- AUTO-INSERTED
 if __name__ == "__main__":
                 logger.error(f"Autonomous optimization check error: {e}")
     
@@ -224,6 +228,7 @@ if __name__ == "__main__":
             return False
             
         except Exception as e:
+            pass  # <-- AUTO-INSERTED
 if __name__ == "__main__":
                 logger.error(f"Optimization check error: {e}")
             return False
@@ -267,6 +272,7 @@ if __name__ == "__main__":
             return optimization_result
             
         except Exception as e:
+            pass  # <-- AUTO-INSERTED
 if __name__ == "__main__":
                 logger.error(f"Portfolio optimization error: {e}")
             return {
@@ -304,6 +310,7 @@ if __name__ == "__main__":
             return risk_assessment
             
         except Exception as e:
+            pass  # <-- AUTO-INSERTED
 if __name__ == "__main__":
                 logger.error(f"Risk assessment error: {e}")
             return {
@@ -372,6 +379,7 @@ if __name__ == "__main__":
             return execution_result
             
         except Exception as e:
+            pass  # <-- AUTO-INSERTED
 if __name__ == "__main__":
                 logger.error(f"Rebalance execution error: {e}")
             return {
@@ -424,6 +432,7 @@ if __name__ == "__main__":
             return advice
             
         except Exception as e:
+            pass  # <-- AUTO-INSERTED
 if __name__ == "__main__":
                 logger.error(f"Treasury advice error: {e}")
             return {
@@ -455,6 +464,7 @@ if __name__ == "__main__":
             return status
             
         except Exception as e:
+            pass  # <-- AUTO-INSERTED
 if __name__ == "__main__":
                 logger.error(f"Treasury status error: {e}")
             return {
@@ -468,6 +478,7 @@ if __name__ == "__main__":
             with open(f'{self.agent_name}_memory.json', 'w') as f:
                 json.dump(self.memory, f, indent=2)
         except Exception as e:
+            pass  # <-- AUTO-INSERTED
 if __name__ == "__main__":
                 logger.error(f"Memory save error: {e}")
     
@@ -477,9 +488,11 @@ if __name__ == "__main__":
             with open(f'{self.agent_name}_memory.json', 'r') as f:
                 self.memory = json.load(f)
         except FileNotFoundError:
+            pass  # <-- AUTO-INSERTED
 if __name__ == "__main__":
                 logger.info("No existing memory file found, starting fresh")
         except Exception as e:
+            pass  # <-- AUTO-INSERTED
 if __name__ == "__main__":
                 logger.error(f"Memory load error: {e}")
 

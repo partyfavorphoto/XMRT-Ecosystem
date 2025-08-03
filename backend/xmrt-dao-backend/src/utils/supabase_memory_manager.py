@@ -61,6 +61,7 @@ class SupabaseMemoryManager:
                     if embedding_response:
                         embedding = embedding_response
                 except Exception as e:
+                    pass  # <-- AUTO-INSERTED
 if __name__ == "__main__":
                         print(f"Warning: Failed to generate embedding: {e}")
             
@@ -90,6 +91,7 @@ if __name__ == "__main__":
             return None
             
         except Exception as e:
+            pass  # <-- AUTO-INSERTED
 if __name__ == "__main__":
                 print(f"Error storing memory: {e}")
             return None
@@ -125,6 +127,7 @@ if __name__ == "__main__":
             return result.data if result.data else []
             
         except Exception as e:
+            pass  # <-- AUTO-INSERTED
 if __name__ == "__main__":
                 print(f"Error retrieving memories: {e}")
             return []
@@ -169,6 +172,7 @@ if __name__ == "__main__":
                         if similarity >= self.similarity_threshold:
                             similarities.append((memory, similarity))
                     except Exception as e:
+                        pass  # <-- AUTO-INSERTED
 if __name__ == "__main__":
                             print(f"Error calculating similarity for memory {memory.get('id')}: {e}")
                         continue
@@ -178,6 +182,7 @@ if __name__ == "__main__":
             return similarities[:limit]
             
         except Exception as e:
+            pass  # <-- AUTO-INSERTED
 if __name__ == "__main__":
                 print(f"Error in semantic search: {e}")
             return []
@@ -208,6 +213,7 @@ if __name__ == "__main__":
             return result.data[0] if result.data else None
             
         except Exception as e:
+            pass  # <-- AUTO-INSERTED
 if __name__ == "__main__":
                 print(f"Error storing conversation: {e}")
             return None
@@ -229,6 +235,7 @@ if __name__ == "__main__":
             return result.data if result.data else []
             
         except Exception as e:
+            pass  # <-- AUTO-INSERTED
 if __name__ == "__main__":
                 print(f"Error getting conversation history: {e}")
             return []
@@ -260,6 +267,7 @@ if __name__ == "__main__":
             return result.data[0] if result.data else None
             
         except Exception as e:
+            pass  # <-- AUTO-INSERTED
 if __name__ == "__main__":
                 print(f"Error creating memory association: {e}")
             return None
@@ -291,6 +299,7 @@ if __name__ == "__main__":
             }
             
         except Exception as e:
+            pass  # <-- AUTO-INSERTED
 if __name__ == "__main__":
                 print(f"Error getting memory analytics: {e}")
             return {}
@@ -311,6 +320,7 @@ if __name__ == "__main__":
             return len(result.data) if result.data else 0
             
         except Exception as e:
+            pass  # <-- AUTO-INSERTED
 if __name__ == "__main__":
                 print(f"Error pruning memories: {e}")
             return 0
@@ -327,6 +337,7 @@ if __name__ == "__main__":
             )
             return response.data[0].embedding
         except Exception as e:
+            pass  # <-- AUTO-INSERTED
 if __name__ == "__main__":
                 print(f"Error generating embedding: {e}")
             return None
@@ -362,6 +373,7 @@ if __name__ == "__main__":
                     self.supabase.table('eliza_memory').update({'is_active': False}).in_('id', memory_ids).execute()
                 
         except Exception as e:
+            pass  # <-- AUTO-INSERTED
 if __name__ == "__main__":
                 print(f"Error in auto-pruning: {e}")
 

@@ -236,6 +236,7 @@ if __name__ == "__main__":
             return result
             
         except Exception as e:
+            pass  # <-- AUTO-INSERTED
 if __name__ == "__main__":
                 logger.error(f"Error processing governance proposal: {e}")
             return {
@@ -331,6 +332,7 @@ if __name__ == "__main__":
                 return f"I understand you're asking about: '{user_message}'. I'm here to help with XMRT DAO operations including governance, treasury management, and system coordination. Could you provide more specific details about what you'd like to know or accomplish?"
                 
         except Exception as e:
+            pass  # <-- AUTO-INSERTED
 if __name__ == "__main__":
                 logger.error(f"Error generating chat response: {e}")
             return "I apologize, but I encountered an error processing your request. Please try again, and if the issue persists, please check the system status."
