@@ -400,3 +400,66 @@ Overall, the XMRT-Ecosystem presents a well-structured, modular, and highly auto
 
 
 
+
+
+## 🐍 Python Web Service Deployment (Render)
+
+This section outlines the steps to deploy the newly added Python web service to Render.
+
+### Project Structure
+
+The Python web service is located in the `python_service/` directory at the root of the repository. The main application file is `python_service/main.py`.
+
+### Dependencies
+
+All Python dependencies are listed in `requirements.txt` at the root of the repository. These will be automatically installed by Render during deployment.
+
+### Running the Service Locally (for testing)
+
+To run the Flask application locally using Gunicorn:
+
+1.  Navigate to the `XMRT-Ecosystem` directory:
+    ```bash
+    cd XMRT-Ecosystem
+    ```
+2.  Install the dependencies:
+    ```bash
+    pip install -r requirements.txt
+    ```
+3.  Run the Gunicorn server:
+    ```bash
+    gunicorn --bind 0.0.0.0:8000 python_service.main:app
+    ```
+    The service will be accessible at `http://localhost:8000`.
+
+### Render Deployment Configuration
+
+Render automatically detects the `Procfile` at the root of the repository to determine how to run your application. The `Procfile` for this service is configured as:
+
+```
+web: gunicorn python_service.main:app
+```
+
+### Environment Variables (Crucial for Smart Contract Interaction)
+
+For the Python web service to interact with the Ethereum network and your smart contracts, you **MUST** configure the following environment variables on Render:
+
+*   `INFURA_URL`: Your Infura (or other Ethereum node provider) URL. This is used by `web3.py` to connect to the blockchain.
+*   `PRIVATE_KEY`: The private key of the Ethereum account that will be used to send transactions (e.g., for `setValue` function calls). **Exercise extreme caution with this variable in production environments.** Consider using Render's secret management or other secure key management solutions.
+*   `CONTRACT_ADDRESS`: The address of your deployed smart contract on the Ethereum network.
+
+### Smart Contract ABI (`abi.json`)
+
+The `python_service/abi.json` file contains the Application Binary Interface (ABI) of your smart contract. This file is essential for `web3.py` to understand how to interact with your contract's functions. **You must replace the placeholder content in `abi.json` with the actual ABI of your deployed XMRT smart contract.** You can obtain the ABI when you compile your Solidity contracts.
+
+### Next Steps for Deployment on Render
+
+1.  Log in to your Render account.
+2.  Create a new Web Service.
+3.  Connect your GitHub repository (`DevGruGold/XMRT-Ecosystem`).
+4.  Render should automatically detect the Python project and suggest a build command (e.g., `pip install -r requirements.txt`) and start command (e.g., `gunicorn python_service.main:app`).
+5.  **Crucially, add the environment variables (`INFURA_URL`, `PRIVATE_KEY`, `CONTRACT_ADDRESS`) in Render's settings for your web service.**
+6.  Deploy the service.
+
+After successful deployment, your Python web service will be live and ready to interact with your XMRT smart contracts.
+
