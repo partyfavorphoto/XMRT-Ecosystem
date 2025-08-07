@@ -11,7 +11,7 @@ app = Flask(__name__)
 INFURA_URL = os.getenv('INFURA_URL')
 PRIVATE_KEY = os.getenv('PRIVATE_KEY')
 CONTRACT_ADDRESS = os.getenv('CONTRACT_ADDRESS')
-with open('python_service/abi.json', 'r') as f:
+with open(os.path.join(os.path.dirname(__file__), 'abi.json'), 'r') as f:
     CONTRACT_ABI = f.read()
 
 w3 = Web3(Web3.HTTPProvider(INFURA_URL))
