@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>XMRT Ecosystem - Autonomous AI-Powered DAO</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        header {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            padding: 1rem 0;
+            position: fixed;
+            width: 100%;
+            top: 0;
+            z-index: 1000;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: white;
+            text-decoration: none;
+        }
+
+        .nav-links {
+            display: flex;
+            list-style: none;
+            gap: 2rem;
+        }
+
+        .nav-links a {
+            color: white;
+            text-decoration: none;
+            transition: color 0.3s ease;
+        }
+
+        .nav-links a:hover {
+            color: #ffd700;
+        }
+
+        .hero {
+            padding: 120px 0 80px;
+            text-align: center;
+            color: white;
+        }
+
+        .hero h1 {
+            font-size: 3.5rem;
+            margin-bottom: 1rem;
+            background: linear-gradient(45deg, #ffd700, #ff6b6b);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .hero p {
+            font-size: 1.3rem;
+            margin-bottom: 2rem;
+            opacity: 0.9;
+        }
+
+        .cta-button {
+            display: inline-block;
+            background: linear-gradient(45deg, #ff6b6b, #ffd700);
+            color: white;
+            padding: 15px 30px;
+            text-decoration: none;
+            border-radius: 50px;
+            font-weight: bold;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .cta-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+        }
+
+        .features {
+            padding: 80px 0;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            margin-top: 3rem;
+        }
+
+        .feature-card {
+            background: rgba(255, 255, 255, 0.15);
+            padding: 2rem;
+            border-radius: 15px;
+            text-align: center;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: white;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+
+        .feature-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+
+        .feature-card h3 {
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+            color: #ffd700;
+        }
+
+        .stats {
+            padding: 80px 0;
+            text-align: center;
+            color: white;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 2rem;
+            margin-top: 3rem;
+        }
+
+        .stat-item {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 2rem;
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+        }
+
+        .stat-number {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: #ffd700;
+            margin-bottom: 0.5rem;
+        }
+
+        .ai-agents {
+            padding: 80px 0;
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .agents-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 2rem;
+            margin-top: 3rem;
+        }
+
+        .agent-card {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 2rem;
+            border-radius: 15px;
+            text-align: center;
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            transition: all 0.3s ease;
+        }
+
+        .agent-card:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: scale(1.05);
+        }
+
+        .agent-avatar {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(45deg, #ff6b6b, #ffd700);
+            border-radius: 50%;
+            margin: 0 auto 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+        }
+
+        .footer {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 40px 0;
+            text-align: center;
+            color: white;
+        }
+
+        .social-links {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .social-links a {
+            color: white;
+            font-size: 1.5rem;
+            transition: color 0.3s ease;
+        }
+
+        .social-links a:hover {
+            color: #ffd700;
+        }
+
+        .mobile-menu {
+            display: none;
+            background: white;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+        }
+
+        @media (max-width: 768px) {
+            .nav-links {
+                display: none;
+            }
+
+            .mobile-menu {
+                display: block;
+            }
+
+            .hero h1 {
+                font-size: 2.5rem;
+            }
+
+            .hero p {
+                font-size: 1.1rem;
+            }
+
+            .features-grid,
+            .stats-grid,
+            .agents-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% {
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(1.05);
+            }
+            100% {
+                transform: scale(1);
+            }
+        }
+
+        .fade-in {
+            opacity: 0;
+            transform: translateY(30px);
+            transition: all 0.6s ease;
+        }
+
+        .fade-in.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <nav class="container">
+            <a href="#" class="logo">🤖 XMRT Ecosystem</a>
+            <ul class="nav-links">
+                <li><a href="#home">Home</a></li>
+                <li><a href="#features">Features</a></li>
+                <li><a href="#agents">AI Agents</a></li>
+                <li><a href="#stats">Stats</a></li>
+                <li><a href="https://xmrtnet-eliza.onrender.com/" target="_blank">API Service</a></li>
+            </ul>
+            <button class="mobile-menu">☰</button>
+        </nav>
+    </header>
+
+    <main>
+        <section id="home" class="hero">
+            <div class="container">
+                <h1 class="fade-in">XMRT Ecosystem</h1>
+                <p class="fade-in">Autonomous AI-Powered DAO with Multi-Agent Coordination</p>
+                <a href="https://xmrtnet-eliza.onrender.com/" class="cta-button fade-in" target="_blank">Launch AI Service</a>
+            </div>
+        </section>
+
+        <section id="features" class="features">
+            <div class="container">
+                <h2 style="text-align: center; color: white; font-size: 2.5rem; margin-bottom: 1rem;">Autonomous Operations</h2>
+                <div class="features-grid">
+                    <div class="feature-card fade-in">
+                        <div class="feature-icon">🗳️</div>
+                        <h3>DAO Governance</h3>
+                        <p>Autonomous proposal analysis, voting coordination, and treasury management with AI-powered decision making.</p>
+                    </div>
+                    <div class="feature-card fade-in">
+                        <div class="feature-icon">💰</div>
+                        <h3>DeFi Operations</h3>
+                        <p>Automated yield optimization, liquidity management, and risk analysis across multiple DeFi protocols.</p>
+                    </div>
+                    <div class="feature-card fade-in">
+                        <div class="feature-icon">🛡️</div>
+                        <h3>Security Monitoring</h3>
+                        <p>Real-time threat detection, vulnerability scanning, and automated incident response systems.</p>
+                    </div>
+                    <div class="feature-card fade-in">
+                        <div class="feature-icon">👥</div>
+                        <h3>Community Management</h3>
+                        <p>Engagement tracking, event coordination, and sentiment analysis for optimal community growth.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="stats" class="stats">
+            <div class="container">
+                <h2 style="font-size: 2.5rem; margin-bottom: 1rem;">Live Ecosystem Metrics</h2>
+                <div class="stats-grid">
+                    <div class="stat-item fade-in">
+                        <div class="stat-number pulse">4</div>
+                        <p>Active AI Agents</p>
+                    </div>
+                    <div class="stat-item fade-in">
+                        <div class="stat-number pulse">24/7</div>
+                        <p>Autonomous Operations</p>
+                    </div>
+                    <div class="stat-item fade-in">
+                        <div class="stat-number pulse">1,247</div>
+                        <p>Community Members</p>
+                    </div>
+                    <div class="stat-item fade-in">
+                        <div class="stat-number pulse">$2.5M</div>
+                        <p>Treasury Value</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="agents" class="ai-agents">
+            <div class="container">
+                <h2 style="text-align: center; color: white; font-size: 2.5rem; margin-bottom: 1rem;">AI Agent Network</h2>
+                <div class="agents-grid">
+                    <div class="agent-card fade-in">
+                        <div class="agent-avatar">🏛️</div>
+                        <h3>DAO Governor</h3>
+                        <p>Specializes in governance operations, proposal analysis, and voting coordination.</p>
+                    </div>
+                    <div class="agent-card fade-in">
+                        <div class="agent-avatar">📈</div>
+                        <h3>DeFi Specialist</h3>
+                        <p>Focuses on yield optimization, liquidity management, and DeFi protocol integration.</p>
+                    </div>
+                    <div class="agent-card fade-in">
+                        <div class="agent-avatar">🛡️</div>
+                        <h3>Security Guardian</h3>
+                        <p>Monitors threats, scans vulnerabilities, and manages incident response protocols.</p>
+                    </div>
+                    <div class="agent-card fade-in">
+                        <div class="agent-avatar">🌟</div>
+                        <h3>Community Manager</h3>
+                        <p>Tracks engagement, coordinates events, and analyzes community sentiment.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <p>&copy; 2025 XMRT Ecosystem. Powered by Autonomous AI Technology.</p>
+            <div class="social-links">
+                <a href="https://github.com/DevGruGold/XMRT-Ecosystem" target="_blank">📁</a>
+                <a href="https://xmrtnet-eliza.onrender.com/" target="_blank">🤖</a>
+                <a href="#" target="_blank">🐦</a>
+                <a href="#" target="_blank">💬</a>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Smooth scrolling for navigation links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
+            });
+        });
+
+        // Fade in animation on scroll
+        const observerOptions = {
+            threshold: 0.1,
+            rootMargin: '0px 0px -50px 0px'
+        };
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('visible');
+                }
+            });
+        }, observerOptions);
+
+        document.querySelectorAll('.fade-in').forEach(el => {
+            observer.observe(el);
+        });
+
+        // Mobile menu toggle
+        const mobileMenu = document.querySelector('.mobile-menu');
+        const navLinks = document.querySelector('.nav-links');
+
+        mobileMenu.addEventListener('click', () => {
+            navLinks.style.display = navLinks.style.display === 'flex' ? 'none' : 'flex';
+        });
+
+        // Dynamic stats update simulation
+        function updateStats() {
+            const statNumbers = document.querySelectorAll('.stat-number');
+            statNumbers.forEach(stat => {
+                if (stat.textContent.includes('1,247')) {
+                    const currentValue = parseInt(stat.textContent.replace(',', ''));
+                    const newValue = currentValue + Math.floor(Math.random() * 10);
+                    stat.textContent = newValue.toLocaleString();
+                }
+            });
+        }
+
+        // Update stats every 30 seconds
+        setInterval(updateStats, 30000);
+
+        // Add loading animation
+        window.addEventListener('load', () => {
+            document.body.style.opacity = '0';
+            document.body.style.transition = 'opacity 0.5s ease';
+            setTimeout(() => {
+                document.body.style.opacity = '1';
+            }, 100);
+        });
+
+        // Parallax effect for hero section
+        window.addEventListener('scroll', () => {
+            const scrolled = window.pageYOffset;
+            const hero = document.querySelector('.hero');
+            if (hero) {
+                hero.style.transform = `translateY(${scrolled * 0.5}px)`;
+            }
+        });
+    </script>
+</body>
+</html>
+
