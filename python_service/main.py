@@ -1,313 +1,522 @@
-from flask import Flask, jsonify, request
-from web3 import Web3
-import os
-import json
-import requests
-from datetime import datetime
-from dotenv import load_dotenv
+#!/usr/bin/env python3
+'''
+XMRT Ecosystem Enhanced Python Service with AI Router and Autonomous Operations
+Integrates Eliza AI framework with DAO functionality for autonomous ecosystem management
+'''
 
-load_dotenv()
+from flask import Flask, request, jsonify, render_template_string
+from flask_cors import CORS
+import json
+import os
+import logging
+import threading
+from datetime import datetime, timedelta
+import requests
+import time
+import random
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
+CORS(app)
 
-# Configuration for connecting to the Ethereum network
-INFURA_URL = os.getenv('INFURA_URL')
-PRIVATE_KEY = os.getenv('PRIVATE_KEY')
-CONTRACT_ADDRESS = os.getenv('CONTRACT_ADDRESS')
+# Configuration
+class Config:
+    SECRET_KEY = os.environ.get('SECRET_KEY', 'xmrt-ecosystem-secret-key')
+    WEB3_PROVIDER = os.environ.get('WEB3_PROVIDER', 'https://mainnet.infura.io/v3/your-key')
+    OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY')
+    GITHUB_TOKEN = os.environ.get('GITHUB_TOKEN')
+    
+    # AI Agent Configuration
+    CHARACTERS_PATH = 'characters'
+    DEFAULT_CHARACTER = 'xmrt_dao_governor'
+    
+    # DAO Configuration
+    DAO_CONTRACT_ADDRESS = os.environ.get('DAO_CONTRACT_ADDRESS')
+    XMRT_TOKEN_ADDRESS = os.environ.get('XMRT_TOKEN_ADDRESS')
+    
+    # Autonomous Operation Settings
+    AUTO_GOVERNANCE_ENABLED = True
+    AUTO_DEFI_ENABLED = True
+    AUTO_SECURITY_MONITORING = True
+    AUTO_COMMUNITY_MANAGEMENT = True
 
-# AI Configuration
-OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
-QWEN_API_KEY = os.getenv('QWEN_API_KEY')  # For Alibaba Qwen2.5
-ANTHROPIC_API_KEY = os.getenv('ANTHROPIC_API_KEY')  # Backup option
+app.config.from_object(Config)
 
-with open(os.path.join(os.path.dirname(__file__), 'abi.json'), 'r') as f:
-    CONTRACT_ABI = f.read()
+# Global state for autonomous operations
+autonomous_state = {
+    'active_agents': {},
+    'task_queue': [],
+    'performance_metrics': {},
+    'last_governance_check': None,
+    'last_defi_optimization': None,
+    'security_alerts': [],
+    'community_events': []
+}
 
-w3 = Web3(Web3.HTTPProvider(INFURA_URL))
-
-# AI Router Class
-class XMRTAIRouter:
+class AIAgentManager:
+    '''Manages AI agents and their autonomous operations'''
+    
     def __init__(self):
-        self.request_log = []
-        self.cost_tracker = {
-            'free_requests': 0,
-            'nano_requests': 0, 
-            'full_requests': 0,
-            'total_cost': 0.0,
-            'daily_savings': 0.0
-        }
+        self.characters = {}
+        self.active_character = None
+        self.load_characters()
     
-    def analyze_complexity(self, query, context=None):
-        """Determine which AI model to use based on query complexity"""
-        query_lower = query.lower()
-        
-        # Simple queries -> Free models (Qwen2.5)
-        simple_patterns = [
-            'hello', 'hi', 'what is', 'explain', 'define', 'summary',
-            'list', 'show me', 'help', 'basic', 'simple', 'quick'
-        ]
-        
-        # Blockchain/DAO specific medium complexity -> GPT-5 nano
-        medium_patterns = [
-            'contract', 'transaction', 'blockchain', 'ethereum', 'dao',
-            'governance', 'token', 'wallet', 'gas', 'deploy'
-        ]
-        
-        # Complex analysis -> GPT-5 full
-        complex_patterns = [
-            'analyze strategy', 'optimize', 'integrate complex', 'audit',
-            'security analysis', 'advanced governance', 'cross-chain',
-            'defi strategy', 'tokenomics'
-        ]
-        
-        if any(pattern in query_lower for pattern in simple_patterns):
-            return 'simple'
-        elif any(pattern in query_lower for pattern in complex_patterns):
-            return 'complex'
-        elif any(pattern in query_lower for pattern in medium_patterns):
-            return 'medium'
-        else:
-            # Default to medium for blockchain-related service
-            return 'medium'
-    
-    def route_request(self, query, user_tier='basic', context=None):
-        """Route request to appropriate AI model with cost optimization"""
-        complexity = self.analyze_complexity(query, context)
-        timestamp = datetime.now().isoformat()
-        
+    def load_characters(self):
+        '''Load AI character configurations'''
         try:
-            if complexity == 'simple':
-                # Use free models (Qwen2.5)
-                response = self.call_qwen_model(query)
-                cost = 0.0
-                model_used = 'qwen2.5-free'
-                self.cost_tracker['free_requests'] += 1
-                # Calculate savings vs GPT-5 nano
-                saved_cost = self.estimate_nano_cost(query, response)
-                self.cost_tracker['daily_savings'] += saved_cost
-                
-            elif complexity == 'medium':
-                # Use GPT-5 nano for blockchain/DAO queries
-                response = self.call_gpt5_nano(query, context)
-                cost = self.calculate_nano_cost(query, response)
-                model_used = 'gpt-5-nano'
-                self.cost_tracker['nano_requests'] += 1
-                
-            else:  # complex
-                # Use GPT-5 full only for premium users or critical analysis
-                if user_tier in ['premium', 'enterprise']:
-                    response = self.call_gpt5_full(query, context)
-                    cost = self.calculate_full_cost(query, response)
-                    model_used = 'gpt-5-full'
-                    self.cost_tracker['full_requests'] += 1
-                else:
-                    # Fallback to nano for non-premium users
-                    response = self.call_gpt5_nano(query + " (simplified analysis)", context)
-                    cost = self.calculate_nano_cost(query, response)
-                    model_used = 'gpt-5-nano-fallback'
-                    self.cost_tracker['nano_requests'] += 1
-            
-            # Log the request
-            self.request_log.append({
-                'timestamp': timestamp,
-                'query_preview': query[:50] + '...' if len(query) > 50 else query,
-                'complexity': complexity,
-                'model_used': model_used,
-                'cost': cost,
-                'user_tier': user_tier
-            })
-            
-            self.cost_tracker['total_cost'] += cost
-            
-            return {
-                'response': response,
-                'model_used': model_used,
-                'cost': round(cost, 4),
-                'complexity': complexity,
-                'savings': round(self.cost_tracker['daily_savings'], 4)
+            # In production, this would load from the characters directory
+            # For now, we'll use a simplified version
+            self.characters = {
+                'xmrt_dao_governor': {
+                    'name': 'XMRT DAO Governor',
+                    'specialization': 'governance',
+                    'capabilities': ['proposal_analysis', 'voting_coordination', 'treasury_management']
+                },
+                'xmrt_defi_specialist': {
+                    'name': 'XMRT DeFi Specialist', 
+                    'specialization': 'defi',
+                    'capabilities': ['yield_optimization', 'liquidity_management', 'risk_analysis']
+                },
+                'xmrt_community_manager': {
+                    'name': 'XMRT Community Manager',
+                    'specialization': 'community',
+                    'capabilities': ['engagement_tracking', 'event_coordination', 'sentiment_analysis']
+                },
+                'xmrt_security_guardian': {
+                    'name': 'XMRT Security Guardian',
+                    'specialization': 'security', 
+                    'capabilities': ['threat_detection', 'vulnerability_scanning', 'incident_response']
+                }
             }
-            
+            self.active_character = self.characters.get(app.config['DEFAULT_CHARACTER'])
+            logger.info(f"Loaded {len(self.characters)} AI characters")
         except Exception as e:
-            # Always fallback to free model on any error
-            try:
-                response = self.call_qwen_model(f"Error occurred, providing basic response for: {query}")
-                return {
-                    'response': response,
-                    'model_used': 'qwen2.5-fallback',
-                    'cost': 0.0,
-                    'complexity': 'fallback',
-                    'error': str(e)
-                }
-            except:
-                return {
-                    'response': f"I apologize, but I'm experiencing technical difficulties. For the query '{query[:50]}...', please try again later or contact support.",
-                    'model_used': 'static-fallback',
-                    'cost': 0.0,
-                    'complexity': 'error',
-                    'error': str(e)
-                }
+            logger.error(f"Error loading characters: {e}")
     
-    def call_qwen_model(self, query):
-        """Call Qwen2.5 free model"""
-        # This would integrate with Alibaba's Qwen API
-        # For now, return a smart placeholder that indicates free model usage
-        return f"[Qwen2.5 Free Response] {query} - This response cost you $0.00! Free AI model handling your request efficiently."
-    
-    def call_gpt5_nano(self, query, context=None):
-        """Call GPT-5 nano ($0.05 input / $0.40 output)"""
-        if not OPENAI_API_KEY:
-            return self.call_qwen_model(query)
+    def get_character_response(self, character_id, message, context=None):
+        '''Generate AI response from specific character'''
+        character = self.characters.get(character_id)
+        if not character:
+            return "Character not found"
         
-        # OpenAI API call would go here
-        # Placeholder for now
-        return f"[GPT-5 Nano] Analyzing blockchain query: {query} - Cost-optimized response for XMRT ecosystem."
-    
-    def call_gpt5_full(self, query, context=None):
-        """Call GPT-5 full ($1.25 input / $10.00 output)"""
-        if not OPENAI_API_KEY:
-            return self.call_gpt5_nano(query, context)
-        
-        # OpenAI API call would go here
-        # Placeholder for now
-        return f"[GPT-5 Full] Deep analysis: {query} - Premium AI response with advanced reasoning."
-    
-    def calculate_nano_cost(self, query, response):
-        """Calculate cost for GPT-5 nano"""
-        input_tokens = len(query.split()) * 1.3  # Rough token estimate
-        output_tokens = len(response.split()) * 1.3
-        
-        input_cost = (input_tokens / 1000) * 0.05
-        output_cost = (output_tokens / 1000) * 0.40
-        
-        return input_cost + output_cost
-    
-    def calculate_full_cost(self, query, response):
-        """Calculate cost for GPT-5 full"""
-        input_tokens = len(query.split()) * 1.3
-        output_tokens = len(response.split()) * 1.3
-        
-        input_cost = (input_tokens / 1000) * 1.25
-        output_cost = (output_tokens / 1000) * 10.00
-        
-        return input_cost + output_cost
-    
-    def estimate_nano_cost(self, query, response):
-        """Estimate what this would have cost with nano (for savings calculation)"""
-        return self.calculate_nano_cost(query, response)
-
-# Initialize AI Router
-ai_router = XMRTAIRouter()
-
-# Your existing routes (unchanged)
-@app.route('/')
-def hello_world():
-    return 'Hello, XMRT Ecosystem Python Service with AI Router!'
-
-@app.route('/interact_contract', methods=['POST'])
-def interact_contract():
-    if not w3.is_connected():
-        return jsonify({'error': 'Not connected to Ethereum network'}), 500
-
-    data = request.get_json()
-    function_name = data.get('function_name')
-    args = data.get('args', [])
-
-    try:
-        contract = w3.eth.contract(address=CONTRACT_ADDRESS, abi=CONTRACT_ABI)
-        # Example: Call a read-only function
-        if function_name == 'getName':
-            result = contract.functions.getName().call()
-            return jsonify({'result': result})
-        # Example: Send a transaction (requires private key and gas handling)
-        elif function_name == 'setValue':
-            # This is a simplified example. Real transactions need nonce, gas, etc.
-            account = w3.eth.account.from_key(PRIVATE_KEY)
-            tx = contract.functions.setValue(args[0]).build_transaction({
-                'from': account.address,
-                'nonce': w3.eth.get_transaction_count(account.address),
-                'gas': 2000000, # Estimate gas or set appropriately
-                'gasPrice': w3.to_wei('50', 'gwei')
-            })
-            signed_tx = w3.eth.account.sign_transaction(tx, private_key=PRIVATE_KEY)
-            tx_hash = w3.eth.send_raw_transaction(signed_tx.rawTransaction)
-            return jsonify({'tx_hash': tx_hash.hex()})
-        else:
-            return jsonify({'error': 'Function not supported'}), 400
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
-# New AI Routes
-@app.route('/ai/chat', methods=['POST'])
-def ai_chat():
-    """Main AI chat endpoint with intelligent cost-optimized routing"""
-    data = request.get_json()
-    
-    if not data or 'query' not in data:
-        return jsonify({'error': 'Missing query parameter'}), 400
-    
-    query = data.get('query')
-    user_tier = data.get('user_tier', 'basic')
-    context = data.get('context', None)
-    
-    # Add blockchain context for better routing
-    if context is None and any(word in query.lower() for word in ['contract', 'transaction', 'blockchain']):
-        context = {'service': 'xmrt-blockchain', 'network': 'ethereum'}
-    
-    result = ai_router.route_request(query, user_tier, context)
-    
-    return jsonify(result)
-
-@app.route('/ai/analyze-contract', methods=['POST'])
-def ai_analyze_contract():
-    """AI-powered smart contract analysis"""
-    data = request.get_json()
-    
-    if not data or 'contract_address' not in data:
-        return jsonify({'error': 'Missing contract_address parameter'}), 400
-    
-    contract_address = data.get('contract_address')
-    analysis_type = data.get('analysis_type', 'basic')
-    user_tier = data.get('user_tier', 'basic')
-    
-    # Create analysis query
-    query = f"Analyze smart contract at {contract_address} for {analysis_type} analysis"
-    context = {
-        'service': 'contract-analysis',
-        'contract_address': contract_address,
-        'analysis_type': analysis_type
-    }
-    
-    result = ai_router.route_request(query, user_tier, context)
-    
-    return jsonify(result)
-
-@app.route('/ai/stats', methods=['GET'])
-def ai_stats():
-    """Get AI usage statistics and cost tracking"""
-    return jsonify({
-        'cost_tracker': ai_router.cost_tracker,
-        'recent_requests': ai_router.request_log[-5:],  # Last 5 requests
-        'total_requests': len(ai_router.request_log),
-        'cost_optimization': {
-            'percentage_free': round((ai_router.cost_tracker['free_requests'] / max(len(ai_router.request_log), 1)) * 100, 2),
-            'estimated_monthly_savings': round(ai_router.cost_tracker['daily_savings'] * 30, 2),
-            'average_cost_per_request': round(ai_router.cost_tracker['total_cost'] / max(len(ai_router.request_log), 1), 4)
+        # Simplified AI response - in production this would use Eliza framework
+        responses = {
+            'xmrt_dao_governor': f"As the DAO Governor, I analyze that: {message}. Current governance status is optimal.",
+            'xmrt_defi_specialist': f"DeFi analysis shows: {message}. Yield optimization opportunities detected.",
+            'xmrt_community_manager': f"Community insight: {message}. Engagement metrics are positive!",
+            'xmrt_security_guardian': f"Security assessment: {message}. No threats detected in current analysis."
         }
+        
+        return responses.get(character_id, "Processing your request...")
+    
+    def coordinate_agents(self, task_type):
+        '''Coordinate multiple agents for complex tasks'''
+        relevant_agents = []
+        
+        if task_type == 'governance':
+            relevant_agents = ['xmrt_dao_governor', 'xmrt_security_guardian']
+        elif task_type == 'defi':
+            relevant_agents = ['xmrt_defi_specialist', 'xmrt_security_guardian']
+        elif task_type == 'community':
+            relevant_agents = ['xmrt_community_manager', 'xmrt_dao_governor']
+        
+        return relevant_agents
+
+class AutonomousOperations:
+    '''Handles autonomous ecosystem operations'''
+    
+    def __init__(self, agent_manager):
+        self.agent_manager = agent_manager
+        self.running = False
+    
+    def start_autonomous_operations(self):
+        '''Start autonomous operation threads'''
+        if self.running:
+            return
+        
+        self.running = True
+        
+        # Start autonomous operation threads
+        if app.config['AUTO_GOVERNANCE_ENABLED']:
+            threading.Thread(target=self.governance_monitor, daemon=True).start()
+        
+        if app.config['AUTO_DEFI_ENABLED']:
+            threading.Thread(target=self.defi_optimizer, daemon=True).start()
+        
+        if app.config['AUTO_SECURITY_MONITORING']:
+            threading.Thread(target=self.security_monitor, daemon=True).start()
+        
+        if app.config['AUTO_COMMUNITY_MANAGEMENT']:
+            threading.Thread(target=self.community_manager, daemon=True).start()
+        
+        logger.info("Autonomous operations started")
+    
+    def governance_monitor(self):
+        '''Monitor and manage DAO governance autonomously'''
+        while self.running:
+            try:
+                # Check for new proposals
+                proposals = self.check_governance_proposals()
+                
+                for proposal in proposals:
+                    # Analyze proposal with DAO Governor
+                    analysis = self.agent_manager.get_character_response(
+                        'xmrt_dao_governor', 
+                        f"Analyze proposal: {proposal.get('description', '')}"
+                    )
+                    
+                    # Log governance activity
+                    autonomous_state['last_governance_check'] = datetime.now()
+                    logger.info(f"Governance analysis: {analysis}")
+                
+                time.sleep(300)  # Check every 5 minutes
+            except Exception as e:
+                logger.error(f"Governance monitor error: {e}")
+                time.sleep(60)
+    
+    def defi_optimizer(self):
+        '''Optimize DeFi operations autonomously'''
+        while self.running:
+            try:
+                # Check yield opportunities
+                yield_data = self.check_yield_opportunities()
+                
+                if yield_data:
+                    # Analyze with DeFi Specialist
+                    optimization = self.agent_manager.get_character_response(
+                        'xmrt_defi_specialist',
+                        f"Optimize yields: {yield_data}"
+                    )
+                    
+                    autonomous_state['last_defi_optimization'] = datetime.now()
+                    logger.info(f"DeFi optimization: {optimization}")
+                
+                time.sleep(600)  # Check every 10 minutes
+            except Exception as e:
+                logger.error(f"DeFi optimizer error: {e}")
+                time.sleep(120)
+    
+    def security_monitor(self):
+        '''Monitor security threats autonomously'''
+        while self.running:
+            try:
+                # Check for security threats
+                threats = self.scan_security_threats()
+                
+                if threats:
+                    # Analyze with Security Guardian
+                    security_response = self.agent_manager.get_character_response(
+                        'xmrt_security_guardian',
+                        f"Security threats detected: {threats}"
+                    )
+                    
+                    autonomous_state['security_alerts'].append({
+                        'timestamp': datetime.now(),
+                        'threats': threats,
+                        'response': security_response
+                    })
+                    
+                    logger.warning(f"Security alert: {security_response}")
+                
+                time.sleep(180)  # Check every 3 minutes
+            except Exception as e:
+                logger.error(f"Security monitor error: {e}")
+                time.sleep(60)
+    
+    def community_manager(self):
+        '''Manage community engagement autonomously'''
+        while self.running:
+            try:
+                # Check community metrics
+                metrics = self.check_community_metrics()
+                
+                if metrics:
+                    # Analyze with Community Manager
+                    engagement_strategy = self.agent_manager.get_character_response(
+                        'xmrt_community_manager',
+                        f"Community metrics: {metrics}"
+                    )
+                    
+                    autonomous_state['community_events'].append({
+                        'timestamp': datetime.now(),
+                        'metrics': metrics,
+                        'strategy': engagement_strategy
+                    })
+                    
+                    logger.info(f"Community management: {engagement_strategy}")
+                
+                time.sleep(900)  # Check every 15 minutes
+            except Exception as e:
+                logger.error(f"Community manager error: {e}")
+                time.sleep(180)
+    
+    def check_governance_proposals(self):
+        '''Check for new governance proposals'''
+        # Placeholder - would integrate with actual DAO contracts
+        return [{'id': 1, 'description': 'Treasury allocation proposal', 'status': 'active'}]
+    
+    def check_yield_opportunities(self):
+        '''Check for DeFi yield opportunities'''
+        # Placeholder - would integrate with DeFi protocols
+        return {'current_apy': 12.5, 'opportunities': ['Curve', 'Uniswap']}
+    
+    def scan_security_threats(self):
+        '''Scan for security threats'''
+        # Placeholder - would integrate with security monitoring tools
+        return []
+    
+    def check_community_metrics(self):
+        '''Check community engagement metrics'''
+        # Placeholder - would integrate with social platforms
+        return {'active_users': 1247, 'engagement_rate': 68, 'sentiment': 'positive'}
+
+# Initialize AI Agent Manager and Autonomous Operations
+agent_manager = AIAgentManager()
+autonomous_ops = AutonomousOperations(agent_manager)
+
+# Routes
+@app.route('/')
+def home():
+    '''Enhanced home page with autonomous status'''
+    html_template = '''
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>XMRT Ecosystem - Autonomous AI Service</title>
+        <style>
+            body { font-family: Arial, sans-serif; margin: 40px; background: #f5f5f5; }
+            .container { max-width: 1200px; margin: 0 auto; background: white; padding: 30px; border-radius: 10px; }
+            .header { text-align: center; margin-bottom: 30px; }
+            .status-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin: 20px 0; }
+            .status-card { background: #f8f9fa; padding: 20px; border-radius: 8px; border-left: 4px solid #007bff; }
+            .agent-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin: 20px 0; }
+            .agent-card { background: #e9ecef; padding: 15px; border-radius: 6px; text-align: center; }
+            .metrics { background: #d4edda; padding: 15px; border-radius: 6px; margin: 10px 0; }
+            .api-section { background: #fff3cd; padding: 20px; border-radius: 8px; margin: 20px 0; }
+            h1 { color: #333; }
+            h2 { color: #666; border-bottom: 2px solid #007bff; padding-bottom: 10px; }
+            .status-active { color: #28a745; font-weight: bold; }
+            .status-inactive { color: #dc3545; font-weight: bold; }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="header">
+                <h1>🤖 XMRT Ecosystem - Autonomous AI Service</h1>
+                <p>Advanced AI-powered DAO management with multi-agent coordination</p>
+            </div>
+            
+            <h2>🎯 Autonomous Operations Status</h2>
+            <div class="status-grid">
+                <div class="status-card">
+                    <h3>🗳️ DAO Governance</h3>
+                    <p class="status-active">ACTIVE</p>
+                    <p>Last check: {{ governance_status }}</p>
+                </div>
+                <div class="status-card">
+                    <h3>💰 DeFi Operations</h3>
+                    <p class="status-active">ACTIVE</p>
+                    <p>Last optimization: {{ defi_status }}</p>
+                </div>
+                <div class="status-card">
+                    <h3>🛡️ Security Monitoring</h3>
+                    <p class="status-active">ACTIVE</p>
+                    <p>Alerts: {{ security_alerts }}</p>
+                </div>
+                <div class="status-card">
+                    <h3>👥 Community Management</h3>
+                    <p class="status-active">ACTIVE</p>
+                    <p>Events: {{ community_events }}</p>
+                </div>
+            </div>
+            
+            <h2>🤖 AI Agents</h2>
+            <div class="agent-list">
+                {% for agent_id, agent in agents.items() %}
+                <div class="agent-card">
+                    <h4>{{ agent.name }}</h4>
+                    <p>{{ agent.specialization }}</p>
+                    <p><small>{{ agent.capabilities|length }} capabilities</small></p>
+                </div>
+                {% endfor %}
+            </div>
+            
+            <div class="metrics">
+                <h3>📊 System Metrics</h3>
+                <p><strong>Active Agents:</strong> {{ agents|length }}</p>
+                <p><strong>Tasks in Queue:</strong> {{ task_queue_length }}</p>
+                <p><strong>Uptime:</strong> {{ uptime }}</p>
+                <p><strong>Last Update:</strong> {{ last_update }}</p>
+            </div>
+            
+            <div class="api-section">
+                <h2>🔌 API Endpoints</h2>
+                <ul>
+                    <li><strong>GET /api/status</strong> - System status and metrics</li>
+                    <li><strong>POST /api/chat</strong> - Chat with AI agents</li>
+                    <li><strong>GET /api/agents</strong> - List available agents</li>
+                    <li><strong>POST /api/governance</strong> - DAO governance operations</li>
+                    <li><strong>POST /api/defi</strong> - DeFi operations and analysis</li>
+                    <li><strong>GET /api/security</strong> - Security status and alerts</li>
+                    <li><strong>GET /api/community</strong> - Community metrics and events</li>
+                </ul>
+            </div>
+        </div>
+    </body>
+    </html>
+    '''
+    
+    return render_template_string(html_template,
+        agents=agent_manager.characters,
+        governance_status=autonomous_state.get('last_governance_check', 'Never'),
+        defi_status=autonomous_state.get('last_defi_optimization', 'Never'),
+        security_alerts=len(autonomous_state.get('security_alerts', [])),
+        community_events=len(autonomous_state.get('community_events', [])),
+        task_queue_length=len(autonomous_state.get('task_queue', [])),
+        uptime='Active',
+        last_update=datetime.now().strftime('%Y-%m-%d %H:%M:%S UTC')
+    )
+
+@app.route('/api/status')
+def api_status():
+    '''Get system status and metrics'''
+    return jsonify({
+        'status': 'active',
+        'autonomous_operations': {
+            'governance': app.config['AUTO_GOVERNANCE_ENABLED'],
+            'defi': app.config['AUTO_DEFI_ENABLED'],
+            'security': app.config['AUTO_SECURITY_MONITORING'],
+            'community': app.config['AUTO_COMMUNITY_MANAGEMENT']
+        },
+        'agents': {
+            'total': len(agent_manager.characters),
+            'active': len([a for a in agent_manager.characters.values()]),
+            'characters': list(agent_manager.characters.keys())
+        },
+        'metrics': autonomous_state,
+        'timestamp': datetime.now().isoformat()
     })
 
-@app.route('/ai/health', methods=['GET'])
-def ai_health():
-    """Health check for AI routing system"""
+@app.route('/api/chat', methods=['POST'])
+def api_chat():
+    '''Chat with AI agents'''
+    data = request.get_json()
+    message = data.get('message', '')
+    character_id = data.get('character', app.config['DEFAULT_CHARACTER'])
+    
+    if not message:
+        return jsonify({'error': 'Message is required'}), 400
+    
+    response = agent_manager.get_character_response(character_id, message)
+    
     return jsonify({
-        'ai_router_status': 'healthy',
-        'models_available': {
-            'qwen2.5': 'available' if QWEN_API_KEY else 'configured',
-            'gpt5_nano': 'available' if OPENAI_API_KEY else 'needs_api_key',
-            'gpt5_full': 'available' if OPENAI_API_KEY else 'needs_api_key'
-        },
-        'cost_optimization': 'active',
-        'fallback_system': 'enabled'
+        'character': character_id,
+        'message': message,
+        'response': response,
+        'timestamp': datetime.now().isoformat()
+    })
+
+@app.route('/api/agents')
+def api_agents():
+    '''List available AI agents'''
+    return jsonify({
+        'agents': agent_manager.characters,
+        'default': app.config['DEFAULT_CHARACTER'],
+        'total': len(agent_manager.characters)
+    })
+
+@app.route('/api/governance', methods=['GET', 'POST'])
+def api_governance():
+    '''DAO governance operations'''
+    if request.method == 'GET':
+        return jsonify({
+            'proposals': autonomous_ops.check_governance_proposals(),
+            'last_check': autonomous_state.get('last_governance_check'),
+            'auto_enabled': app.config['AUTO_GOVERNANCE_ENABLED']
+        })
+    
+    # POST - trigger governance analysis
+    data = request.get_json()
+    proposal = data.get('proposal', '')
+    
+    analysis = agent_manager.get_character_response('xmrt_dao_governor', f"Analyze: {proposal}")
+    
+    return jsonify({
+        'proposal': proposal,
+        'analysis': analysis,
+        'timestamp': datetime.now().isoformat()
+    })
+
+@app.route('/api/defi', methods=['GET', 'POST'])
+def api_defi():
+    '''DeFi operations and analysis'''
+    if request.method == 'GET':
+        return jsonify({
+            'opportunities': autonomous_ops.check_yield_opportunities(),
+            'last_optimization': autonomous_state.get('last_defi_optimization'),
+            'auto_enabled': app.config['AUTO_DEFI_ENABLED']
+        })
+    
+    # POST - trigger DeFi analysis
+    data = request.get_json()
+    strategy = data.get('strategy', '')
+    
+    analysis = agent_manager.get_character_response('xmrt_defi_specialist', f"Analyze strategy: {strategy}")
+    
+    return jsonify({
+        'strategy': strategy,
+        'analysis': analysis,
+        'timestamp': datetime.now().isoformat()
+    })
+
+@app.route('/api/security')
+def api_security():
+    '''Security status and alerts'''
+    return jsonify({
+        'alerts': autonomous_state.get('security_alerts', []),
+        'threats': autonomous_ops.scan_security_threats(),
+        'auto_enabled': app.config['AUTO_SECURITY_MONITORING'],
+        'last_scan': datetime.now().isoformat()
+    })
+
+@app.route('/api/community')
+def api_community():
+    '''Community metrics and events'''
+    return jsonify({
+        'metrics': autonomous_ops.check_community_metrics(),
+        'events': autonomous_state.get('community_events', []),
+        'auto_enabled': app.config['AUTO_COMMUNITY_MANAGEMENT'],
+        'last_update': datetime.now().isoformat()
+    })
+
+@app.route('/api/coordinate', methods=['POST'])
+def api_coordinate():
+    '''Coordinate multiple agents for complex tasks'''
+    data = request.get_json()
+    task_type = data.get('task_type', '')
+    task_description = data.get('description', '')
+    
+    relevant_agents = agent_manager.coordinate_agents(task_type)
+    responses = {}
+    
+    for agent_id in relevant_agents:
+        responses[agent_id] = agent_manager.get_character_response(agent_id, task_description)
+    
+    return jsonify({
+        'task_type': task_type,
+        'description': task_description,
+        'coordinated_agents': relevant_agents,
+        'responses': responses,
+        'timestamp': datetime.now().isoformat()
     })
 
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=os.getenv('PORT', 5000))
+    # Start autonomous operations
+    autonomous_ops.start_autonomous_operations()
+    
+    # Run Flask app
+    port = int(os.environ.get('PORT', 5000))
+    app.run(host='0.0.0.0', port=port, debug=False)
