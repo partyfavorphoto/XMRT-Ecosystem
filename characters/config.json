@@ -1,0 +1,24 @@
+{
+  "characters": [
+    "xmrt_dao_governor",
+    "xmrt_defi_specialist",
+    "xmrt_community_manager",
+    "xmrt_security_guardian"
+  ],
+  "default_character": "xmrt_dao_governor",
+  "specializations": {
+    "governance": "xmrt_dao_governor",
+    "defi": "xmrt_defi_specialist",
+    "community": "xmrt_community_manager",
+    "security": "xmrt_security_guardian"
+  },
+  "multi_agent_coordination": {
+    "enabled": true,
+    "coordination_rules": [
+      "Security Guardian has veto power on all financial operations",
+      "DAO Governor coordinates cross-agent decisions",
+      "DeFi Specialist handles all yield optimization",
+      "Community Manager facilitates all user interactions"
+    ]
+  }
+}
