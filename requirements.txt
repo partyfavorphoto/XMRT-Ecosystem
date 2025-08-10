@@ -6,3 +6,4 @@ python-dotenv
 gunicorn
 openai
 anthropic
+redis
