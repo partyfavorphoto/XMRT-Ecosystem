@@ -57,28 +57,6 @@ autonomous_state = {
     'community_events': []
 }
 
-# Chat history storage
-chat_history = []
-
-class ChatManager:
-    def __init__(self):
-        pass
-
-    def add_message(self, sender, message, agent_id=None):
-        timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-        chat_entry = {
-            'sender': sender,
-            'message': message,
-            'timestamp': timestamp
-        }
-        if agent_id:
-            chat_entry['agent_id'] = agent_id
-        chat_history.append(chat_entry)
-        logger.info(f"Chat message added: {chat_entry}")
-
-    def get_history(self):
-        return chat_history
-
 class AIAgentManager:
     '''Manages AI agents and their autonomous operations'''
     
@@ -299,12 +277,11 @@ class AutonomousOperations:
 # Initialize AI Agent Manager and Autonomous Operations
 agent_manager = AIAgentManager()
 autonomous_ops = AutonomousOperations(agent_manager)
-chat_manager = ChatManager()
 
 # Routes
 @app.route('/')
 def home():
-    '''Enhanced home page with autonomous status and chatroom'''
+    '''Enhanced home page with autonomous status'''
     html_template = '''
     <!DOCTYPE html>
     <html>
@@ -324,15 +301,6 @@ def home():
             h2 { color: #666; border-bottom: 2px solid #007bff; padding-bottom: 10px; }
             .status-active { color: #28a745; font-weight: bold; }
             .status-inactive { color: #dc3545; font-weight: bold; }
-            .chat-container { margin-top: 30px; border-top: 1px solid #eee; padding-top: 20px; }
-            .chat-box { border: 1px solid #ccc; height: 300px; overflow-y: scroll; padding: 10px; background: #fff; margin-bottom: 10px; }
-            .chat-input { display: flex; margin-bottom: 10px; }
-            .chat-input input { flex-grow: 1; padding: 10px; border: 1px solid #ccc; border-radius: 5px 0 0 5px; }
-            .chat-input button { padding: 10px 15px; background: #007bff; color: white; border: none; border-radius: 0 5px 5px 0; cursor: pointer; }
-            .chat-message { margin-bottom: 8px; }
-            .chat-message.user { text-align: right; color: #007bff; }
-            .chat-message.agent { text-align: left; color: #28a745; }
-            .chat-message .timestamp { font-size: 0.7em; color: #999; }
         </style>
     </head>
     <body>
@@ -390,7 +358,6 @@ def home():
                 <ul>
                     <li><strong>GET /api/status</strong> - System status and metrics</li>
                     <li><strong>POST /api/chat</strong> - Chat with AI agents</li>
-                    <li><strong>GET /api/chat/history</strong> - Get chat history</li>
                     <li><strong>GET /api/agents</strong> - List available agents</li>
                     <li><strong>POST /api/governance</strong> - DAO governance operations</li>
                     <li><strong>POST /api/defi</strong> - DeFi operations and analysis</li>
@@ -398,78 +365,7 @@ def home():
                     <li><strong>GET /api/community</strong> - Community metrics and events</li>
                 </ul>
             </div>
-
-            <div class="chat-container">
-                <h2>💬 Agent Chatroom</h2>
-                <div class="chat-box" id="chatBox"></div>
-                <div class="chat-input">
-                    <input type="text" id="chatMessage" placeholder="Type your message..." onkeypress="handleKeyPress(event)">
-                    <button onclick="sendMessage()">Send</button>
-                </div>
-                <select id="agentSelect">
-                    <option value="">Select Agent (Optional)</option>
-                    {% for agent_id, agent in agents.items() %}
-                    <option value="{{ agent_id }}">{{ agent.name }}</option>
-                    {% endfor %}
-                </select>
-            </div>
         </div>
-        <script>
-            async function fetchChatHistory() {
-                try {
-                    const response = await fetch("/api/chat/history");
-                    const data = await response.json();
-                    const chatBox = document.getElementById("chatBox");
-                    chatBox.innerHTML = "";
-                    data.chat_history.forEach(msg => {
-                        const msgDiv = document.createElement("div");
-                        msgDiv.classList.add("chat-message");
-                        msgDiv.classList.add(msg.sender === "User" ? "user" : "agent");
-                        msgDiv.innerHTML = `<strong>${msg.sender}:</strong> ${msg.message} <span class="timestamp">(${msg.timestamp})</span>`;
-                        chatBox.appendChild(msgDiv);
-                    });
-                    chatBox.scrollTop = chatBox.scrollHeight;
-                } catch (error) {
-                    console.error("Error fetching chat history:", error);
-                }
-            }
-
-            async function sendMessage() {
-                const chatMessageInput = document.getElementById("chatMessage");
-                const agentSelect = document.getElementById("agentSelect");
-                const message = chatMessageInput.value.trim();
-                const character_id = agentSelect.value;
-
-                if (!message) return;
-
-                chatMessageInput.value = "";
-
-                try {
-                    const response = await fetch("/api/chat", {
-                        method: "POST",
-                        headers: {
-                            "Content-Type": "application/json"
-                        },
-                        body: JSON.stringify({ message, character_id })
-                    });
-                    const data = await response.json();
-                    console.log(data);
-                    fetchChatHistory();
-                } catch (error) {
-                    console.error("Error sending message:", error);
-                }
-            }
-
-            function handleKeyPress(event) {
-                if (event.key === "Enter") {
-                    sendMessage();
-                }
-            }
-
-            // Fetch history on page load and every few seconds
-            fetchChatHistory();
-            setInterval(fetchChatHistory, 3000);
-        </script>
     </body>
     </html>
     '''
@@ -485,32 +381,6 @@ def home():
         last_update=datetime.now().strftime('%Y-%m-%d %H:%M:%S UTC')
     )
 
-@app.route("/api/chat", methods=["POST"])
-def api_chat():
-    '''Chat with AI agents'''
-    data = request.get_json()
-    user_message = data.get("message")
-    character_id = data.get("character_id")
-
-    if not user_message:
-        return jsonify({"error": "Message is required"}), 400
-
-    chat_manager.add_message("User", user_message)
-
-    if character_id:
-        ai_response = agent_manager.get_character_response(character_id, user_message)
-        chat_manager.add_message(character_id, ai_response, agent_id=character_id)
-    else:
-        ai_response = "Please specify a character_id to chat with a specific agent."
-        chat_manager.add_message("System", ai_response)
-
-    return jsonify({"user_message": user_message, "ai_response": ai_response})
-
-@app.route("/api/chat/history")
-def api_chat_history():
-    '''Get chat history'''
-    return jsonify({"chat_history": chat_manager.get_history()})
-
 @app.route('/api/status')
 def api_status():
     '''Get system status and metrics'''
@@ -522,14 +392,32 @@ def api_status():
             'security': app.config['AUTO_SECURITY_MONITORING'],
             'community': app.config['AUTO_COMMUNITY_MANAGEMENT']
         },
-        'agents': list(agent_manager.characters.keys()),
-        'metrics': {
-            'active_agents': len(agent_manager.characters),
-            'task_queue_length': len(autonomous_state.get('task_queue', [])),
-            'security_alerts': len(autonomous_state.get('security_alerts', [])),
-            'community_events': len(autonomous_state.get('community_events', []))
+        'agents': {
+            'total': len(agent_manager.characters),
+            'active': len([a for a in agent_manager.characters.values()]),
+            'characters': list(agent_manager.characters.keys())
         },
-        'last_update': datetime.now().strftime('%Y-%m-%d %H:%M:%S UTC')
+        'metrics': autonomous_state,
+        'timestamp': datetime.now().isoformat()
+    })
+
+@app.route('/api/chat', methods=['POST'])
+def api_chat():
+    '''Chat with AI agents'''
+    data = request.get_json()
+    message = data.get('message', '')
+    character_id = data.get('character', app.config['DEFAULT_CHARACTER'])
+    
+    if not message:
+        return jsonify({'error': 'Message is required'}), 400
+    
+    response = agent_manager.get_character_response(character_id, message)
+    
+    return jsonify({
+        'character': character_id,
+        'message': message,
+        'response': response,
+        'timestamp': datetime.now().isoformat()
     })
 
 @app.route('/api/agents')
@@ -537,12 +425,321 @@ def api_agents():
     '''List available AI agents'''
     return jsonify({
         'agents': agent_manager.characters,
-        'active_character': app.config['DEFAULT_CHARACTER']
+        'default': app.config['DEFAULT_CHARACTER'],
+        'total': len(agent_manager.characters)
     })
 
-# Start autonomous operations when the app starts
-autonomous_ops.start_autonomous_operations()
+@app.route('/api/governance', methods=['GET', 'POST'])
+def api_governance():
+    '''DAO governance operations'''
+    if request.method == 'GET':
+        return jsonify({
+            'proposals': autonomous_ops.check_governance_proposals(),
+            'last_check': autonomous_state.get('last_governance_check'),
+            'auto_enabled': app.config['AUTO_GOVERNANCE_ENABLED']
+        })
+    
+    # POST - trigger governance analysis
+    data = request.get_json()
+    proposal = data.get('proposal', '')
+    
+    analysis = agent_manager.get_character_response('xmrt_dao_governor', f"Analyze: {proposal}")
+    
+    return jsonify({
+        'proposal': proposal,
+        'analysis': analysis,
+        'timestamp': datetime.now().isoformat()
+    })
+
+@app.route('/api/defi', methods=['GET', 'POST'])
+def api_defi():
+    '''DeFi operations and analysis'''
+    if request.method == 'GET':
+        return jsonify({
+            'opportunities': autonomous_ops.check_yield_opportunities(),
+            'last_optimization': autonomous_state.get('last_defi_optimization'),
+            'auto_enabled': app.config['AUTO_DEFI_ENABLED']
+        })
+    
+    # POST - trigger DeFi analysis
+    data = request.get_json()
+    strategy = data.get('strategy', '')
+    
+    analysis = agent_manager.get_character_response('xmrt_defi_specialist', f"Analyze strategy: {strategy}")
+    
+    return jsonify({
+        'strategy': strategy,
+        'analysis': analysis,
+        'timestamp': datetime.now().isoformat()
+    })
+
+@app.route('/api/security')
+def api_security():
+    '''Security status and alerts'''
+    return jsonify({
+        'alerts': autonomous_state.get('security_alerts', []),
+        'threats': autonomous_ops.scan_security_threats(),
+        'auto_enabled': app.config['AUTO_SECURITY_MONITORING'],
+        'last_scan': datetime.now().isoformat()
+    })
+
+@app.route('/api/community')
+def api_community():
+    '''Community metrics and events'''
+    return jsonify({
+        'metrics': autonomous_ops.check_community_metrics(),
+        'events': autonomous_state.get('community_events', []),
+        'auto_enabled': app.config['AUTO_COMMUNITY_MANAGEMENT'],
+        'last_update': datetime.now().isoformat()
+    })
+
+@app.route('/api/coordinate', methods=['POST'])
+def api_coordinate():
+    '''Coordinate multiple agents for complex tasks'''
+    data = request.get_json()
+    task_type = data.get('task_type', '')
+    task_description = data.get('description', '')
+    
+    relevant_agents = agent_manager.coordinate_agents(task_type)
+    responses = {}
+    
+    for agent_id in relevant_agents:
+        responses[agent_id] = agent_manager.get_character_response(agent_id, task_description)
+    
+    return jsonify({
+        'task_type': task_type,
+        'description': task_description,
+        'coordinated_agents': relevant_agents,
+        'responses': responses,
+        'timestamp': datetime.now().isoformat()
+    })
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    # Start autonomous operations
+    autonomous_ops.start_autonomous_operations()
+    
+    # Run Flask app
+    port = int(os.environ.get('PORT', 5000))
+    app.run(host='0.0.0.0', port=port, debug=False)
+
+
+# Redis configuration for chat history (optional, for persistence)
+# r = redis.Redis(host=\'localhost\', port=6379, db=0)
+
+chat_history = []
+
+class ChatManager:
+    def __init__(self):    def add_message(self, sender, message, agent_id=None):
+        timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        chat_entry = {
+            'sender': sender,
+            'message': message,
+            'timestamp': timestamp
+        }
+        if agent_id:
+            chat_entry['agent_id'] = agent_id
+        chat_history.append(chat_entry)
+        # Optional: Store in Redis for persistence
+        # r.lpush('chat_messages', json.dumps(chat_entry))
+        logger.info(f"Chat message added: {chat_entry}"):
+        # Optional: Retrieve from Redis
+        # return [json.loads(msg) for msg in r.lrange(\'chat_messages\', 0, -1)][::-1]
+        return chat_history
+
+chat_manager = ChatManager()
+
+
+
+
+@app.route(\"/api/chat\", methods=[\"POST\"])
+def api_chat():
+    data = request.get_json()
+    user_message = data.get(\"message\")
+    character_id = data.get(\"character_id\")
+
+    if not user_message:
+        return jsonify({\"error\": \"Message is required\"}), 400
+
+    chat_manager.add_message(\"User\", user_message)
+
+    if character_id:
+        ai_response = agent_manager.get_character_response(character_id, user_message)
+        chat_manager.add_message(character_id, ai_response, agent_id=character_id)
+    else:
+        ai_response = \"Please specify a character_id to chat with a specific agent.\"
+        chat_manager.add_message(\"System\", ai_response)
+
+    return jsonify({\"user_message\": user_message, \"ai_response\": ai_response})
+
+@app.route(\"/api/chat/history\")
+def api_chat_history():
+    return jsonify({\"chat_history\": chat_manager.get_history()})
+
+@app.route(\"/\")
+def home():
+    html_template = \"\"\"\
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>XMRT Ecosystem - Autonomous AI Service</title>
+        <style>
+            body { font-family: Arial, sans-serif; margin: 40px; background: #f5f5f5; }
+            .container { max-width: 1200px; margin: 0 auto; background: white; padding: 30px; border-radius: 10px; }
+            .header { text-align: center; margin-bottom: 30px; }
+            .status-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin: 20px 0; }
+            .status-card { background: #f8f9fa; padding: 20px; border-radius: 8px; border-left: 4px solid #007bff; }
+            .agent-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin: 20px 0; }
+            .agent-card { background: #e9ecef; padding: 15px; border-radius: 6px; text-align: center; }
+            .metrics { background: #d4edda; padding: 15px; border-radius: 6px; margin: 10px 0; }
+            .api-section { background: #fff3cd; padding: 20px; border-radius: 8px; margin: 20px 0; }
+            h1 { color: #333; }
+            h2 { color: #666; border-bottom: 2px solid #007bff; padding-bottom: 10px; }
+            .status-active { color: #28a745; font-weight: bold; }
+            .status-inactive { color: #dc3545; font-weight: bold; }
+            .chat-container { margin-top: 30px; border-top: 1px solid #eee; padding-top: 20px; }
+            .chat-box { border: 1px solid #ccc; height: 300px; overflow-y: scroll; padding: 10px; background: #fff; margin-bottom: 10px; }
+            .chat-input { display: flex; }
+            .chat-input input { flex-grow: 1; padding: 10px; border: 1px solid #ccc; border-radius: 5px 0 0 5px; }
+            .chat-input button { padding: 10px 15px; background: #007bff; color: white; border: none; border-radius: 0 5px 5px 0; cursor: pointer; }
+            .chat-message { margin-bottom: 8px; }
+            .chat-message.user { text-align: right; color: #007bff; }
+            .chat-message.agent { text-align: left; color: #28a745; }
+            .chat-message .timestamp { font-size: 0.7em; color: #999; }
+        </style>
+    </head>
+    <body>
+        <div class=\"container\">
+            <div class=\"header\">
+                <h1>🤖 XMRT Ecosystem - Autonomous AI Service</h1>
+                <p>Advanced AI-powered DAO management with multi-agent coordination</p>
+            </div>
+            
+            <h2>🎯 Autonomous Operations Status</h2>
+            <div class=\"status-grid\">
+                <div class=\"status-card\">
+                    <h3>🗳️ DAO Governance</h3>
+                    <p class=\"status-active\">ACTIVE</p>
+                    <p>Last check: {{ governance_status }}</p>
+                </div>
+                <div class=\"status-card\">
+                    <h3>💰 DeFi Operations</h3>
+                    <p class=\"status-active\">ACTIVE</p>
+                    <p>Last optimization: {{ defi_status }}</p>
+                </div>
+                <div class=\"status-card\">
+                    <h3>🛡️ Security Monitoring</h3>
+                    <p class=\"status-active\">ACTIVE</p>
+                    <p>Alerts: {{ security_alerts }}</p>
+                </div>
+                <div class=\"status-card\">
+                    <h3>👥 Community Management</h3>
+                    <p class=\"status-active\">ACTIVE</p>
+                    <p>Events: {{ community_events }}</p>
+                </div>
+            </div>
+            
+            <h2>🤖 AI Agents</h2>
+            <div class=\"agent-list\">
+                {% for agent_id, agent in agents.items() %}
+                <div class=\"agent-card\">
+                    <h4>{{ agent.name }}</h4>
+                    <p>{{ agent.specialization }}</p>
+                    <p><small>{{ agent.capabilities|length }} capabilities</small></p>
+                </div>
+                {% endfor %}
+            </div>
+            
+            <div class=\"metrics\">
+                <h3>📊 System Metrics</h3>
+                <p><strong>Active Agents:</strong> {{ agents|length }}</p>
+                <p><strong>Tasks in Queue:</strong> {{ task_queue_length }}</p>
+                <p><strong>Uptime:</strong> {{ uptime }}</p>
+                <p><strong>Last Update:</strong> {{ last_update }}</p>
+            </div>
+            
+            <div class=\"api-section\">
+                <h2>🔌 API Endpoints</h2>
+                <ul>
+                    <li><strong>GET /api/status</strong> - System status and metrics</li>
+                    <li><strong>POST /api/chat</strong> - Chat with AI agents</li>
+                    <li><strong>GET /api/agents</strong> - List available agents</li>
+                    <li><strong>POST /api/governance</strong> - DAO governance operations</li>
+                    <li><strong>POST /api/defi</strong> - DeFi operations and analysis</li>
+                    <li><strong>GET /api/security</strong> - Security status and alerts</li>
+                    <li><strong>GET /api/community</strong> - Community metrics and events</li>
+                </ul>
+            </div>
+
+            <div class=\"chat-container\">
+                <h2>💬 Agent Chatroom</h2>
+                <div class=\"chat-box\" id=\"chatBox\"></div>
+                <div class=\"chat-input\">
+                    <input type=\"text\" id=\"chatMessage\" placeholder=\"Type your message...\">
+                    <button onclick=\"sendMessage()\">Send</button>
+                </div>
+                <select id=\"agentSelect\">
+                    <option value=\"\">Select Agent (Optional)</option>
+                    {% for agent_id, agent in agents.items() %}
+                    <option value=\"{{ agent_id }}\">{{ agent.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+        <script>
+            async function fetchChatHistory() {
+                const response = await fetch(\"/api/chat/history\");
+                const data = await response.json();
+                const chatBox = document.getElementById(\"chatBox\");
+                chatBox.innerHTML = \"\";
+                data.chat_history.forEach(msg => {
+                    const msgDiv = document.createElement(\"div\");
+                    msgDiv.classList.add(\"chat-message\");
+                    msgDiv.classList.add(msg.sender === \"User\" ? \"user\" : \"agent\");
+                    msgDiv.innerHTML = `<strong>${msg.sender}:</strong> ${msg.message} <span class=\"timestamp\">(${msg.timestamp})</span>`;
+                    chatBox.appendChild(msgDiv);
+                });
+                chatBox.scrollTop = chatBox.scrollHeight;
+            }
+
+            async function sendMessage() {
+                const chatMessageInput = document.getElementById(\"chatMessage\");
+                const agentSelect = document.getElementById(\"agentSelect\");
+                const message = chatMessageInput.value;
+                const character_id = agentSelect.value;
+
+                if (!message) return;
+
+                chatMessageInput.value = \"\";
+
+                const response = await fetch(\"/api/chat\", {
+                    method: \"POST\",
+                    headers: {
+                        \"Content-Type\": \"application/json\"
+                    },
+                    body: JSON.stringify({ message, character_id })
+                });
+                const data = await response.json();
+                console.log(data);
+                fetchChatHistory();
+            }
+
+            // Fetch history on page load and every few seconds
+            fetchChatHistory();
+            setInterval(fetchChatHistory, 3000);
+        </script>
+    </body>
+    </html>
+    \"\"\"
+    
+    return render_template_string(html_template,
+        agents=agent_manager.characters,
+        governance_status=autonomous_state.get(\'last_governance_check\', \'Never\'),
+        defi_status=autonomous_state.get(\'last_defi_optimization\', \'Never\'),
+        security_alerts=len(autonomous_state.get(\'security_alerts\', [])),
+        community_events=len(autonomous_state.get(\'community_events\', [])),
+        task_queue_length=len(autonomous_state.get(\'task_queue\', [])),
+        uptime=\'Active\',
+        last_update=datetime.now().strftime(\'%Y-%m-%d %H:%M:%S UTC\')
+    )
+
 
