@@ -14,6 +14,7 @@ from datetime import datetime, timedelta
 import requests
 import time
 import random
+import redis
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
