@@ -306,172 +306,484 @@ chat_manager = ChatManager()
 def home():
     '''Enhanced home page with autonomous status and chatroom'''
     html_template = '''
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <title>XMRT Ecosystem - Autonomous AI Service</title>
-        <style>
-            body { font-family: Arial, sans-serif; margin: 40px; background: #f5f5f5; }
-            .container { max-width: 1200px; margin: 0 auto; background: white; padding: 30px; border-radius: 10px; }
-            .header { text-align: center; margin-bottom: 30px; }
-            .status-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin: 20px 0; }
-            .status-card { background: #f8f9fa; padding: 20px; border-radius: 8px; border-left: 4px solid #007bff; }
-            .agent-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin: 20px 0; }
-            .agent-card { background: #e9ecef; padding: 15px; border-radius: 6px; text-align: center; }
-            .metrics { background: #d4edda; padding: 15px; border-radius: 6px; margin: 10px 0; }
-            .api-section { background: #fff3cd; padding: 20px; border-radius: 8px; margin: 20px 0; }
-            h1 { color: #333; }
-            h2 { color: #666; border-bottom: 2px solid #007bff; padding-bottom: 10px; }
-            .status-active { color: #28a745; font-weight: bold; }
-            .status-inactive { color: #dc3545; font-weight: bold; }
-            .chat-container { margin-top: 30px; border-top: 1px solid #eee; padding-top: 20px; }
-            .chat-box { border: 1px solid #ccc; height: 300px; overflow-y: scroll; padding: 10px; background: #fff; margin-bottom: 10px; }
-            .chat-input { display: flex; margin-bottom: 10px; }
-            .chat-input input { flex-grow: 1; padding: 10px; border: 1px solid #ccc; border-radius: 5px 0 0 5px; }
-            .chat-input button { padding: 10px 15px; background: #007bff; color: white; border: none; border-radius: 0 5px 5px 0; cursor: pointer; }
-            .chat-message { margin-bottom: 8px; }
-            .chat-message.user { text-align: right; color: #007bff; }
-            .chat-message.agent { text-align: left; color: #28a745; }
-            .chat-message .timestamp { font-size: 0.7em; color: #999; }
-        </style>
-    </head>
-    <body>
-        <div class="container">
-            <div class="header">
-                <h1>🤖 XMRT Ecosystem - Autonomous AI Service</h1>
-                <p>Advanced AI-powered DAO management with multi-agent coordination</p>
-            </div>
-            
-            <h2>🎯 Autonomous Operations Status</h2>
-            <div class="status-grid">
-                <div class="status-card">
-                    <h3>🗳️ DAO Governance</h3>
-                    <p class="status-active">ACTIVE</p>
-                    <p>Last check: {{ governance_status }}</p>
-                </div>
-                <div class="status-card">
-                    <h3>💰 DeFi Operations</h3>
-                    <p class="status-active">ACTIVE</p>
-                    <p>Last optimization: {{ defi_status }}</p>
-                </div>
-                <div class="status-card">
-                    <h3>🛡️ Security Monitoring</h3>
-                    <p class="status-active">ACTIVE</p>
-                    <p>Alerts: {{ security_alerts }}</p>
-                </div>
-                <div class="status-card">
-                    <h3>👥 Community Management</h3>
-                    <p class="status-active">ACTIVE</p>
-                    <p>Events: {{ community_events }}</p>
-                </div>
-            </div>
-            
-            <h2>🤖 AI Agents</h2>
-            <div class="agent-list">
-                {% for agent_id, agent in agents.items() %}
-                <div class="agent-card">
-                    <h4>{{ agent.name }}</h4>
-                    <p>{{ agent.specialization }}</p>
-                    <p><small>{{ agent.capabilities|length }} capabilities</small></p>
-                </div>
-                {% endfor %}
-            </div>
-            
-            <div class="metrics">
-                <h3>📊 System Metrics</h3>
-                <p><strong>Active Agents:</strong> {{ agents|length }}</p>
-                <p><strong>Tasks in Queue:</strong> {{ task_queue_length }}</p>
-                <p><strong>Uptime:</strong> {{ uptime }}</p>
-                <p><strong>Last Update:</strong> {{ last_update }}</p>
-            </div>
-            
-            <div class="api-section">
-                <h2>🔌 API Endpoints</h2>
-                <ul>
-                    <li><strong>GET /api/status</strong> - System status and metrics</li>
-                    <li><strong>POST /api/chat</strong> - Chat with AI agents</li>
-                    <li><strong>GET /api/chat/history</strong> - Get chat history</li>
-                    <li><strong>GET /api/agents</strong> - List available agents</li>
-                    <li><strong>POST /api/governance</strong> - DAO governance operations</li>
-                    <li><strong>POST /api/defi</strong> - DeFi operations and analysis</li>
-                    <li><strong>GET /api/security</strong> - Security status and alerts</li>
-                    <li><strong>GET /api/community</strong> - Community metrics and events</li>
-                </ul>
-            </div>
 
-            <div class="chat-container">
-                <h2>💬 Agent Chatroom</h2>
-                <div class="chat-box" id="chatBox"></div>
-                <div class="chat-input">
-                    <input type="text" id="chatMessage" placeholder="Type your message..." onkeypress="handleKeyPress(event)">
-                    <button onclick="sendMessage()">Send</button>
-                </div>
-                <select id="agentSelect">
-                    <option value="">Select Agent (Optional)</option>
-                    {% for agent_id, agent in agents.items() %}
-                    <option value="{{ agent_id }}">{{ agent.name }}</option>
-                    {% endfor %}
-                </select>
+<!DOCTYPE html>
+<html>
+<head>
+    <title>XMRT Ecosystem - Autonomous AI Service</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; background: #f5f5f5; }
+        .container { max-width: 1200px; margin: 0 auto; background: white; padding: 30px; border-radius: 10px; }
+        .header { text-align: center; margin-bottom: 30px; }
+        .status-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin: 20px 0; }
+        .status-card { background: #f8f9fa; padding: 20px; border-radius: 8px; border-left: 4px solid #007bff; }
+        .agent-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin: 20px 0; }
+        .agent-card { background: #e9ecef; padding: 15px; border-radius: 6px; text-align: center; }
+        .metrics { background: #d4edda; padding: 15px; border-radius: 6px; margin: 10px 0; }
+        .api-section { background: #fff3cd; padding: 20px; border-radius: 8px; margin: 20px 0; }
+        h1 { color: #333; }
+        h2 { color: #666; border-bottom: 2px solid #007bff; padding-bottom: 10px; }
+        .status-active { color: #28a745; font-weight: bold; }
+        .status-inactive { color: #dc3545; font-weight: bold; }
+        .chat-container { margin-top: 30px; border-top: 1px solid #eee; padding-top: 20px; }
+        .chat-box { border: 1px solid #ccc; height: 300px; overflow-y: scroll; padding: 10px; background: #fff; margin-bottom: 10px; }
+        .chat-input { display: flex; margin-bottom: 10px; }
+        .chat-input input { flex-grow: 1; padding: 10px; border: 1px solid #ccc; border-radius: 5px 0 0 5px; }
+        .chat-input button { padding: 10px 15px; background: #007bff; color: white; border: none; border-radius: 0 5px 5px 0; cursor: pointer; }
+        .chat-message { margin-bottom: 8px; }
+        .chat-message.user { text-align: right; color: #007bff; }
+        .chat-message.agent { text-align: left; color: #28a745; }
+        .chat-message .timestamp { font-size: 0.7em; color: #999; }
+        
+        /* NEW: Affiliate System Styles */
+        .affiliate-section { background: #e8f4fd; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #17a2b8; }
+        .affiliate-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin: 15px 0; }
+        .affiliate-stat { background: white; padding: 15px; border-radius: 6px; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .affiliate-stat .number { font-size: 1.8em; font-weight: bold; color: #17a2b8; }
+        .affiliate-stat .label { font-size: 0.9em; color: #666; margin-top: 5px; }
+        .referral-link { background: #f8f9fa; padding: 15px; border-radius: 6px; margin: 15px 0; border: 1px solid #dee2e6; }
+        .referral-link input { width: 100%; padding: 10px; border: 1px solid #ced4da; border-radius: 4px; font-family: monospace; }
+        .referral-actions { margin-top: 10px; }
+        .referral-actions button { margin-right: 10px; padding: 8px 16px; background: #17a2b8; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        .referral-actions button:hover { background: #138496; }
+        .affiliate-form { background: white; padding: 20px; border-radius: 6px; margin: 15px 0; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; margin-bottom: 5px; font-weight: bold; color: #495057; }
+        .form-group input, .form-group select { width: 100%; padding: 10px; border: 1px solid #ced4da; border-radius: 4px; }
+        .form-group button { background: #28a745; color: white; padding: 12px 24px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        .form-group button:hover { background: #218838; }
+        .alert { padding: 12px; border-radius: 4px; margin: 10px 0; }
+        .alert-success { background: #d4edda; border: 1px solid #c3e6cb; color: #155724; }
+        .alert-error { background: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; }
+        .hidden { display: none; }
+        .tab-container { margin: 20px 0; }
+        .tab-buttons { display: flex; border-bottom: 1px solid #dee2e6; }
+        .tab-button { padding: 12px 24px; background: none; border: none; cursor: pointer; border-bottom: 2px solid transparent; }
+        .tab-button.active { border-bottom-color: #17a2b8; color: #17a2b8; font-weight: bold; }
+        .tab-content { padding: 20px 0; }
+        .recent-referrals { max-height: 200px; overflow-y: auto; }
+        .referral-item { background: #f8f9fa; padding: 10px; border-radius: 4px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; }
+        .status-pending { color: #ffc107; font-weight: bold; }
+        .status-converted { color: #28a745; font-weight: bold; }
+        .status-cancelled { color: #dc3545; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🤖 XMRT Ecosystem - Autonomous AI Service</h1>
+            <p>Advanced AI-powered DAO management with multi-agent coordination</p>
+        </div>
+        
+        <h2>🎯 Autonomous Operations Status</h2>
+        <div class="status-grid">
+            <div class="status-card">
+                <h3>🗳️ DAO Governance</h3>
+                <p class="status-active">ACTIVE</p>
+                <p>Last check: {{ governance_status }}</p>
+            </div>
+            <div class="status-card">
+                <h3>💰 DeFi Operations</h3>
+                <p class="status-active">ACTIVE</p>
+                <p>Last optimization: {{ defi_status }}</p>
+            </div>
+            <div class="status-card">
+                <h3>🛡️ Security Monitoring</h3>
+                <p class="status-active">ACTIVE</p>
+                <p>Alerts: {{ security_alerts }}</p>
+            </div>
+            <div class="status-card">
+                <h3>👥 Community Management</h3>
+                <p class="status-active">ACTIVE</p>
+                <p>Events: {{ community_events }}</p>
             </div>
         </div>
-        <script>
-            async function fetchChatHistory() {
-                try {
-                    const response = await fetch("/api/chat/history");
-                    const data = await response.json();
-                    const chatBox = document.getElementById("chatBox");
-                    chatBox.innerHTML = "";
-                    data.chat_history.forEach(msg => {
-                        const msgDiv = document.createElement("div");
-                        msgDiv.classList.add("chat-message");
-                        msgDiv.classList.add(msg.sender === "User" ? "user" : "agent");
-                        msgDiv.innerHTML = `<strong>${msg.sender}:</strong> ${msg.message} <span class="timestamp">(${msg.timestamp})</span>`;
-                        chatBox.appendChild(msgDiv);
-                    });
-                    chatBox.scrollTop = chatBox.scrollHeight;
-                } catch (error) {
-                    console.error("Error fetching chat history:", error);
-                }
+        
+        <!-- NEW: Affiliate Marketing Section -->
+        <div class="affiliate-section">
+            <h2>🚀 Affiliate Program - Earn XMRT Tokens</h2>
+            <p>Join our evangelist program and earn rewards for bringing new users to the XMRT ecosystem!</p>
+            
+            <div class="tab-container">
+                <div class="tab-buttons">
+                    <button class="tab-button active" onclick="showTab('join')">Join Program</button>
+                    <button class="tab-button" onclick="showTab('dashboard')" id="dashboardTab" style="display: none;">My Dashboard</button>
+                </div>
+                
+                <!-- Join Program Tab -->
+                <div id="joinTab" class="tab-content">
+                    <div class="affiliate-form">
+                        <h3>Become an Evangelist</h3>
+                        <form id="affiliateRegistrationForm">
+                            <div class="form-group">
+                                <label for="evangelistName">Name:</label>
+                                <input type="text" id="evangelistName" name="name" placeholder="Enter your name" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="evangelistType">Type:</label>
+                                <select id="evangelistType" name="type" required>
+                                    <option value="">Select type</option>
+                                    <option value="human">Human Evangelist</option>
+                                    <option value="ai_agent">AI Agent</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="evangelistEmail">Email (optional):</label>
+                                <input type="email" id="evangelistEmail" name="email" placeholder="Enter your email">
+                            </div>
+                            <div class="form-group">
+                                <label for="evangelistWallet">Wallet Address (optional):</label>
+                                <input type="text" id="evangelistWallet" name="wallet" placeholder="Enter your wallet address">
+                            </div>
+                            <div class="form-group">
+                                <button type="submit">Join Affiliate Program</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+                
+                <!-- Dashboard Tab -->
+                <div id="dashboardTab" class="tab-content hidden">
+                    <div class="affiliate-stats">
+                        <div class="affiliate-stat">
+                            <div class="number" id="totalReferrals">0</div>
+                            <div class="label">Total Referrals</div>
+                        </div>
+                        <div class="affiliate-stat">
+                            <div class="number" id="totalConversions">0</div>
+                            <div class="label">Conversions</div>
+                        </div>
+                        <div class="affiliate-stat">
+                            <div class="number" id="conversionRate">0%</div>
+                            <div class="label">Conversion Rate</div>
+                        </div>
+                        <div class="affiliate-stat">
+                            <div class="number" id="totalEarnings">0</div>
+                            <div class="label">XMRT Earned</div>
+                        </div>
+                    </div>
+                    
+                    <div class="referral-link">
+                        <h4>Your Referral Link:</h4>
+                        <input type="text" id="referralLinkInput" readonly>
+                        <div class="referral-actions">
+                            <button onclick="copyReferralLink()">Copy Link</button>
+                            <button onclick="shareReferralLink()">Share</button>
+                        </div>
+                    </div>
+                    
+                    <div class="recent-referrals">
+                        <h4>Recent Referrals:</h4>
+                        <div id="recentReferralsList">
+                            <p>Loading...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div id="affiliateAlerts"></div>
+        </div>
+        
+        <h2>🤖 AI Agents</h2>
+        <div class="agent-list">
+            {% for agent_id, agent in agents.items() %}
+            <div class="agent-card">
+                <h4>{{ agent.name }}</h4>
+                <p>{{ agent.specialization }}</p>
+                <p><small>{{ agent.capabilities|length }} capabilities</small></p>
+            </div>
+            {% endfor %}
+        </div>
+        
+        <div class="metrics">
+            <h3>📊 System Metrics</h3>
+            <p><strong>Active Agents:</strong> {{ agents|length }}</p>
+            <p><strong>Tasks in Queue:</strong> {{ task_queue_length }}</p>
+            <p><strong>Uptime:</strong> {{ uptime }}</p>
+            <p><strong>Last Update:</strong> {{ last_update }}</p>
+        </div>
+        
+        <div class="api-section">
+            <h2>🔌 API Endpoints</h2>
+            <ul>
+                <li><strong>GET /api/status</strong> - System status and metrics</li>
+                <li><strong>POST /api/chat</strong> - Chat with AI agents</li>
+                <li><strong>GET /api/chat/history</strong> - Get chat history</li>
+                <li><strong>GET /api/agents</strong> - List available agents</li>
+                <li><strong>POST /api/governance</strong> - DAO governance operations</li>
+                <li><strong>POST /api/defi</strong> - DeFi operations and analysis</li>
+                <li><strong>GET /api/security</strong> - Security status and alerts</li>
+                <li><strong>GET /api/community</strong> - Community metrics and events</li>
+                <!-- NEW: Affiliate API endpoints -->
+                <li><strong>POST /api/affiliate/register</strong> - Register as evangelist</li>
+                <li><strong>GET /api/affiliate/dashboard/{id}</strong> - Get evangelist dashboard</li>
+                <li><strong>POST /api/affiliate/track_referral</strong> - Track referral</li>
+                <li><strong>GET /api/affiliate/stats</strong> - System affiliate stats</li>
+            </ul>
+        </div>
+
+        <div class="chat-container">
+            <h2>💬 Agent Chatroom</h2>
+            <div class="chat-box" id="chatBox"></div>
+            <div class="chat-input">
+                <input type="text" id="chatMessage" placeholder="Type your message..." onkeypress="handleKeyPress(event)">
+                <button onclick="sendMessage()">Send</button>
+            </div>
+            <select id="agentSelect">
+                <option value="">Select Agent (Optional)</option>
+                {% for agent_id, agent in agents.items() %}
+                <option value="{{ agent_id }}">{{ agent.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+    </div>
+    <script>
+        // Existing chat functionality
+        async function fetchChatHistory() {
+            try {
+                const response = await fetch("/api/chat/history");
+                const data = await response.json();
+                const chatBox = document.getElementById("chatBox");
+                chatBox.innerHTML = "";
+                data.chat_history.forEach(msg => {
+                    const msgDiv = document.createElement("div");
+                    msgDiv.classList.add("chat-message");
+                    msgDiv.classList.add(msg.sender === "User" ? "user" : "agent");
+                    msgDiv.innerHTML = `<strong>${msg.sender}:</strong> ${msg.message} <span class="timestamp">(${msg.timestamp})</span>`;
+                    chatBox.appendChild(msgDiv);
+                });
+                chatBox.scrollTop = chatBox.scrollHeight;
+            } catch (error) {
+                console.error("Error fetching chat history:", error);
             }
+        }
 
-            async function sendMessage() {
-                const chatMessageInput = document.getElementById("chatMessage");
-                const agentSelect = document.getElementById("agentSelect");
-                const message = chatMessageInput.value.trim();
-                const character_id = agentSelect.value;
+        async function sendMessage() {
+            const chatMessageInput = document.getElementById("chatMessage");
+            const agentSelect = document.getElementById("agentSelect");
+            const message = chatMessageInput.value.trim();
+            const character_id = agentSelect.value;
 
-                if (!message) return;
+            if (!message) return;
 
-                chatMessageInput.value = "";
+            chatMessageInput.value = "";
 
-                try {
-                    const response = await fetch("/api/chat", {
-                        method: "POST",
-                        headers: {
-                            "Content-Type": "application/json"
-                        },
-                        body: JSON.stringify({ message, character_id })
-                    });
-                    const data = await response.json();
-                    console.log(data);
-                    fetchChatHistory();
-                } catch (error) {
-                    console.error("Error sending message:", error);
-                }
+            try {
+                const response = await fetch("/api/chat", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({ message, character_id })
+                });
+                const data = await response.json();
+                console.log(data);
+                fetchChatHistory();
+            } catch (error) {
+                console.error("Error sending message:", error);
             }
+        }
 
-            function handleKeyPress(event) {
-                if (event.key === "Enter") {
-                    sendMessage();
-                }
+        function handleKeyPress(event) {
+            if (event.key === "Enter") {
+                sendMessage();
             }
+        }
 
-            // Fetch history on page load and every few seconds
-            fetchChatHistory();
-            setInterval(fetchChatHistory, 3000);
-        </script>
-    </body>
-    </html>
+        // NEW: Affiliate System JavaScript
+        let currentEvangelistId = localStorage.getItem('evangelistId');
+        
+        // Check if user is already registered
+        if (currentEvangelistId) {
+            document.getElementById('dashboardTab').style.display = 'block';
+            showTab('dashboard');
+            loadAffiliateDashboard();
+        }
+        
+        // Tab switching
+        function showTab(tabName) {
+            const tabs = ['join', 'dashboard'];
+            tabs.forEach(tab => {
+                const tabContent = document.getElementById(tab + 'Tab');
+                const tabButton = document.querySelector(`[onclick="showTab('${tab}')"]`);
+                if (tab === tabName) {
+                    tabContent.classList.remove('hidden');
+                    tabButton.classList.add('active');
+                } else {
+                    tabContent.classList.add('hidden');
+                    tabButton.classList.remove('active');
+                }
+            });
+        }
+        
+        // Affiliate registration
+        document.getElementById('affiliateRegistrationForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const formData = new FormData(e.target);
+            const data = {
+                name: formData.get('name'),
+                type: formData.get('type'),
+                email: formData.get('email') || null,
+                wallet_address: formData.get('wallet') || null
+            };
+
+            try {
+                const response = await fetch('/api/affiliate/register', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    currentEvangelistId = result.evangelist_id;
+                    localStorage.setItem('evangelistId', currentEvangelistId);
+                    showAffiliateAlert('Registration successful! Welcome to the XMRT Affiliate Program!', 'success');
+                    document.getElementById('dashboardTab').style.display = 'block';
+                    showTab('dashboard');
+                    loadAffiliateDashboard();
+                } else {
+                    showAffiliateAlert(result.error || 'Registration failed', 'error');
+                }
+            } catch (error) {
+                showAffiliateAlert('Network error: ' + error.message, 'error');
+            }
+        });
+        
+        // Load affiliate dashboard
+        async function loadAffiliateDashboard() {
+            if (!currentEvangelistId) return;
+            
+            try {
+                const response = await fetch(`/api/affiliate/dashboard/${currentEvangelistId}`);
+                const data = await response.json();
+
+                if (response.ok) {
+                    updateAffiliateDashboard(data);
+                } else {
+                    showAffiliateAlert(data.error || 'Failed to load dashboard', 'error');
+                    if (response.status === 404) {
+                        localStorage.removeItem('evangelistId');
+                        currentEvangelistId = null;
+                        document.getElementById('dashboardTab').style.display = 'none';
+                        showTab('join');
+                    }
+                }
+            } catch (error) {
+                showAffiliateAlert('Network error: ' + error.message, 'error');
+            }
+        }
+        
+        // Update dashboard with data
+        function updateAffiliateDashboard(data) {
+            const stats = data.stats;
+            
+            document.getElementById('totalReferrals').textContent = stats.total_referrals;
+            document.getElementById('totalConversions').textContent = stats.total_conversions;
+            document.getElementById('conversionRate').textContent = stats.conversion_rate.toFixed(1) + '%';
+            document.getElementById('totalEarnings').textContent = stats.total_earnings.toFixed(2);
+            
+            document.getElementById('referralLinkInput').value = data.referral_link;
+            
+            const recentReferralsList = document.getElementById('recentReferralsList');
+            if (data.recent_referrals && data.recent_referrals.length > 0) {
+                recentReferralsList.innerHTML = data.recent_referrals.map(referral => `
+                    <div class="referral-item">
+                        <span>${new Date(referral.created_at).toLocaleDateString()}</span>
+                        <span class="status-${referral.status}">${referral.status.toUpperCase()}</span>
+                        <span>${referral.conversion_value} XMRT</span>
+                    </div>
+                `).join('');
+            } else {
+                recentReferralsList.innerHTML = '<p>No referrals yet. Start sharing your link!</p>';
+            }
+        }
+        
+        // Copy referral link
+        function copyReferralLink() {
+            const linkInput = document.getElementById('referralLinkInput');
+            linkInput.select();
+            document.execCommand('copy');
+            showAffiliateAlert('Referral link copied to clipboard!', 'success');
+        }
+        
+        // Share referral link
+        function shareReferralLink() {
+            const link = document.getElementById('referralLinkInput').value;
+            
+            if (navigator.share) {
+                navigator.share({
+                    title: 'Join XMRT Ecosystem',
+                    text: 'Join the XMRT DAO ecosystem and earn rewards!',
+                    url: link
+                });
+            } else {
+                copyReferralLink();
+            }
+        }
+        
+        // Show affiliate alerts
+        function showAffiliateAlert(message, type) {
+            const alertsDiv = document.getElementById('affiliateAlerts');
+            const alert = document.createElement('div');
+            alert.className = `alert alert-${type}`;
+            alert.textContent = message;
+            
+            alertsDiv.appendChild(alert);
+            
+            setTimeout(() => {
+                alert.remove();
+            }, 5000);
+        }
+        
+        // Handle referral tracking on page load
+        const urlParams = new URLSearchParams(window.location.search);
+        const refCode = urlParams.get('ref');
+        
+        if (refCode && !localStorage.getItem('referralTracked')) {
+            fetch('/api/affiliate/track_referral', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    referral_code: refCode,
+                    metadata: {
+                        page: window.location.pathname,
+                        timestamp: new Date().toISOString()
+                    }
+                })
+            }).then(response => {
+                if (response.ok) {
+                    localStorage.setItem('referralTracked', 'true');
+                    localStorage.setItem('referralCode', refCode);
+                    showAffiliateAlert('Welcome! You were referred by an XMRT evangelist.', 'success');
+                }
+            }).catch(error => {
+                console.error('Failed to track referral:', error);
+            });
+        }
+        
+        // Auto-refresh dashboard every 30 seconds
+        if (currentEvangelistId) {
+            setInterval(() => {
+                if (!document.getElementById('dashboardTab').classList.contains('hidden')) {
+                    loadAffiliateDashboard();
+                }
+            }, 30000);
+        }
+
+        // Fetch history on page load and every few seconds
+        fetchChatHistory();
+        setInterval(fetchChatHistory, 3000);
+    </script>
+</body>
+</html>
+
     '''
     
     return render_template_string(html_template,
