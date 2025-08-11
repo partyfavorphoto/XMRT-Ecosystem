@@ -15,6 +15,7 @@ import requests
 import time
 import random
 import redis
+from pipedream_integration import create_pipedream_capability
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -96,22 +97,22 @@ class AIAgentManager:
                 'xmrt_dao_governor': {
                     'name': 'XMRT DAO Governor',
                     'specialization': 'governance',
-                    'capabilities': ['proposal_analysis', 'voting_coordination', 'treasury_management']
+                    'capabilities': ['proposal_analysis', 'voting_coordination', 'treasury_management', 'pipedream_connect']
                 },
                 'xmrt_defi_specialist': {
                     'name': 'XMRT DeFi Specialist', 
                     'specialization': 'defi',
-                    'capabilities': ['yield_optimization', 'liquidity_management', 'risk_analysis']
+                    'capabilities': ['yield_optimization', 'liquidity_management', 'risk_analysis', 'pipedream_connect']
                 },
                 'xmrt_community_manager': {
                     'name': 'XMRT Community Manager',
                     'specialization': 'community',
-                    'capabilities': ['engagement_tracking', 'event_coordination', 'sentiment_analysis']
+                    'capabilities': ['engagement_tracking', 'event_coordination', 'sentiment_analysis', 'pipedream_connect']
                 },
                 'xmrt_security_guardian': {
                     'name': 'XMRT Security Guardian',
                     'specialization': 'security', 
-                    'capabilities': ['threat_detection', 'vulnerability_scanning', 'incident_response']
+                    'capabilities': ['threat_detection', 'vulnerability_scanning', 'incident_response', 'pipedream_connect']
                 }
             }
             self.active_character = self.characters.get(app.config['DEFAULT_CHARACTER'])
