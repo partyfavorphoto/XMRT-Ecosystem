@@ -9,6 +9,14 @@ from flask_cors import CORS
 import json
 import os
 import logging
+# Enhanced Chat System Integration
+try:
+    from enhanced_chat_system import create_enhanced_chat_routes, EnhancedXMRTChatSystem
+    ENHANCED_CHAT_AVAILABLE = True
+except ImportError:
+    ENHANCED_CHAT_AVAILABLE = False
+    logger.warning("Enhanced chat system not available")
+
 import threading
 from datetime import datetime, timedelta
 import requests
@@ -23,6 +31,29 @@ logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
 CORS(app)
+# Initialize Enhanced Chat System
+if ENHANCED_CHAT_AVAILABLE:
+    try:
+        # Try to get Redis client if available
+        redis_client = None
+        try:
+            import redis
+            redis_url = os.environ.get('REDIS_URL')
+            if redis_url:
+                redis_client = redis.from_url(redis_url, decode_responses=True)
+                redis_client.ping()  # Test connection
+                logger.info("Redis connected for enhanced chat")
+        except Exception as e:
+            logger.warning(f"Redis not available for enhanced chat: {e}")
+        
+        # Create enhanced chat routes
+        enhanced_chat_system = create_enhanced_chat_routes(app, redis_client)
+        logger.info("Enhanced chat system initialized successfully")
+        
+    except Exception as e:
+        logger.error(f"Failed to initialize enhanced chat system: {e}")
+        ENHANCED_CHAT_AVAILABLE = False
+
 
 # Configuration
 class Config:
