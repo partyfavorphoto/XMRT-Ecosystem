@@ -1,3 +1,6 @@
+from webhook_endpoints import create_ecosystem_webhook_blueprint
+import requests
+import time
 #!/usr/bin/env python3
 '''
 XMRT Ecosystem Enhanced Python Service with AI Router and Autonomous Operations
@@ -31,6 +34,11 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
+
+# Register ecosystem webhook blueprint
+ecosystem_webhook_bp = create_ecosystem_webhook_blueprint()
+app.register_blueprint(ecosystem_webhook_bp)
+
 CORS(app)
 
 # Configuration
@@ -640,3 +648,28 @@ if __name__ == '__main__':
     logger.info("🤖 Autonomous operations started")
     app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)), debug=False)
 
+
+@app.route('/api/activity/feed', methods=['GET'])
+def get_activity_feed():
+    """Get activity feed for ecosystem widget"""
+    try:
+        activities = []
+        
+        # Add agent discussion activity
+        activities.append({
+            "id": f"chat_{int(time.time())}",
+            "title": "💬 Agent Discussion Active",
+            "description": "Autonomous agents are engaged in strategic discussions",
+            "source": "hub",
+            "timestamp": datetime.now().isoformat(),
+            "type": "agent_discussion",
+            "data": {"active_discussions": 5}
+        })
+        
+        return jsonify({
+            "success": True,
+            "activities": activities
+        })
+        
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500

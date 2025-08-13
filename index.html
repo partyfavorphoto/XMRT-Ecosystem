@@ -483,6 +483,26 @@
             }
         });
     </script>
+
+    <!-- Ecosystem Activity Widget -->
+    <div class="ecosystem-activity-section">
+        <h3>🌐 Ecosystem Activity</h3>
+        <div id="xmrt-activity-widget"></div>
+    </div>
+    
+    <script>
+        const script = document.createElement('script');
+        script.src = '/static/real_time_activity_widget.js';
+        script.onload = function() {
+            const widget = new XMRTEcosystemActivityWidget({
+                containerId: 'xmrt-activity-widget',
+                apiEndpoint: '/api/activity/feed',
+                updateInterval: 15000
+            });
+            widget.init();
+        };
+        document.head.appendChild(script);
+    </script>
 </body>
 </html>
 
