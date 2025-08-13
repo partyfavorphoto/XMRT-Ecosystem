@@ -365,8 +365,9 @@ if ENHANCED_CHAT_AVAILABLE:
         ENHANCED_CHAT_AVAILABLE = False
 
 # Autonomous Communication Routes (with unique names to avoid conflicts)
+# Using completely different route names to avoid conflicts with enhanced_chat_system
 
-@app.route('/api/autonomous/trigger', methods=['POST'])
+@app.route('/api/autonomous/discussion/trigger', methods=['POST'])
 def trigger_autonomous_discussion():
     """Manually trigger an autonomous discussion"""
     try:
@@ -387,9 +388,9 @@ def trigger_autonomous_discussion():
         logger.error(f"Error triggering autonomous discussion: {e}")
         return jsonify({'error': 'Internal server error'}), 500
 
-@app.route('/api/agents/status')
-def get_agents_status():
-    """Get status of all agents and autonomous system"""
+@app.route('/api/autonomous/system/status')
+def get_autonomous_system_status():
+    """Get status of autonomous system (different from /api/agents/status)"""
     try:
         agent_statuses = {}
         for agent_id, agent_data in autonomous_communicator.agents.items():
@@ -408,19 +409,19 @@ def get_agents_status():
         })
         
     except Exception as e:
-        logger.error(f"Error getting agent status: {e}")
+        logger.error(f"Error getting autonomous system status: {e}")
         return jsonify({'error': 'Internal server error'}), 500
 
-@app.route('/api/discussions/active')
-def get_active_discussions():
-    """Get active autonomous discussions"""
+@app.route('/api/autonomous/discussions/list')
+def get_autonomous_discussions():
+    """Get active autonomous discussions (different from existing routes)"""
     try:
         return jsonify({
             'discussions': autonomous_communicator.active_discussions,
             'count': len(autonomous_communicator.active_discussions)
         })
     except Exception as e:
-        logger.error(f"Error getting active discussions: {e}")
+        logger.error(f"Error getting autonomous discussions: {e}")
         return jsonify({'error': 'Internal server error'}), 500
 
 # Enhanced Dashboard Route
@@ -499,7 +500,7 @@ def index():
         <div class="autonomous-controls">
             <button class="btn btn-warning" onclick="triggerAutonomousDiscussion()">🚀 Trigger Discussion</button>
             <button class="btn btn-success" onclick="refreshChat()">🔄 Refresh Chat</button>
-            <button class="btn btn-primary" onclick="getAgentStatus()">📊 Agent Status</button>
+            <button class="btn btn-primary" onclick="getSystemStatus()">📊 System Status</button>
         </div>
         
         <div class="chat-container" id="chatContainer">
@@ -590,7 +591,7 @@ def index():
             ];
             const topic = topics[Math.floor(Math.random() * topics.length)];
             
-            fetch('/api/autonomous/trigger', {
+            fetch('/api/autonomous/discussion/trigger', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ topic: topic })
@@ -603,11 +604,11 @@ def index():
             .catch(error => console.error('Error:', error));
         }
         
-        function getAgentStatus() {
-            fetch('/api/agents/status')
+        function getSystemStatus() {
+            fetch('/api/autonomous/system/status')
             .then(response => response.json())
             .then(data => {
-                console.log('Agent status:', data);
+                console.log('System status:', data);
                 document.getElementById('discussionCount').textContent = data.active_discussions || 0;
             })
             .catch(error => console.error('Error:', error));
@@ -618,7 +619,7 @@ def index():
         
         // Initial load
         refreshChat();
-        getAgentStatus();
+        getSystemStatus();
     </script>
 </body>
 </html>
