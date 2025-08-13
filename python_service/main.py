@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 '''
-XMRT Ecosystem Enhanced Python Service with Autonomous Inter-Agent Communication
-Integrates Eliza AI framework with DAO functionality and real autonomous agent communication
+XMRT Ecosystem Enhanced Python Service with AI Router and Autonomous Operations
+Integrates Eliza AI framework with DAO functionality for autonomous ecosystem management
 '''
 
 from flask import Flask, request, jsonify, render_template_string
@@ -9,21 +9,22 @@ from flask_cors import CORS
 import json
 import os
 import logging
-import threading
-from datetime import datetime, timedelta
-import requests
-import time
-import random
-import redis
-import asyncio
-from concurrent.futures import ThreadPoolExecutor
-
 # Enhanced Chat System Integration
 try:
     from enhanced_chat_system import create_enhanced_chat_routes, EnhancedXMRTChatSystem
     ENHANCED_CHAT_AVAILABLE = True
 except ImportError:
     ENHANCED_CHAT_AVAILABLE = False
+    logger = logging.getLogger(__name__)
+    logger.warning("Enhanced chat system not available")
+
+import threading
+from datetime import datetime, timedelta
+import requests
+import time
+import random
+import redis
+from pipedream_integration import create_pipedream_capability
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -56,7 +57,6 @@ class Config:
     # Autonomous Communication Settings
     AUTONOMOUS_COMMUNICATION_ENABLED = True
     AUTONOMOUS_DISCUSSION_INTERVAL = 300  # 5 minutes
-    MAX_DISCUSSION_ROUNDS = 3
 
 app.config.from_object(Config)
 
@@ -241,54 +241,6 @@ class AutonomousAgentCommunicator:
             })
         
         return discussion_messages
-    
-    def continue_autonomous_discussion(self, discussion_id, rounds=2):
-        """Continue an autonomous discussion for multiple rounds"""
-        if discussion_id not in self.active_discussions:
-            return []
-        
-        discussion = self.active_discussions[discussion_id]
-        new_messages = []
-        
-        for round_num in range(rounds):
-            logger.info(f"🔄 Discussion '{discussion['topic']}' - Round {round_num + 1}")
-            
-            # Each agent responds to the previous messages
-            for agent_id in discussion["participants"]:
-                # Generate contextual response based on previous messages
-                recent_context = discussion["topic"] + " - " + " ".join([msg["message"] for msg in discussion["messages"][-2:]])
-                response = self.generate_autonomous_response(agent_id, recent_context, discussion["participants"])
-                
-                message = {
-                    "agent_id": agent_id,
-                    "agent_name": self.agents[agent_id]["name"],
-                    "message": response,
-                    "timestamp": datetime.now().isoformat(),
-                    "discussion_id": discussion_id,
-                    "round": round_num + 1,
-                    "type": "autonomous_discussion"
-                }
-                
-                new_messages.append(message)
-                discussion["messages"].append(message)
-                
-                # Update agent context
-                self.agents[agent_id]["conversation_context"].append(message)
-                self.agents[agent_id]["last_communication"] = datetime.now().isoformat()
-                
-                # Add to global chat history
-                chat_history.append({
-                    'sender': message["agent_name"],
-                    'message': message["message"],
-                    'timestamp': message["timestamp"],
-                    'agent_id': message["agent_id"],
-                    'type': 'autonomous_discussion'
-                })
-                
-                # Small delay for realistic conversation flow
-                time.sleep(2)
-        
-        return new_messages
 
 # Initialize autonomous communicator
 autonomous_communicator = AutonomousAgentCommunicator()
@@ -412,8 +364,66 @@ if ENHANCED_CHAT_AVAILABLE:
         logger.error(f"Failed to initialize enhanced chat system: {e}")
         ENHANCED_CHAT_AVAILABLE = False
 
-# API Routes
+# Autonomous Communication Routes (with unique names to avoid conflicts)
 
+@app.route('/api/autonomous/trigger', methods=['POST'])
+def trigger_autonomous_discussion():
+    """Manually trigger an autonomous discussion"""
+    try:
+        data = request.get_json()
+        topic = data.get('topic', 'general ecosystem discussion')
+        
+        # Trigger autonomous discussion
+        messages = autonomous_communicator.initiate_autonomous_discussion(topic)
+        
+        return jsonify({
+            'success': True,
+            'topic': topic,
+            'initial_messages': len(messages),
+            'discussion_id': messages[0]['discussion_id'] if messages else None
+        })
+        
+    except Exception as e:
+        logger.error(f"Error triggering autonomous discussion: {e}")
+        return jsonify({'error': 'Internal server error'}), 500
+
+@app.route('/api/agents/status')
+def get_agents_status():
+    """Get status of all agents and autonomous system"""
+    try:
+        agent_statuses = {}
+        for agent_id, agent_data in autonomous_communicator.agents.items():
+            agent_statuses[agent_id] = {
+                'name': agent_data['name'],
+                'status': agent_data['status'],
+                'last_communication': agent_data['last_communication'],
+                'context_messages': len(agent_data['conversation_context'])
+            }
+        
+        return jsonify({
+            'agents': agent_statuses,
+            'active_discussions': len(autonomous_communicator.active_discussions),
+            'autonomous_communication_active': autonomous_state.get('autonomous_communication_active', False),
+            'total_messages': len(chat_history)
+        })
+        
+    except Exception as e:
+        logger.error(f"Error getting agent status: {e}")
+        return jsonify({'error': 'Internal server error'}), 500
+
+@app.route('/api/discussions/active')
+def get_active_discussions():
+    """Get active autonomous discussions"""
+    try:
+        return jsonify({
+            'discussions': autonomous_communicator.active_discussions,
+            'count': len(autonomous_communicator.active_discussions)
+        })
+    except Exception as e:
+        logger.error(f"Error getting active discussions: {e}")
+        return jsonify({'error': 'Internal server error'}), 500
+
+# Enhanced Dashboard Route
 @app.route('/')
 def index():
     """Main dashboard with autonomous communication features"""
@@ -522,7 +532,7 @@ def index():
             addMessageToChat('User', message, 'user');
             input.value = '';
             
-            // Send to API
+            // Send to API (use existing enhanced chat endpoint if available)
             fetch('/api/chat', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -553,13 +563,15 @@ def index():
         }
         
         function refreshChat() {
+            // Try enhanced chat history first, fallback to basic
             fetch('/api/chat/history')
             .then(response => response.json())
             .then(data => {
                 const chatContainer = document.getElementById('chatContainer');
                 chatContainer.innerHTML = '<div class="message autonomous"><strong>System:</strong> Autonomous communication system active.</div>';
                 
-                data.history.forEach(msg => {
+                const history = data.history || [];
+                history.forEach(msg => {
                     const type = msg.type === 'autonomous_discussion' ? 'autonomous' : 
                                msg.sender === 'User' ? 'user' : 'agent';
                     addMessageToChat(msg.sender, msg.message, type);
@@ -611,120 +623,6 @@ def index():
 </body>
 </html>
     ''')
-
-@app.route('/api/chat', methods=['POST'])
-def chat():
-    """Enhanced chat endpoint with autonomous discussion triggering"""
-    try:
-        data = request.get_json()
-        message = data.get('message', '')
-        
-        if not message:
-            return jsonify({'error': 'No message provided'}), 400
-        
-        # Add user message to history
-        chat_manager.add_message('User', message)
-        
-        # Determine which agent should respond
-        triggered_agents = autonomous_communicator.analyze_message_for_triggers(message)
-        primary_agent = triggered_agents[0] if triggered_agents else 'xmrt_community_manager'
-        
-        # Generate response
-        response = autonomous_communicator.generate_autonomous_response(
-            primary_agent, message, triggered_agents
-        )
-        
-        # Add agent response to history
-        agent_name = autonomous_communicator.agents[primary_agent]['name']
-        chat_manager.add_message(agent_name, response, primary_agent)
-        
-        return jsonify({
-            'response': response,
-            'agent': agent_name,
-            'agent_id': primary_agent,
-            'triggered_agents': triggered_agents
-        })
-        
-    except Exception as e:
-        logger.error(f"Error in chat endpoint: {e}")
-        return jsonify({'error': 'Internal server error'}), 500
-
-@app.route('/api/chat/history')
-def get_chat_history():
-    """Get chat history including autonomous discussions"""
-    try:
-        return jsonify({
-            'history': chat_history[-50:],  # Last 50 messages
-            'total_messages': len(chat_history)
-        })
-    except Exception as e:
-        logger.error(f"Error getting chat history: {e}")
-        return jsonify({'error': 'Internal server error'}), 500
-
-@app.route('/api/autonomous/trigger', methods=['POST'])
-def trigger_autonomous_discussion():
-    """Manually trigger an autonomous discussion"""
-    try:
-        data = request.get_json()
-        topic = data.get('topic', 'general ecosystem discussion')
-        
-        # Trigger autonomous discussion
-        messages = autonomous_communicator.initiate_autonomous_discussion(topic)
-        
-        # Continue discussion for a few rounds
-        if messages:
-            discussion_id = messages[0]['discussion_id']
-            threading.Thread(
-                target=lambda: autonomous_communicator.continue_autonomous_discussion(discussion_id, 2),
-                daemon=True
-            ).start()
-        
-        return jsonify({
-            'success': True,
-            'topic': topic,
-            'initial_messages': len(messages),
-            'discussion_id': messages[0]['discussion_id'] if messages else None
-        })
-        
-    except Exception as e:
-        logger.error(f"Error triggering autonomous discussion: {e}")
-        return jsonify({'error': 'Internal server error'}), 500
-
-@app.route('/api/agents/status')
-def get_agents_status():
-    """Get status of all agents and autonomous system"""
-    try:
-        agent_statuses = {}
-        for agent_id, agent_data in autonomous_communicator.agents.items():
-            agent_statuses[agent_id] = {
-                'name': agent_data['name'],
-                'status': agent_data['status'],
-                'last_communication': agent_data['last_communication'],
-                'context_messages': len(agent_data['conversation_context'])
-            }
-        
-        return jsonify({
-            'agents': agent_statuses,
-            'active_discussions': len(autonomous_communicator.active_discussions),
-            'autonomous_communication_active': autonomous_state.get('autonomous_communication_active', False),
-            'total_messages': len(chat_history)
-        })
-        
-    except Exception as e:
-        logger.error(f"Error getting agent status: {e}")
-        return jsonify({'error': 'Internal server error'}), 500
-
-@app.route('/api/discussions/active')
-def get_active_discussions():
-    """Get active autonomous discussions"""
-    try:
-        return jsonify({
-            'discussions': autonomous_communicator.active_discussions,
-            'count': len(autonomous_communicator.active_discussions)
-        })
-    except Exception as e:
-        logger.error(f"Error getting active discussions: {e}")
-        return jsonify({'error': 'Internal server error'}), 500
 
 # Health check endpoint
 @app.route('/health')
