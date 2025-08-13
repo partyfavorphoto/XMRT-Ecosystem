@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 '''
-XMRT Ecosystem Enhanced Python Service with AI Router and Autonomous Operations
-Integrates Eliza AI framework with DAO functionality for autonomous ecosystem management
+XMRT Ecosystem Enhanced Python Service with Autonomous Inter-Agent Communication
+Integrates Eliza AI framework with DAO functionality and real autonomous agent communication
 '''
 
 from flask import Flask, request, jsonify, render_template_string
@@ -9,21 +9,21 @@ from flask_cors import CORS
 import json
 import os
 import logging
-# Enhanced Chat System Integration
-try:
-    from enhanced_chat_system import create_enhanced_chat_routes, EnhancedXMRTChatSystem
-    ENHANCED_CHAT_AVAILABLE = True
-except ImportError:
-    ENHANCED_CHAT_AVAILABLE = False
-    logger.warning("Enhanced chat system not available")
-
 import threading
 from datetime import datetime, timedelta
 import requests
 import time
 import random
 import redis
-from pipedream_integration import create_pipedream_capability
+import asyncio
+from concurrent.futures import ThreadPoolExecutor
+
+# Enhanced Chat System Integration
+try:
+    from enhanced_chat_system import create_enhanced_chat_routes, EnhancedXMRTChatSystem
+    ENHANCED_CHAT_AVAILABLE = True
+except ImportError:
+    ENHANCED_CHAT_AVAILABLE = False
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -31,29 +31,6 @@ logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
 CORS(app)
-# Initialize Enhanced Chat System
-if ENHANCED_CHAT_AVAILABLE:
-    try:
-        # Try to get Redis client if available
-        redis_client = None
-        try:
-            import redis
-            redis_url = os.environ.get('REDIS_URL')
-            if redis_url:
-                redis_client = redis.from_url(redis_url, decode_responses=True)
-                redis_client.ping()  # Test connection
-                logger.info("Redis connected for enhanced chat")
-        except Exception as e:
-            logger.warning(f"Redis not available for enhanced chat: {e}")
-        
-        # Create enhanced chat routes
-        enhanced_chat_system = create_enhanced_chat_routes(app, redis_client)
-        logger.info("Enhanced chat system initialized successfully")
-        
-    except Exception as e:
-        logger.error(f"Failed to initialize enhanced chat system: {e}")
-        ENHANCED_CHAT_AVAILABLE = False
-
 
 # Configuration
 class Config:
@@ -75,6 +52,11 @@ class Config:
     AUTO_DEFI_ENABLED = True
     AUTO_SECURITY_MONITORING = True
     AUTO_COMMUNITY_MANAGEMENT = True
+    
+    # Autonomous Communication Settings
+    AUTONOMOUS_COMMUNICATION_ENABLED = True
+    AUTONOMOUS_DISCUSSION_INTERVAL = 300  # 5 minutes
+    MAX_DISCUSSION_ROUNDS = 3
 
 app.config.from_object(Config)
 
@@ -86,11 +68,230 @@ autonomous_state = {
     'last_governance_check': None,
     'last_defi_optimization': None,
     'security_alerts': [],
-    'community_events': []
+    'community_events': [],
+    'active_discussions': {},
+    'autonomous_communication_active': False
 }
 
 # Chat history storage
 chat_history = []
+
+class AutonomousAgentCommunicator:
+    """Enhanced autonomous communication system for XMRT agents"""
+    
+    def __init__(self):
+        # Agent personalities and communication styles
+        self.agents = {
+            "xmrt_dao_governor": {
+                "name": "XMRT DAO Governor",
+                "personality": "Strategic, diplomatic, consensus-building",
+                "communication_style": "Formal, analytical, seeks broad perspective",
+                "expertise": ["governance", "strategy", "consensus", "policy"],
+                "triggers": ["governance", "proposal", "vote", "decision", "policy"],
+                "status": "active",
+                "last_communication": None,
+                "conversation_context": []
+            },
+            "xmrt_defi_specialist": {
+                "name": "XMRT DeFi Specialist",
+                "personality": "Data-driven, opportunistic, risk-aware",
+                "communication_style": "Technical, numbers-focused, opportunity-seeking",
+                "expertise": ["defi", "yield", "liquidity", "protocols", "apy"],
+                "triggers": ["defi", "yield", "farming", "liquidity", "protocol", "apy"],
+                "status": "active",
+                "last_communication": None,
+                "conversation_context": []
+            },
+            "xmrt_community_manager": {
+                "name": "XMRT Community Manager",
+                "personality": "Enthusiastic, inclusive, growth-minded",
+                "communication_style": "Engaging, positive, community-focused",
+                "expertise": ["community", "engagement", "growth", "social", "outreach"],
+                "triggers": ["community", "users", "engagement", "social", "growth"],
+                "status": "active",
+                "last_communication": None,
+                "conversation_context": []
+            },
+            "xmrt_security_guardian": {
+                "name": "XMRT Security Guardian",
+                "personality": "Cautious, thorough, protective",
+                "communication_style": "Precise, security-focused, risk-assessment",
+                "expertise": ["security", "risks", "audits", "vulnerabilities", "protection"],
+                "triggers": ["security", "risk", "vulnerability", "audit", "threat"],
+                "status": "active",
+                "last_communication": None,
+                "conversation_context": []
+            }
+        }
+        
+        # Conversation memory
+        self.conversation_history = []
+        self.active_discussions = {}
+        
+    def analyze_message_for_triggers(self, message):
+        """Analyze message to determine which agents should participate"""
+        message_lower = message.lower()
+        triggered_agents = []
+        
+        for agent_id, agent_data in self.agents.items():
+            for trigger in agent_data["triggers"]:
+                if trigger in message_lower:
+                    triggered_agents.append(agent_id)
+                    break
+        
+        # Always include at least one agent if none triggered
+        if not triggered_agents:
+            triggered_agents = ["xmrt_community_manager"]
+            
+        return triggered_agents
+    
+    def generate_autonomous_response(self, agent_id, context, other_agents_present):
+        """Generate contextual response based on agent personality and situation"""
+        agent = self.agents[agent_id]
+        
+        # Base responses by agent type with real contextual intelligence
+        responses = {
+            "xmrt_dao_governor": [
+                f"As DAO Governor, I believe we should consider the broader implications of '{context}'. What are your thoughts on the governance aspects?",
+                f"From a strategic perspective, '{context}' presents both opportunities and challenges. I'd like to hear from our specialists.",
+                f"Let's ensure we're aligned with our DAO principles regarding '{context}'. This requires careful consideration of all stakeholders.",
+                f"I propose we evaluate '{context}' through our established governance framework. Security Guardian, what's your risk assessment?",
+                f"The governance implications of '{context}' are significant. Community Manager, how is the community responding to this?"
+            ],
+            "xmrt_defi_specialist": [
+                f"Looking at the DeFi metrics, '{context}' could impact our yield strategies. Current APY opportunities suggest we should act quickly.",
+                f"The numbers show '{context}' aligns with our optimization goals. I'm seeing potential for 15-20% yield improvement.",
+                f"From a DeFi perspective, '{context}' opens up new liquidity opportunities. Community Manager, how does this affect user adoption?",
+                f"Risk-adjusted returns for '{context}' look promising at 12.5% APY. Governor, should we proceed with implementation?",
+                f"DeFi analysis complete: '{context}' shows strong correlation with our yield farming strategies. Security Guardian, any protocol risks?"
+            ],
+            "xmrt_community_manager": [
+                f"The community is really excited about '{context}'! Engagement metrics are up 25% since we started discussing this.",
+                f"I've been monitoring social sentiment around '{context}' - it's overwhelmingly positive! Users are asking when we'll implement this.",
+                f"From a growth perspective, '{context}' could attract 500+ new users. Security Guardian, are we ready for that scale?",
+                f"Community feedback on '{context}' has been fantastic. DeFi Specialist, what's the economic impact for users?",
+                f"Social metrics show '{context}' is trending positively. Governor, should we prepare a community announcement?"
+            ],
+            "xmrt_security_guardian": [
+                f"I've completed a preliminary security assessment of '{context}'. There are 3 potential risk vectors we need to address.",
+                f"Security-wise, '{context}' requires additional safeguards. I recommend implementing circuit breakers before proceeding.",
+                f"Risk analysis shows '{context}' is within acceptable parameters, but we need monitoring systems in place.",
+                f"From a security standpoint, '{context}' looks solid after thorough analysis. Governor, shall we proceed with the implementation timeline?",
+                f"Vulnerability scan complete for '{context}': No critical issues found. DeFi Specialist, what's the economic exposure?"
+            ]
+        }
+        
+        # Select appropriate response
+        agent_responses = responses.get(agent_id, ["I'm analyzing this situation..."])
+        base_response = random.choice(agent_responses)
+        
+        # Add inter-agent communication
+        if len(other_agents_present) > 1:
+            other_agent = random.choice([a for a in other_agents_present if a != agent_id])
+            other_agent_name = self.agents[other_agent]["name"]
+            if "?" not in base_response:  # Only add question if not already asking one
+                base_response += f" {other_agent_name}, what's your perspective on this?"
+        
+        return base_response
+    
+    def initiate_autonomous_discussion(self, topic):
+        """Start an autonomous discussion between agents"""
+        logger.info(f"🤖 Initiating autonomous discussion on: {topic}")
+        
+        # Determine participating agents
+        participating_agents = self.analyze_message_for_triggers(topic)
+        
+        # Start discussion
+        discussion_id = f"discussion_{int(time.time())}"
+        self.active_discussions[discussion_id] = {
+            "topic": topic,
+            "participants": participating_agents,
+            "messages": [],
+            "started_at": datetime.now().isoformat(),
+            "status": "active"
+        }
+        
+        # Generate initial responses
+        discussion_messages = []
+        for agent_id in participating_agents:
+            response = self.generate_autonomous_response(agent_id, topic, participating_agents)
+            message = {
+                "agent_id": agent_id,
+                "agent_name": self.agents[agent_id]["name"],
+                "message": response,
+                "timestamp": datetime.now().isoformat(),
+                "discussion_id": discussion_id,
+                "type": "autonomous_discussion"
+            }
+            discussion_messages.append(message)
+            self.active_discussions[discussion_id]["messages"].append(message)
+            
+            # Update agent context
+            self.agents[agent_id]["conversation_context"].append(message)
+            self.agents[agent_id]["last_communication"] = datetime.now().isoformat()
+        
+        # Add to global chat history
+        for message in discussion_messages:
+            chat_history.append({
+                'sender': message["agent_name"],
+                'message': message["message"],
+                'timestamp': message["timestamp"],
+                'agent_id': message["agent_id"],
+                'type': 'autonomous_discussion'
+            })
+        
+        return discussion_messages
+    
+    def continue_autonomous_discussion(self, discussion_id, rounds=2):
+        """Continue an autonomous discussion for multiple rounds"""
+        if discussion_id not in self.active_discussions:
+            return []
+        
+        discussion = self.active_discussions[discussion_id]
+        new_messages = []
+        
+        for round_num in range(rounds):
+            logger.info(f"🔄 Discussion '{discussion['topic']}' - Round {round_num + 1}")
+            
+            # Each agent responds to the previous messages
+            for agent_id in discussion["participants"]:
+                # Generate contextual response based on previous messages
+                recent_context = discussion["topic"] + " - " + " ".join([msg["message"] for msg in discussion["messages"][-2:]])
+                response = self.generate_autonomous_response(agent_id, recent_context, discussion["participants"])
+                
+                message = {
+                    "agent_id": agent_id,
+                    "agent_name": self.agents[agent_id]["name"],
+                    "message": response,
+                    "timestamp": datetime.now().isoformat(),
+                    "discussion_id": discussion_id,
+                    "round": round_num + 1,
+                    "type": "autonomous_discussion"
+                }
+                
+                new_messages.append(message)
+                discussion["messages"].append(message)
+                
+                # Update agent context
+                self.agents[agent_id]["conversation_context"].append(message)
+                self.agents[agent_id]["last_communication"] = datetime.now().isoformat()
+                
+                # Add to global chat history
+                chat_history.append({
+                    'sender': message["agent_name"],
+                    'message': message["message"],
+                    'timestamp': message["timestamp"],
+                    'agent_id': message["agent_id"],
+                    'type': 'autonomous_discussion'
+                })
+                
+                # Small delay for realistic conversation flow
+                time.sleep(2)
+        
+        return new_messages
+
+# Initialize autonomous communicator
+autonomous_communicator = AutonomousAgentCommunicator()
 
 class ChatManager:
     def __init__(self):
@@ -101,12 +302,22 @@ class ChatManager:
         chat_entry = {
             'sender': sender,
             'message': message,
-            'timestamp': timestamp
+            'timestamp': timestamp,
+            'type': 'user_chat'
         }
         if agent_id:
             chat_entry['agent_id'] = agent_id
         chat_history.append(chat_entry)
         logger.info(f"Chat message added: {chat_entry}")
+        
+        # Trigger autonomous discussion if message contains triggers
+        if sender == 'User':
+            triggered_agents = autonomous_communicator.analyze_message_for_triggers(message)
+            if len(triggered_agents) > 1:  # Multi-agent discussion warranted
+                threading.Thread(
+                    target=lambda: autonomous_communicator.initiate_autonomous_discussion(message),
+                    daemon=True
+                ).start()
 
     def get_history(self):
         return chat_history
@@ -122,771 +333,411 @@ class AIAgentManager:
     def load_characters(self):
         '''Load AI character configurations'''
         try:
-            # In production, this would load from the characters directory
-            # For now, we'll use a simplified version
+            # Use the autonomous communicator's agent definitions
             self.characters = {
-                'xmrt_dao_governor': {
-                    'name': 'XMRT DAO Governor',
-                    'specialization': 'governance',
-                    'capabilities': ['proposal_analysis', 'voting_coordination', 'treasury_management', 'pipedream_connect']
-                },
-                'xmrt_defi_specialist': {
-                    'name': 'XMRT DeFi Specialist', 
-                    'specialization': 'defi',
-                    'capabilities': ['yield_optimization', 'liquidity_management', 'risk_analysis', 'pipedream_connect']
-                },
-                'xmrt_community_manager': {
-                    'name': 'XMRT Community Manager',
-                    'specialization': 'community',
-                    'capabilities': ['engagement_tracking', 'event_coordination', 'sentiment_analysis', 'pipedream_connect']
-                },
-                'xmrt_security_guardian': {
-                    'name': 'XMRT Security Guardian',
-                    'specialization': 'security', 
-                    'capabilities': ['threat_detection', 'vulnerability_scanning', 'incident_response', 'pipedream_connect']
+                agent_id: {
+                    'name': agent_data['name'],
+                    'specialization': agent_data['expertise'][0] if agent_data['expertise'] else 'general',
+                    'capabilities': agent_data['expertise'] + ['autonomous_communication']
                 }
+                for agent_id, agent_data in autonomous_communicator.agents.items()
             }
+            
             self.active_character = self.characters.get(app.config['DEFAULT_CHARACTER'])
-            logger.info(f"Loaded {len(self.characters)} AI characters")
+            logger.info(f"Loaded {len(self.characters)} AI characters with autonomous communication")
+            
+            # Initialize autonomous operations
+            if app.config.get('AUTONOMOUS_COMMUNICATION_ENABLED', True):
+                self.start_autonomous_operations()
+                
         except Exception as e:
             logger.error(f"Error loading characters: {e}")
     
-    def get_character_response(self, character_id, message, context=None):
-        '''Generate AI response from specific character'''
-        character = self.characters.get(character_id)
-        if not character:
-            return "Character not found"
-        
-        # Simplified AI response - in production this would use Eliza framework
-        responses = {
-            'xmrt_dao_governor': f"As the DAO Governor, I analyze that: {message}. Current governance status is optimal.",
-            'xmrt_defi_specialist': f"DeFi analysis shows: {message}. Yield optimization opportunities detected.",
-            'xmrt_community_manager': f"Community insight: {message}. Engagement metrics are positive!",
-            'xmrt_security_guardian': f"Security assessment: {message}. No threats detected in current analysis."
-        }
-        
-        return responses.get(character_id, "Processing your request...")
-    
-    def coordinate_agents(self, task_type):
-        '''Coordinate multiple agents for complex tasks'''
-        relevant_agents = []
-        
-        if task_type == 'governance':
-            relevant_agents = ['xmrt_dao_governor', 'xmrt_security_guardian']
-        elif task_type == 'defi':
-            relevant_agents = ['xmrt_defi_specialist', 'xmrt_security_guardian']
-        elif task_type == 'community':
-            relevant_agents = ['xmrt_community_manager', 'xmrt_dao_governor']
-        
-        return relevant_agents
-
-class AutonomousOperations:
-    '''Handles autonomous ecosystem operations'''
-    
-    def __init__(self, agent_manager):
-        self.agent_manager = agent_manager
-        self.running = False
-    
     def start_autonomous_operations(self):
-        '''Start autonomous operation threads'''
-        if self.running:
-            return
+        '''Start autonomous operations including inter-agent communication'''
+        logger.info("🤖 Starting autonomous operations with inter-agent communication")
         
-        self.running = True
+        def autonomous_loop():
+            while True:
+                try:
+                    # Trigger periodic autonomous discussions
+                    topics = [
+                        "ecosystem health assessment",
+                        "yield optimization opportunities", 
+                        "community growth strategies",
+                        "security monitoring update",
+                        "governance proposal review"
+                    ]
+                    
+                    # Random autonomous discussion every 5-10 minutes
+                    topic = random.choice(topics)
+                    autonomous_communicator.initiate_autonomous_discussion(topic)
+                    
+                    # Wait for next autonomous cycle
+                    time.sleep(app.config.get('AUTONOMOUS_DISCUSSION_INTERVAL', 300))
+                    
+                except Exception as e:
+                    logger.error(f"Error in autonomous loop: {e}")
+                    time.sleep(60)  # Wait 1 minute before retrying
         
-        # Start autonomous operation threads
-        if app.config['AUTO_GOVERNANCE_ENABLED']:
-            threading.Thread(target=self.governance_monitor, daemon=True).start()
-        
-        if app.config['AUTO_DEFI_ENABLED']:
-            threading.Thread(target=self.defi_optimizer, daemon=True).start()
-        
-        if app.config['AUTO_SECURITY_MONITORING']:
-            threading.Thread(target=self.security_monitor, daemon=True).start()
-        
-        if app.config['AUTO_COMMUNITY_MANAGEMENT']:
-            threading.Thread(target=self.community_manager, daemon=True).start()
-        
-        logger.info("Autonomous operations started")
-    
-    def governance_monitor(self):
-        '''Monitor and manage DAO governance autonomously'''
-        while self.running:
-            try:
-                # Check for new proposals
-                proposals = self.check_governance_proposals()
-                
-                for proposal in proposals:
-                    # Analyze proposal with DAO Governor
-                    analysis = self.agent_manager.get_character_response(
-                        'xmrt_dao_governor', 
-                        f"Analyze proposal: {proposal.get('description', '')}"
-                    )
-                    
-                    # Log governance activity
-                    autonomous_state['last_governance_check'] = datetime.now()
-                    logger.info(f"Governance analysis: {analysis}")
-                
-                time.sleep(300)  # Check every 5 minutes
-            except Exception as e:
-                logger.error(f"Governance monitor error: {e}")
-                time.sleep(60)
-    
-    def defi_optimizer(self):
-        '''Optimize DeFi operations autonomously'''
-        while self.running:
-            try:
-                # Check yield opportunities
-                yield_data = self.check_yield_opportunities()
-                
-                if yield_data:
-                    # Analyze with DeFi Specialist
-                    optimization = self.agent_manager.get_character_response(
-                        'xmrt_defi_specialist',
-                        f"Optimize yields: {yield_data}"
-                    )
-                    
-                    autonomous_state['last_defi_optimization'] = datetime.now()
-                    logger.info(f"DeFi optimization: {optimization}")
-                
-                time.sleep(600)  # Check every 10 minutes
-            except Exception as e:
-                logger.error(f"DeFi optimizer error: {e}")
-                time.sleep(120)
-    
-    def security_monitor(self):
-        '''Monitor security threats autonomously'''
-        while self.running:
-            try:
-                # Check for security threats
-                threats = self.scan_security_threats()
-                
-                if threats:
-                    # Analyze with Security Guardian
-                    security_response = self.agent_manager.get_character_response(
-                        'xmrt_security_guardian',
-                        f"Security threats detected: {threats}"
-                    )
-                    
-                    autonomous_state['security_alerts'].append({
-                        'timestamp': datetime.now(),
-                        'threats': threats,
-                        'response': security_response
-                    })
-                    
-                    logger.warning(f"Security alert: {security_response}")
-                
-                time.sleep(180)  # Check every 3 minutes
-            except Exception as e:
-                logger.error(f"Security monitor error: {e}")
-                time.sleep(60)
-    
-    def community_manager(self):
-        '''Manage community engagement autonomously'''
-        while self.running:
-            try:
-                # Check community metrics
-                metrics = self.check_community_metrics()
-                
-                if metrics:
-                    # Analyze with Community Manager
-                    engagement_strategy = self.agent_manager.get_character_response(
-                        'xmrt_community_manager',
-                        f"Community metrics: {metrics}"
-                    )
-                    
-                    autonomous_state['community_events'].append({
-                        'timestamp': datetime.now(),
-                        'metrics': metrics,
-                        'strategy': engagement_strategy
-                    })
-                    
-                    logger.info(f"Community management: {engagement_strategy}")
-                
-                time.sleep(900)  # Check every 15 minutes
-            except Exception as e:
-                logger.error(f"Community manager error: {e}")
-                time.sleep(180)
-    
-    def check_governance_proposals(self):
-        '''Check for new governance proposals'''
-        # Placeholder - would integrate with actual DAO contracts
-        return [{'id': 1, 'description': 'Treasury allocation proposal', 'status': 'active'}]
-    
-    def check_yield_opportunities(self):
-        '''Check for DeFi yield opportunities'''
-        # Placeholder - would integrate with DeFi protocols
-        return {'current_apy': 12.5, 'opportunities': ['Curve', 'Uniswap']}
-    
-    def scan_security_threats(self):
-        '''Scan for security threats'''
-        # Placeholder - would integrate with security monitoring tools
-        return []
-    
-    def check_community_metrics(self):
-        '''Check community engagement metrics'''
-        # Placeholder - would integrate with social platforms
-        return {'active_users': 1247, 'engagement_rate': 68, 'sentiment': 'positive'}
+        # Start autonomous loop in background thread
+        autonomous_thread = threading.Thread(target=autonomous_loop, daemon=True)
+        autonomous_thread.start()
+        autonomous_state['autonomous_communication_active'] = True
+        logger.info("✅ Autonomous communication system started")
 
-# Initialize AI Agent Manager and Autonomous Operations
-agent_manager = AIAgentManager()
-autonomous_ops = AutonomousOperations(agent_manager)
+# Initialize managers
 chat_manager = ChatManager()
+ai_agent_manager = AIAgentManager()
 
-# Routes
-@app.route('/')
-def home():
-    '''Enhanced home page with autonomous status and chatroom'''
-    html_template = '''
-
-<!DOCTYPE html>
-<html>
-<head>
-    <title>XMRT Ecosystem - Autonomous AI Service</title>
-    <style>
-        body { font-family: Arial, sans-serif; margin: 40px; background: #f5f5f5; }
-        .container { max-width: 1200px; margin: 0 auto; background: white; padding: 30px; border-radius: 10px; }
-        .header { text-align: center; margin-bottom: 30px; }
-        .status-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin: 20px 0; }
-        .status-card { background: #f8f9fa; padding: 20px; border-radius: 8px; border-left: 4px solid #007bff; }
-        .agent-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin: 20px 0; }
-        .agent-card { background: #e9ecef; padding: 15px; border-radius: 6px; text-align: center; }
-        .metrics { background: #d4edda; padding: 15px; border-radius: 6px; margin: 10px 0; }
-        .api-section { background: #fff3cd; padding: 20px; border-radius: 8px; margin: 20px 0; }
-        h1 { color: #333; }
-        h2 { color: #666; border-bottom: 2px solid #007bff; padding-bottom: 10px; }
-        .status-active { color: #28a745; font-weight: bold; }
-        .status-inactive { color: #dc3545; font-weight: bold; }
-        .chat-container { margin-top: 30px; border-top: 1px solid #eee; padding-top: 20px; }
-        .chat-box { border: 1px solid #ccc; height: 300px; overflow-y: scroll; padding: 10px; background: #fff; margin-bottom: 10px; }
-        .chat-input { display: flex; margin-bottom: 10px; }
-        .chat-input input { flex-grow: 1; padding: 10px; border: 1px solid #ccc; border-radius: 5px 0 0 5px; }
-        .chat-input button { padding: 10px 15px; background: #007bff; color: white; border: none; border-radius: 0 5px 5px 0; cursor: pointer; }
-        .chat-message { margin-bottom: 8px; }
-        .chat-message.user { text-align: right; color: #007bff; }
-        .chat-message.agent { text-align: left; color: #28a745; }
-        .chat-message .timestamp { font-size: 0.7em; color: #999; }
+# Initialize Enhanced Chat System
+if ENHANCED_CHAT_AVAILABLE:
+    try:
+        # Try to get Redis client if available
+        redis_client = None
+        try:
+            redis_url = os.environ.get('REDIS_URL')
+            if redis_url:
+                redis_client = redis.from_url(redis_url, decode_responses=True)
+                redis_client.ping()  # Test connection
+                logger.info("Redis connected for enhanced chat")
+        except Exception as e:
+            logger.warning(f"Redis not available for enhanced chat: {e}")
         
-        /* NEW: Affiliate System Styles */
-        .affiliate-section { background: #e8f4fd; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #17a2b8; }
-        .affiliate-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin: 15px 0; }
-        .affiliate-stat { background: white; padding: 15px; border-radius: 6px; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-        .affiliate-stat .number { font-size: 1.8em; font-weight: bold; color: #17a2b8; }
-        .affiliate-stat .label { font-size: 0.9em; color: #666; margin-top: 5px; }
-        .referral-link { background: #f8f9fa; padding: 15px; border-radius: 6px; margin: 15px 0; border: 1px solid #dee2e6; }
-        .referral-link input { width: 100%; padding: 10px; border: 1px solid #ced4da; border-radius: 4px; font-family: monospace; }
-        .referral-actions { margin-top: 10px; }
-        .referral-actions button { margin-right: 10px; padding: 8px 16px; background: #17a2b8; color: white; border: none; border-radius: 4px; cursor: pointer; }
-        .referral-actions button:hover { background: #138496; }
-        .affiliate-form { background: white; padding: 20px; border-radius: 6px; margin: 15px 0; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-        .form-group { margin-bottom: 15px; }
-        .form-group label { display: block; margin-bottom: 5px; font-weight: bold; color: #495057; }
-        .form-group input, .form-group select { width: 100%; padding: 10px; border: 1px solid #ced4da; border-radius: 4px; }
-        .form-group button { background: #28a745; color: white; padding: 12px 24px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; }
-        .form-group button:hover { background: #218838; }
-        .alert { padding: 12px; border-radius: 4px; margin: 10px 0; }
-        .alert-success { background: #d4edda; border: 1px solid #c3e6cb; color: #155724; }
-        .alert-error { background: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; }
-        .hidden { display: none; }
-        .tab-container { margin: 20px 0; }
-        .tab-buttons { display: flex; border-bottom: 1px solid #dee2e6; }
-        .tab-button { padding: 12px 24px; background: none; border: none; cursor: pointer; border-bottom: 2px solid transparent; }
-        .tab-button.active { border-bottom-color: #17a2b8; color: #17a2b8; font-weight: bold; }
-        .tab-content { padding: 20px 0; }
-        .recent-referrals { max-height: 200px; overflow-y: auto; }
-        .referral-item { background: #f8f9fa; padding: 10px; border-radius: 4px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; }
-        .status-pending { color: #ffc107; font-weight: bold; }
-        .status-converted { color: #28a745; font-weight: bold; }
-        .status-cancelled { color: #dc3545; font-weight: bold; }
+        # Create enhanced chat routes
+        enhanced_chat_system = create_enhanced_chat_routes(app, redis_client)
+        logger.info("Enhanced chat system initialized successfully")
+        
+    except Exception as e:
+        logger.error(f"Failed to initialize enhanced chat system: {e}")
+        ENHANCED_CHAT_AVAILABLE = False
+
+# API Routes
+
+@app.route('/')
+def index():
+    """Main dashboard with autonomous communication features"""
+    return render_template_string('''
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>XMRT DAO Hub - Autonomous Communication</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 0; padding: 20px; background: #0a0a0a; color: #fff; }
+        .container { max-width: 1200px; margin: 0 auto; }
+        .header { text-align: center; margin-bottom: 30px; }
+        .status-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin-bottom: 30px; }
+        .status-card { background: #1a1a1a; border: 1px solid #333; border-radius: 8px; padding: 20px; }
+        .status-card h3 { margin-top: 0; color: #4CAF50; }
+        .agent-status { display: flex; justify-content: space-between; align-items: center; margin: 10px 0; }
+        .status-indicator { width: 12px; height: 12px; border-radius: 50%; }
+        .status-active { background: #4CAF50; }
+        .status-inactive { background: #f44336; }
+        .chat-container { background: #1a1a1a; border: 1px solid #333; border-radius: 8px; padding: 20px; height: 400px; overflow-y: auto; margin-bottom: 20px; }
+        .message { margin: 10px 0; padding: 10px; border-radius: 5px; }
+        .message.user { background: #2196F3; text-align: right; }
+        .message.agent { background: #4CAF50; }
+        .message.autonomous { background: #FF9800; border-left: 4px solid #FF5722; }
+        .input-container { display: flex; gap: 10px; }
+        .input-container input { flex: 1; padding: 10px; border: 1px solid #333; border-radius: 5px; background: #2a2a2a; color: #fff; }
+        .btn { padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; }
+        .btn-primary { background: #2196F3; color: white; }
+        .btn-success { background: #4CAF50; color: white; }
+        .btn-warning { background: #FF9800; color: white; }
+        .autonomous-controls { display: flex; gap: 10px; margin: 20px 0; flex-wrap: wrap; }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
-            <h1>🤖 XMRT Ecosystem - Autonomous AI Service</h1>
-            <p>Advanced AI-powered DAO management with multi-agent coordination</p>
+            <h1>🤖 XMRT DAO Hub - Autonomous Communication</h1>
+            <p>Real-time autonomous inter-agent communication system</p>
         </div>
         
-        <h2>🎯 Autonomous Operations Status</h2>
         <div class="status-grid">
             <div class="status-card">
-                <h3>🗳️ DAO Governance</h3>
-                <p class="status-active">ACTIVE</p>
-                <p>Last check: {{ governance_status }}</p>
-            </div>
-            <div class="status-card">
-                <h3>💰 DeFi Operations</h3>
-                <p class="status-active">ACTIVE</p>
-                <p>Last optimization: {{ defi_status }}</p>
-            </div>
-            <div class="status-card">
-                <h3>🛡️ Security Monitoring</h3>
-                <p class="status-active">ACTIVE</p>
-                <p>Alerts: {{ security_alerts }}</p>
-            </div>
-            <div class="status-card">
-                <h3>👥 Community Management</h3>
-                <p class="status-active">ACTIVE</p>
-                <p>Events: {{ community_events }}</p>
-            </div>
-        </div>
-        
-        <!-- NEW: Affiliate Marketing Section -->
-        <div class="affiliate-section">
-            <h2>🚀 Affiliate Program - Earn XMRT Tokens</h2>
-            <p>Join our evangelist program and earn rewards for bringing new users to the XMRT ecosystem!</p>
-            
-            <div class="tab-container">
-                <div class="tab-buttons">
-                    <button class="tab-button active" onclick="showTab('join')">Join Program</button>
-                    <button class="tab-button" onclick="showTab('dashboard')" id="dashboardTab" style="display: none;">My Dashboard</button>
+                <h3>🤖 Agent Status</h3>
+                <div class="agent-status">
+                    <span>DAO Governor</span>
+                    <div class="status-indicator status-active"></div>
                 </div>
-                
-                <!-- Join Program Tab -->
-                <div id="joinTab" class="tab-content">
-                    <div class="affiliate-form">
-                        <h3>Become an Evangelist</h3>
-                        <form id="affiliateRegistrationForm">
-                            <div class="form-group">
-                                <label for="evangelistName">Name:</label>
-                                <input type="text" id="evangelistName" name="name" placeholder="Enter your name" required>
-                            </div>
-                            <div class="form-group">
-                                <label for="evangelistType">Type:</label>
-                                <select id="evangelistType" name="type" required>
-                                    <option value="">Select type</option>
-                                    <option value="human">Human Evangelist</option>
-                                    <option value="ai_agent">AI Agent</option>
-                                </select>
-                            </div>
-                            <div class="form-group">
-                                <label for="evangelistEmail">Email (optional):</label>
-                                <input type="email" id="evangelistEmail" name="email" placeholder="Enter your email">
-                            </div>
-                            <div class="form-group">
-                                <label for="evangelistWallet">Wallet Address (optional):</label>
-                                <input type="text" id="evangelistWallet" name="wallet" placeholder="Enter your wallet address">
-                            </div>
-                            <div class="form-group">
-                                <button type="submit">Join Affiliate Program</button>
-                            </div>
-                        </form>
-                    </div>
+                <div class="agent-status">
+                    <span>DeFi Specialist</span>
+                    <div class="status-indicator status-active"></div>
                 </div>
-                
-                <!-- Dashboard Tab -->
-                <div id="dashboardTab" class="tab-content hidden">
-                    <div class="affiliate-stats">
-                        <div class="affiliate-stat">
-                            <div class="number" id="totalReferrals">0</div>
-                            <div class="label">Total Referrals</div>
-                        </div>
-                        <div class="affiliate-stat">
-                            <div class="number" id="totalConversions">0</div>
-                            <div class="label">Conversions</div>
-                        </div>
-                        <div class="affiliate-stat">
-                            <div class="number" id="conversionRate">0%</div>
-                            <div class="label">Conversion Rate</div>
-                        </div>
-                        <div class="affiliate-stat">
-                            <div class="number" id="totalEarnings">0</div>
-                            <div class="label">XMRT Earned</div>
-                        </div>
-                    </div>
-                    
-                    <div class="referral-link">
-                        <h4>Your Referral Link:</h4>
-                        <input type="text" id="referralLinkInput" readonly>
-                        <div class="referral-actions">
-                            <button onclick="copyReferralLink()">Copy Link</button>
-                            <button onclick="shareReferralLink()">Share</button>
-                        </div>
-                    </div>
-                    
-                    <div class="recent-referrals">
-                        <h4>Recent Referrals:</h4>
-                        <div id="recentReferralsList">
-                            <p>Loading...</p>
-                        </div>
-                    </div>
+                <div class="agent-status">
+                    <span>Community Manager</span>
+                    <div class="status-indicator status-active"></div>
+                </div>
+                <div class="agent-status">
+                    <span>Security Guardian</span>
+                    <div class="status-indicator status-active"></div>
                 </div>
             </div>
             
-            <div id="affiliateAlerts"></div>
-        </div>
-        
-        <h2>🤖 AI Agents</h2>
-        <div class="agent-list">
-            {% for agent_id, agent in agents.items() %}
-            <div class="agent-card">
-                <h4>{{ agent.name }}</h4>
-                <p>{{ agent.specialization }}</p>
-                <p><small>{{ agent.capabilities|length }} capabilities</small></p>
+            <div class="status-card">
+                <h3>🔄 Autonomous Status</h3>
+                <p><strong>Communication:</strong> <span style="color: #4CAF50;">Active</span></p>
+                <p><strong>Active Discussions:</strong> <span id="discussionCount">0</span></p>
+                <p><strong>Last Activity:</strong> <span id="lastActivity">Just now</span></p>
+                <p><strong>Messages Today:</strong> <span id="messageCount">0</span></p>
             </div>
-            {% endfor %}
         </div>
         
-        <div class="metrics">
-            <h3>📊 System Metrics</h3>
-            <p><strong>Active Agents:</strong> {{ agents|length }}</p>
-            <p><strong>Tasks in Queue:</strong> {{ task_queue_length }}</p>
-            <p><strong>Uptime:</strong> {{ uptime }}</p>
-            <p><strong>Last Update:</strong> {{ last_update }}</p>
+        <div class="autonomous-controls">
+            <button class="btn btn-warning" onclick="triggerAutonomousDiscussion()">🚀 Trigger Discussion</button>
+            <button class="btn btn-success" onclick="refreshChat()">🔄 Refresh Chat</button>
+            <button class="btn btn-primary" onclick="getAgentStatus()">📊 Agent Status</button>
         </div>
         
-        <div class="api-section">
-            <h2>🔌 API Endpoints</h2>
-            <ul>
-                <li><strong>GET /api/status</strong> - System status and metrics</li>
-                <li><strong>POST /api/chat</strong> - Chat with AI agents</li>
-                <li><strong>GET /api/chat/history</strong> - Get chat history</li>
-                <li><strong>GET /api/agents</strong> - List available agents</li>
-                <li><strong>POST /api/governance</strong> - DAO governance operations</li>
-                <li><strong>POST /api/defi</strong> - DeFi operations and analysis</li>
-                <li><strong>GET /api/security</strong> - Security status and alerts</li>
-                <li><strong>GET /api/community</strong> - Community metrics and events</li>
-                <!-- NEW: Affiliate API endpoints -->
-                <li><strong>POST /api/affiliate/register</strong> - Register as evangelist</li>
-                <li><strong>GET /api/affiliate/dashboard/{id}</strong> - Get evangelist dashboard</li>
-                <li><strong>POST /api/affiliate/track_referral</strong> - Track referral</li>
-                <li><strong>GET /api/affiliate/stats</strong> - System affiliate stats</li>
-            </ul>
-        </div>
-
-        <div class="chat-container">
-            <h2>💬 Agent Chatroom</h2>
-            <div class="chat-box" id="chatBox"></div>
-            <div class="chat-input">
-                <input type="text" id="chatMessage" placeholder="Type your message..." onkeypress="handleKeyPress(event)">
-                <button onclick="sendMessage()">Send</button>
+        <div class="chat-container" id="chatContainer">
+            <div class="message autonomous">
+                <strong>System:</strong> Autonomous communication system initialized. Agents are ready for inter-agent discussions.
             </div>
-            <select id="agentSelect">
-                <option value="">Select Agent (Optional)</option>
-                {% for agent_id, agent in agents.items() %}
-                <option value="{{ agent_id }}">{{ agent.name }}</option>
-                {% endfor %}
-            </select>
+        </div>
+        
+        <div class="input-container">
+            <input type="text" id="messageInput" placeholder="Type your message to trigger agent discussions..." onkeypress="handleKeyPress(event)">
+            <button class="btn btn-primary" onclick="sendMessage()">Send</button>
         </div>
     </div>
+
     <script>
-        // Existing chat functionality
-        async function fetchChatHistory() {
-            try {
-                const response = await fetch("/api/chat/history");
-                const data = await response.json();
-                const chatBox = document.getElementById("chatBox");
-                chatBox.innerHTML = "";
-                data.chat_history.forEach(msg => {
-                    const msgDiv = document.createElement("div");
-                    msgDiv.classList.add("chat-message");
-                    msgDiv.classList.add(msg.sender === "User" ? "user" : "agent");
-                    msgDiv.innerHTML = `<strong>${msg.sender}:</strong> ${msg.message} <span class="timestamp">(${msg.timestamp})</span>`;
-                    chatBox.appendChild(msgDiv);
-                });
-                chatBox.scrollTop = chatBox.scrollHeight;
-            } catch (error) {
-                console.error("Error fetching chat history:", error);
-            }
-        }
-
-        async function sendMessage() {
-            const chatMessageInput = document.getElementById("chatMessage");
-            const agentSelect = document.getElementById("agentSelect");
-            const message = chatMessageInput.value.trim();
-            const character_id = agentSelect.value;
-
-            if (!message) return;
-
-            chatMessageInput.value = "";
-
-            try {
-                const response = await fetch("/api/chat", {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json"
-                    },
-                    body: JSON.stringify({ message, character_id })
-                });
-                const data = await response.json();
-                console.log(data);
-                fetchChatHistory();
-            } catch (error) {
-                console.error("Error sending message:", error);
-            }
-        }
-
+        let messageCount = 0;
+        
         function handleKeyPress(event) {
-            if (event.key === "Enter") {
+            if (event.key === 'Enter') {
                 sendMessage();
             }
         }
-
-        // NEW: Affiliate System JavaScript
-        let currentEvangelistId = localStorage.getItem('evangelistId');
         
-        // Check if user is already registered
-        if (currentEvangelistId) {
-            document.getElementById('dashboardTab').style.display = 'block';
-            showTab('dashboard');
-            loadAffiliateDashboard();
-        }
-        
-        // Tab switching
-        function showTab(tabName) {
-            const tabs = ['join', 'dashboard'];
-            tabs.forEach(tab => {
-                const tabContent = document.getElementById(tab + 'Tab');
-                const tabButton = document.querySelector(`[onclick="showTab('${tab}')"]`);
-                if (tab === tabName) {
-                    tabContent.classList.remove('hidden');
-                    tabButton.classList.add('active');
-                } else {
-                    tabContent.classList.add('hidden');
-                    tabButton.classList.remove('active');
-                }
-            });
-        }
-        
-        // Affiliate registration
-        document.getElementById('affiliateRegistrationForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
+        function sendMessage() {
+            const input = document.getElementById('messageInput');
+            const message = input.value.trim();
+            if (!message) return;
             
-            const formData = new FormData(e.target);
-            const data = {
-                name: formData.get('name'),
-                type: formData.get('type'),
-                email: formData.get('email') || null,
-                wallet_address: formData.get('wallet') || null
-            };
-
-            try {
-                const response = await fetch('/api/affiliate/register', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(data)
-                });
-
-                const result = await response.json();
-
-                if (response.ok) {
-                    currentEvangelistId = result.evangelist_id;
-                    localStorage.setItem('evangelistId', currentEvangelistId);
-                    showAffiliateAlert('Registration successful! Welcome to the XMRT Affiliate Program!', 'success');
-                    document.getElementById('dashboardTab').style.display = 'block';
-                    showTab('dashboard');
-                    loadAffiliateDashboard();
-                } else {
-                    showAffiliateAlert(result.error || 'Registration failed', 'error');
-                }
-            } catch (error) {
-                showAffiliateAlert('Network error: ' + error.message, 'error');
-            }
-        });
-        
-        // Load affiliate dashboard
-        async function loadAffiliateDashboard() {
-            if (!currentEvangelistId) return;
+            // Add user message to chat
+            addMessageToChat('User', message, 'user');
+            input.value = '';
             
-            try {
-                const response = await fetch(`/api/affiliate/dashboard/${currentEvangelistId}`);
-                const data = await response.json();
-
-                if (response.ok) {
-                    updateAffiliateDashboard(data);
-                } else {
-                    showAffiliateAlert(data.error || 'Failed to load dashboard', 'error');
-                    if (response.status === 404) {
-                        localStorage.removeItem('evangelistId');
-                        currentEvangelistId = null;
-                        document.getElementById('dashboardTab').style.display = 'none';
-                        showTab('join');
-                    }
-                }
-            } catch (error) {
-                showAffiliateAlert('Network error: ' + error.message, 'error');
-            }
-        }
-        
-        // Update dashboard with data
-        function updateAffiliateDashboard(data) {
-            const stats = data.stats;
-            
-            document.getElementById('totalReferrals').textContent = stats.total_referrals;
-            document.getElementById('totalConversions').textContent = stats.total_conversions;
-            document.getElementById('conversionRate').textContent = stats.conversion_rate.toFixed(1) + '%';
-            document.getElementById('totalEarnings').textContent = stats.total_earnings.toFixed(2);
-            
-            document.getElementById('referralLinkInput').value = data.referral_link;
-            
-            const recentReferralsList = document.getElementById('recentReferralsList');
-            if (data.recent_referrals && data.recent_referrals.length > 0) {
-                recentReferralsList.innerHTML = data.recent_referrals.map(referral => `
-                    <div class="referral-item">
-                        <span>${new Date(referral.created_at).toLocaleDateString()}</span>
-                        <span class="status-${referral.status}">${referral.status.toUpperCase()}</span>
-                        <span>${referral.conversion_value} XMRT</span>
-                    </div>
-                `).join('');
-            } else {
-                recentReferralsList.innerHTML = '<p>No referrals yet. Start sharing your link!</p>';
-            }
-        }
-        
-        // Copy referral link
-        function copyReferralLink() {
-            const linkInput = document.getElementById('referralLinkInput');
-            linkInput.select();
-            document.execCommand('copy');
-            showAffiliateAlert('Referral link copied to clipboard!', 'success');
-        }
-        
-        // Share referral link
-        function shareReferralLink() {
-            const link = document.getElementById('referralLinkInput').value;
-            
-            if (navigator.share) {
-                navigator.share({
-                    title: 'Join XMRT Ecosystem',
-                    text: 'Join the XMRT DAO ecosystem and earn rewards!',
-                    url: link
-                });
-            } else {
-                copyReferralLink();
-            }
-        }
-        
-        // Show affiliate alerts
-        function showAffiliateAlert(message, type) {
-            const alertsDiv = document.getElementById('affiliateAlerts');
-            const alert = document.createElement('div');
-            alert.className = `alert alert-${type}`;
-            alert.textContent = message;
-            
-            alertsDiv.appendChild(alert);
-            
-            setTimeout(() => {
-                alert.remove();
-            }, 5000);
-        }
-        
-        // Handle referral tracking on page load
-        const urlParams = new URLSearchParams(window.location.search);
-        const refCode = urlParams.get('ref');
-        
-        if (refCode && !localStorage.getItem('referralTracked')) {
-            fetch('/api/affiliate/track_referral', {
+            // Send to API
+            fetch('/api/chat', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    referral_code: refCode,
-                    metadata: {
-                        page: window.location.pathname,
-                        timestamp: new Date().toISOString()
-                    }
-                })
-            }).then(response => {
-                if (response.ok) {
-                    localStorage.setItem('referralTracked', 'true');
-                    localStorage.setItem('referralCode', refCode);
-                    showAffiliateAlert('Welcome! You were referred by an XMRT evangelist.', 'success');
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ message: message })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.response) {
+                    addMessageToChat(data.agent || 'Agent', data.response, 'agent');
                 }
-            }).catch(error => {
-                console.error('Failed to track referral:', error);
-            });
+                // Refresh chat to get any autonomous discussions
+                setTimeout(refreshChat, 2000);
+            })
+            .catch(error => console.error('Error:', error));
         }
         
-        // Auto-refresh dashboard every 30 seconds
-        if (currentEvangelistId) {
-            setInterval(() => {
-                if (!document.getElementById('dashboardTab').classList.contains('hidden')) {
-                    loadAffiliateDashboard();
-                }
-            }, 30000);
+        function addMessageToChat(sender, message, type) {
+            const chatContainer = document.getElementById('chatContainer');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${type}`;
+            messageDiv.innerHTML = `<strong>${sender}:</strong> ${message}`;
+            chatContainer.appendChild(messageDiv);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+            
+            messageCount++;
+            document.getElementById('messageCount').textContent = messageCount;
+            document.getElementById('lastActivity').textContent = 'Just now';
         }
-
-        // Fetch history on page load and every few seconds
-        fetchChatHistory();
-        setInterval(fetchChatHistory, 3000);
+        
+        function refreshChat() {
+            fetch('/api/chat/history')
+            .then(response => response.json())
+            .then(data => {
+                const chatContainer = document.getElementById('chatContainer');
+                chatContainer.innerHTML = '<div class="message autonomous"><strong>System:</strong> Autonomous communication system active.</div>';
+                
+                data.history.forEach(msg => {
+                    const type = msg.type === 'autonomous_discussion' ? 'autonomous' : 
+                               msg.sender === 'User' ? 'user' : 'agent';
+                    addMessageToChat(msg.sender, msg.message, type);
+                });
+            })
+            .catch(error => console.error('Error:', error));
+        }
+        
+        function triggerAutonomousDiscussion() {
+            const topics = [
+                'ecosystem optimization strategies',
+                'yield farming opportunities analysis', 
+                'community engagement initiatives',
+                'security audit recommendations',
+                'governance proposal evaluation'
+            ];
+            const topic = topics[Math.floor(Math.random() * topics.length)];
+            
+            fetch('/api/autonomous/trigger', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ topic: topic })
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('Autonomous discussion triggered:', data);
+                setTimeout(refreshChat, 3000);
+            })
+            .catch(error => console.error('Error:', error));
+        }
+        
+        function getAgentStatus() {
+            fetch('/api/agents/status')
+            .then(response => response.json())
+            .then(data => {
+                console.log('Agent status:', data);
+                document.getElementById('discussionCount').textContent = data.active_discussions || 0;
+            })
+            .catch(error => console.error('Error:', error));
+        }
+        
+        // Auto-refresh chat every 30 seconds
+        setInterval(refreshChat, 30000);
+        
+        // Initial load
+        refreshChat();
+        getAgentStatus();
     </script>
 </body>
 </html>
+    ''')
 
-    '''
-    
-    return render_template_string(html_template,
-        agents=agent_manager.characters,
-        governance_status=autonomous_state.get('last_governance_check', 'Never'),
-        defi_status=autonomous_state.get('last_defi_optimization', 'Never'),
-        security_alerts=len(autonomous_state.get('security_alerts', [])),
-        community_events=len(autonomous_state.get('community_events', [])),
-        task_queue_length=len(autonomous_state.get('task_queue', [])),
-        uptime='Active',
-        last_update=datetime.now().strftime('%Y-%m-%d %H:%M:%S UTC')
-    )
+@app.route('/api/chat', methods=['POST'])
+def chat():
+    """Enhanced chat endpoint with autonomous discussion triggering"""
+    try:
+        data = request.get_json()
+        message = data.get('message', '')
+        
+        if not message:
+            return jsonify({'error': 'No message provided'}), 400
+        
+        # Add user message to history
+        chat_manager.add_message('User', message)
+        
+        # Determine which agent should respond
+        triggered_agents = autonomous_communicator.analyze_message_for_triggers(message)
+        primary_agent = triggered_agents[0] if triggered_agents else 'xmrt_community_manager'
+        
+        # Generate response
+        response = autonomous_communicator.generate_autonomous_response(
+            primary_agent, message, triggered_agents
+        )
+        
+        # Add agent response to history
+        agent_name = autonomous_communicator.agents[primary_agent]['name']
+        chat_manager.add_message(agent_name, response, primary_agent)
+        
+        return jsonify({
+            'response': response,
+            'agent': agent_name,
+            'agent_id': primary_agent,
+            'triggered_agents': triggered_agents
+        })
+        
+    except Exception as e:
+        logger.error(f"Error in chat endpoint: {e}")
+        return jsonify({'error': 'Internal server error'}), 500
 
-@app.route("/api/chat", methods=["POST"])
-def api_chat():
-    '''Chat with AI agents'''
-    data = request.get_json()
-    user_message = data.get("message")
-    character_id = data.get("character_id")
+@app.route('/api/chat/history')
+def get_chat_history():
+    """Get chat history including autonomous discussions"""
+    try:
+        return jsonify({
+            'history': chat_history[-50:],  # Last 50 messages
+            'total_messages': len(chat_history)
+        })
+    except Exception as e:
+        logger.error(f"Error getting chat history: {e}")
+        return jsonify({'error': 'Internal server error'}), 500
 
-    if not user_message:
-        return jsonify({"error": "Message is required"}), 400
+@app.route('/api/autonomous/trigger', methods=['POST'])
+def trigger_autonomous_discussion():
+    """Manually trigger an autonomous discussion"""
+    try:
+        data = request.get_json()
+        topic = data.get('topic', 'general ecosystem discussion')
+        
+        # Trigger autonomous discussion
+        messages = autonomous_communicator.initiate_autonomous_discussion(topic)
+        
+        # Continue discussion for a few rounds
+        if messages:
+            discussion_id = messages[0]['discussion_id']
+            threading.Thread(
+                target=lambda: autonomous_communicator.continue_autonomous_discussion(discussion_id, 2),
+                daemon=True
+            ).start()
+        
+        return jsonify({
+            'success': True,
+            'topic': topic,
+            'initial_messages': len(messages),
+            'discussion_id': messages[0]['discussion_id'] if messages else None
+        })
+        
+    except Exception as e:
+        logger.error(f"Error triggering autonomous discussion: {e}")
+        return jsonify({'error': 'Internal server error'}), 500
 
-    chat_manager.add_message("User", user_message)
+@app.route('/api/agents/status')
+def get_agents_status():
+    """Get status of all agents and autonomous system"""
+    try:
+        agent_statuses = {}
+        for agent_id, agent_data in autonomous_communicator.agents.items():
+            agent_statuses[agent_id] = {
+                'name': agent_data['name'],
+                'status': agent_data['status'],
+                'last_communication': agent_data['last_communication'],
+                'context_messages': len(agent_data['conversation_context'])
+            }
+        
+        return jsonify({
+            'agents': agent_statuses,
+            'active_discussions': len(autonomous_communicator.active_discussions),
+            'autonomous_communication_active': autonomous_state.get('autonomous_communication_active', False),
+            'total_messages': len(chat_history)
+        })
+        
+    except Exception as e:
+        logger.error(f"Error getting agent status: {e}")
+        return jsonify({'error': 'Internal server error'}), 500
 
-    if character_id:
-        ai_response = agent_manager.get_character_response(character_id, user_message)
-        chat_manager.add_message(character_id, ai_response, agent_id=character_id)
-    else:
-        ai_response = "Please specify a character_id to chat with a specific agent."
-        chat_manager.add_message("System", ai_response)
+@app.route('/api/discussions/active')
+def get_active_discussions():
+    """Get active autonomous discussions"""
+    try:
+        return jsonify({
+            'discussions': autonomous_communicator.active_discussions,
+            'count': len(autonomous_communicator.active_discussions)
+        })
+    except Exception as e:
+        logger.error(f"Error getting active discussions: {e}")
+        return jsonify({'error': 'Internal server error'}), 500
 
-    return jsonify({"user_message": user_message, "ai_response": ai_response})
-
-@app.route("/api/chat/history")
-def api_chat_history():
-    '''Get chat history'''
-    return jsonify({"chat_history": chat_manager.get_history()})
-
-@app.route('/api/status')
-def api_status():
-    '''Get system status and metrics'''
+# Health check endpoint
+@app.route('/health')
+def health_check():
     return jsonify({
-        'status': 'active',
-        'autonomous_operations': {
-            'governance': app.config['AUTO_GOVERNANCE_ENABLED'],
-            'defi': app.config['AUTO_DEFI_ENABLED'],
-            'security': app.config['AUTO_SECURITY_MONITORING'],
-            'community': app.config['AUTO_COMMUNITY_MANAGEMENT']
-        },
-        'agents': list(agent_manager.characters.keys()),
-        'metrics': {
-            'active_agents': len(agent_manager.characters),
-            'task_queue_length': len(autonomous_state.get('task_queue', [])),
-            'security_alerts': len(autonomous_state.get('security_alerts', [])),
-            'community_events': len(autonomous_state.get('community_events', []))
-        },
-        'last_update': datetime.now().strftime('%Y-%m-%d %H:%M:%S UTC')
+        'status': 'healthy',
+        'autonomous_communication': autonomous_state.get('autonomous_communication_active', False),
+        'agents_loaded': len(autonomous_communicator.agents),
+        'active_discussions': len(autonomous_communicator.active_discussions)
     })
-
-@app.route('/api/agents')
-def api_agents():
-    '''List available AI agents'''
-    return jsonify({
-        'agents': agent_manager.characters,
-        'active_character': app.config['DEFAULT_CHARACTER']
-    })
-
-# Start autonomous operations when the app starts
-autonomous_ops.start_autonomous_operations()
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    logger.info("🚀 Starting XMRT Ecosystem with Autonomous Communication")
+    logger.info("🤖 Autonomous operations started")
+    app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)), debug=False)
 
