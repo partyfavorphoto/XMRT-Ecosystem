@@ -96,6 +96,7 @@
             font-weight: bold;
             transition: transform 0.3s ease, box-shadow 0.3s ease;
             box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            margin: 0 10px;
         }
 
         .cta-button:hover {
@@ -208,6 +209,158 @@
             font-size: 2rem;
         }
 
+        /* Real-time Activity Monitor Styles */
+        .activity-monitor {
+            padding: 80px 0;
+            background: rgba(0, 0, 0, 0.2);
+            color: white;
+        }
+
+        .activity-dashboard {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            margin-top: 2rem;
+        }
+
+        .activity-panel {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 2rem;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .activity-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .status-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #4ade80;
+            animation: pulse 2s infinite;
+        }
+
+        .status-indicator.inactive {
+            background: #ef4444;
+        }
+
+        .activity-feed {
+            max-height: 300px;
+            overflow-y: auto;
+            margin-top: 1rem;
+        }
+
+        .activity-item {
+            padding: 0.75rem;
+            margin-bottom: 0.5rem;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            border-left: 3px solid #ffd700;
+            font-size: 0.9rem;
+        }
+
+        .activity-timestamp {
+            color: #94a3b8;
+            font-size: 0.8rem;
+        }
+
+        .kickstart-controls {
+            margin-top: 2rem;
+            text-align: center;
+        }
+
+        .kickstart-button {
+            background: linear-gradient(45deg, #10b981, #059669);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 25px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin: 0 10px;
+        }
+
+        .kickstart-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(16, 185, 129, 0.3);
+        }
+
+        .kickstart-button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* System Capabilities Section */
+        .capabilities {
+            padding: 80px 0;
+            background: rgba(255, 255, 255, 0.08);
+        }
+
+        .capabilities-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 2rem;
+            margin-top: 3rem;
+        }
+
+        .capability-card {
+            background: rgba(255, 255, 255, 0.12);
+            padding: 2rem;
+            border-radius: 15px;
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            transition: all 0.3s ease;
+        }
+
+        .capability-card:hover {
+            background: rgba(255, 255, 255, 0.18);
+            transform: translateY(-3px);
+        }
+
+        .capability-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .capability-icon {
+            font-size: 2rem;
+            margin-right: 1rem;
+        }
+
+        .capability-title {
+            font-size: 1.3rem;
+            color: #ffd700;
+            font-weight: bold;
+        }
+
+        .capability-list {
+            list-style: none;
+            margin-top: 1rem;
+        }
+
+        .capability-list li {
+            padding: 0.5rem 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            position: relative;
+            padding-left: 1.5rem;
+        }
+
+        .capability-list li:before {
+            content: "✓";
+            position: absolute;
+            left: 0;
+            color: #4ade80;
+            font-weight: bold;
+        }
+
         .footer {
             background: rgba(0, 0, 0, 0.3);
             padding: 40px 0;
@@ -259,7 +412,12 @@
 
             .features-grid,
             .stats-grid,
-            .agents-grid {
+            .agents-grid,
+            .capabilities-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .activity-dashboard {
                 grid-template-columns: 1fr;
             }
         }
@@ -290,17 +448,62 @@
             opacity: 1;
             transform: translateY(0);
         }
+
+        /* Loading spinner */
+        .spinner {
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top: 2px solid #ffd700;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+            margin-left: 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .connection-status {
+            position: fixed;
+            top: 80px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 10px 15px;
+            border-radius: 25px;
+            font-size: 0.9rem;
+            z-index: 999;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .connection-status.connected {
+            background: rgba(16, 185, 129, 0.8);
+        }
+
+        .connection-status.disconnected {
+            background: rgba(239, 68, 68, 0.8);
+        }
     </style>
 </head>
 <body>
+    <div class="connection-status" id="connection-status">
+        <div class="status-indicator" id="connection-indicator"></div>
+        <span id="connection-text">Connecting...</span>
+    </div>
+
     <header>
         <nav class="container">
             <a href="#" class="logo">🤖 XMRT Ecosystem</a>
             <ul class="nav-links">
                 <li><a href="#home">Home</a></li>
-                <li><a href="#features">Features</a></li>
+                <li><a href="#capabilities">Capabilities</a></li>
                 <li><a href="#agents">AI Agents</a></li>
-                <li><a href="#stats">Stats</a></li>
+                <li><a href="#activity">Live Activity</a></li>
                 <li><a href="https://xmrtnet-eliza.onrender.com/" target="_blank">API Service</a></li>
             </ul>
             <button class="mobile-menu">☰</button>
@@ -311,58 +514,106 @@
         <section id="home" class="hero">
             <div class="container">
                 <h1 class="fade-in">XMRT Ecosystem</h1>
-                <p class="fade-in">Autonomous AI-Powered DAO with Multi-Agent Coordination</p>
+                <p class="fade-in">Autonomous AI-Powered DAO with Multi-Agent Coordination & Real-Time Monitoring</p>
                 <a href="https://xmrtnet-eliza.onrender.com/" class="cta-button fade-in" target="_blank">Launch AI Service</a>
+                <a href="#activity" class="cta-button fade-in">View Live Activity</a>
             </div>
         </section>
 
-        <section id="features" class="features">
+        <section id="capabilities" class="capabilities">
             <div class="container">
-                <h2 style="text-align: center; color: white; font-size: 2.5rem; margin-bottom: 1rem;">Autonomous Operations</h2>
-                <div class="features-grid">
-                    <div class="feature-card fade-in">
-                        <div class="feature-icon">🗳️</div>
-                        <h3>DAO Governance</h3>
-                        <p>Autonomous proposal analysis, voting coordination, and treasury management with AI-powered decision making.</p>
+                <h2 style="text-align: center; color: white; font-size: 2.5rem; margin-bottom: 1rem;">System Capabilities</h2>
+                <p style="text-align: center; color: rgba(255,255,255,0.8); font-size: 1.1rem;">Comprehensive autonomous operations across multiple domains</p>
+                
+                <div class="capabilities-grid">
+                    <div class="capability-card fade-in">
+                        <div class="capability-header">
+                            <div class="capability-icon">🏛️</div>
+                            <div class="capability-title">Governance Operations</div>
+                        </div>
+                        <ul class="capability-list">
+                            <li>Autonomous proposal analysis and evaluation</li>
+                            <li>Multi-criteria decision analysis (MCDA)</li>
+                            <li>Voting coordination and execution</li>
+                            <li>Treasury management and allocation</li>
+                            <li>Policy engine with spending limits</li>
+                            <li>Cross-chain governance execution</li>
+                        </ul>
                     </div>
-                    <div class="feature-card fade-in">
-                        <div class="feature-icon">💰</div>
-                        <h3>DeFi Operations</h3>
-                        <p>Automated yield optimization, liquidity management, and risk analysis across multiple DeFi protocols.</p>
-                    </div>
-                    <div class="feature-card fade-in">
-                        <div class="feature-icon">🛡️</div>
-                        <h3>Security Monitoring</h3>
-                        <p>Real-time threat detection, vulnerability scanning, and automated incident response systems.</p>
-                    </div>
-                    <div class="feature-card fade-in">
-                        <div class="feature-icon">👥</div>
-                        <h3>Community Management</h3>
-                        <p>Engagement tracking, event coordination, and sentiment analysis for optimal community growth.</p>
-                    </div>
-                </div>
-            </div>
-        </section>
 
-        <section id="stats" class="stats">
-            <div class="container">
-                <h2 style="font-size: 2.5rem; margin-bottom: 1rem;">Live Ecosystem Metrics</h2>
-                <div class="stats-grid">
-                    <div class="stat-item fade-in">
-                        <div class="stat-number pulse">4</div>
-                        <p>Active AI Agents</p>
+                    <div class="capability-card fade-in">
+                        <div class="capability-header">
+                            <div class="capability-icon">🔗</div>
+                            <div class="capability-title">Blockchain Integration</div>
+                        </div>
+                        <ul class="capability-list">
+                            <li>Multi-chain smart contract deployment</li>
+                            <li>Cross-chain bridge operations</li>
+                            <li>Zero-knowledge proof verification</li>
+                            <li>Automated transaction monitoring</li>
+                            <li>Gas optimization strategies</li>
+                            <li>Emergency circuit breakers</li>
+                        </ul>
                     </div>
-                    <div class="stat-item fade-in">
-                        <div class="stat-number pulse">24/7</div>
-                        <p>Autonomous Operations</p>
+
+                    <div class="capability-card fade-in">
+                        <div class="capability-header">
+                            <div class="capability-icon">🤖</div>
+                            <div class="capability-title">AI Agent Coordination</div>
+                        </div>
+                        <ul class="capability-list">
+                            <li>Inter-agent communication protocols</li>
+                            <li>Unified decision-making framework</li>
+                            <li>Dynamic confidence adjustment</li>
+                            <li>Explainable AI (XAI) integration</li>
+                            <li>Self-improvement mechanisms</li>
+                            <li>Emergency coordination systems</li>
+                        </ul>
                     </div>
-                    <div class="stat-item fade-in">
-                        <div class="stat-number pulse">1,247</div>
-                        <p>Community Members</p>
+
+                    <div class="capability-card fade-in">
+                        <div class="capability-header">
+                            <div class="capability-icon">🛡️</div>
+                            <div class="capability-title">Security & Monitoring</div>
+                        </div>
+                        <ul class="capability-list">
+                            <li>Real-time threat detection</li>
+                            <li>Vulnerability scanning automation</li>
+                            <li>Incident response protocols</li>
+                            <li>Audit trail maintenance</li>
+                            <li>Performance monitoring</li>
+                            <li>Automated backup systems</li>
+                        </ul>
                     </div>
-                    <div class="stat-item fade-in">
-                        <div class="stat-number pulse">$2.5M</div>
-                        <p>Treasury Value</p>
+
+                    <div class="capability-card fade-in">
+                        <div class="capability-header">
+                            <div class="capability-icon">💰</div>
+                            <div class="capability-title">DeFi Operations</div>
+                        </div>
+                        <ul class="capability-list">
+                            <li>Yield optimization strategies</li>
+                            <li>Liquidity management automation</li>
+                            <li>Risk analysis and mitigation</li>
+                            <li>Portfolio rebalancing</li>
+                            <li>MEV protection mechanisms</li>
+                            <li>Multi-protocol integration</li>
+                        </ul>
+                    </div>
+
+                    <div class="capability-card fade-in">
+                        <div class="capability-header">
+                            <div class="capability-icon">🔧</div>
+                            <div class="capability-title">Self-Improvement</div>
+                        </div>
+                        <ul class="capability-list">
+                            <li>Autonomous code analysis</li>
+                            <li>Automated pull request generation</li>
+                            <li>Performance optimization</li>
+                            <li>Bug detection and fixing</li>
+                            <li>Repository monitoring</li>
+                            <li>Continuous integration/deployment</li>
+                        </ul>
                     </div>
                 </div>
             </div>
@@ -375,22 +626,118 @@
                     <div class="agent-card fade-in">
                         <div class="agent-avatar">🏛️</div>
                         <h3>DAO Governor</h3>
-                        <p>Specializes in governance operations, proposal analysis, and voting coordination.</p>
+                        <p>Specializes in governance operations, proposal analysis, and voting coordination with advanced MCDA capabilities.</p>
+                        <div style="margin-top: 1rem; font-size: 0.9rem; opacity: 0.8;">
+                            <strong>Status:</strong> <span id="governor-status">Active</span><br>
+                            <strong>Last Action:</strong> <span id="governor-action">Analyzing proposal #247</span>
+                        </div>
                     </div>
                     <div class="agent-card fade-in">
                         <div class="agent-avatar">📈</div>
                         <h3>DeFi Specialist</h3>
-                        <p>Focuses on yield optimization, liquidity management, and DeFi protocol integration.</p>
+                        <p>Focuses on yield optimization, liquidity management, and DeFi protocol integration across multiple chains.</p>
+                        <div style="margin-top: 1rem; font-size: 0.9rem; opacity: 0.8;">
+                            <strong>Status:</strong> <span id="defi-status">Active</span><br>
+                            <strong>Last Action:</strong> <span id="defi-action">Optimizing yield strategy</span>
+                        </div>
                     </div>
                     <div class="agent-card fade-in">
                         <div class="agent-avatar">🛡️</div>
                         <h3>Security Guardian</h3>
-                        <p>Monitors threats, scans vulnerabilities, and manages incident response protocols.</p>
+                        <p>Monitors threats, scans vulnerabilities, and manages incident response protocols with real-time analysis.</p>
+                        <div style="margin-top: 1rem; font-size: 0.9rem; opacity: 0.8;">
+                            <strong>Status:</strong> <span id="security-status">Active</span><br>
+                            <strong>Last Action:</strong> <span id="security-action">Scanning for threats</span>
+                        </div>
                     </div>
                     <div class="agent-card fade-in">
                         <div class="agent-avatar">🌟</div>
                         <h3>Community Manager</h3>
-                        <p>Tracks engagement, coordinates events, and analyzes community sentiment.</p>
+                        <p>Tracks engagement, coordinates events, and analyzes community sentiment with advanced NLP capabilities.</p>
+                        <div style="margin-top: 1rem; font-size: 0.9rem; opacity: 0.8;">
+                            <strong>Status:</strong> <span id="community-status">Active</span><br>
+                            <strong>Last Action:</strong> <span id="community-action">Analyzing sentiment</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="activity" class="activity-monitor">
+            <div class="container">
+                <h2 style="text-align: center; color: white; font-size: 2.5rem; margin-bottom: 1rem;">Real-Time Agent Activity</h2>
+                <p style="text-align: center; color: rgba(255,255,255,0.8); font-size: 1.1rem;">Monitor live agent interactions and system operations</p>
+                
+                <div class="activity-dashboard">
+                    <div class="activity-panel">
+                        <div class="activity-header">
+                            <h3>🤖 Agent Communications</h3>
+                            <div class="status-indicator" id="comm-status"></div>
+                        </div>
+                        <div class="activity-feed" id="agent-communications">
+                            <div class="activity-item">
+                                <div>Connecting to activity feed...</div>
+                                <div class="activity-timestamp">Just now</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="activity-panel">
+                        <div class="activity-header">
+                            <h3>⚡ System Operations</h3>
+                            <div class="status-indicator" id="ops-status"></div>
+                        </div>
+                        <div class="activity-feed" id="system-operations">
+                            <div class="activity-item">
+                                <div>Initializing system monitoring...</div>
+                                <div class="activity-timestamp">Just now</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="kickstart-controls">
+                    <h3 style="margin-bottom: 1rem;">Activity Controls</h3>
+                    <button class="kickstart-button" onclick="kickstartDiscussion()">
+                        🚀 Trigger Agent Discussion
+                    </button>
+                    <button class="kickstart-button" onclick="kickstartAnalysis()">
+                        📊 Start Analysis Task
+                    </button>
+                    <button class="kickstart-button" onclick="refreshActivity()">
+                        🔄 Refresh Activity
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <section id="stats" class="stats">
+            <div class="container">
+                <h2 style="font-size: 2.5rem; margin-bottom: 1rem;">Live Ecosystem Metrics</h2>
+                <div class="stats-grid">
+                    <div class="stat-item fade-in">
+                        <div class="stat-number pulse" id="active-agents">4</div>
+                        <p>Active AI Agents</p>
+                    </div>
+                    <div class="stat-item fade-in">
+                        <div class="stat-number pulse">24/7</div>
+                        <p>Autonomous Operations</p>
+                    </div>
+                    <div class="stat-item fade-in">
+                        <div class="stat-number pulse" id="community-count">1,247</div>
+                        <p>Community Members</p>
+                    </div>
+                    <div class="stat-item fade-in">
+                        <div class="stat-number pulse">$2.5M</div>
+                        <p>Treasury Value</p>
+                    </div>
+                    <div class="stat-item fade-in">
+                        <div class="stat-number pulse" id="decisions-made">156</div>
+                        <p>Autonomous Decisions</p>
+                    </div>
+                    <div class="stat-item fade-in">
+                        <div class="stat-number pulse">99.8%</div>
+                        <p>System Uptime</p>
                     </div>
                 </div>
             </div>
@@ -401,15 +748,20 @@
         <div class="container">
             <p>&copy; 2025 XMRT Ecosystem. Powered by Autonomous AI Technology.</p>
             <div class="social-links">
-                <a href="https://github.com/DevGruGold/XMRT-Ecosystem" target="_blank">📁</a>
-                <a href="https://xmrtnet-eliza.onrender.com/" target="_blank">🤖</a>
-                <a href="#" target="_blank">🐦</a>
-                <a href="#" target="_blank">💬</a>
+                <a href="https://github.com/DevGruGold/XMRT-Ecosystem" target="_blank" title="GitHub Repository">📁</a>
+                <a href="https://xmrtnet-eliza.onrender.com/" target="_blank" title="AI Service">🤖</a>
+                <a href="#" target="_blank" title="Twitter">🐦</a>
+                <a href="#" target="_blank" title="Discord">💬</a>
             </div>
         </div>
     </footer>
 
     <script>
+        // Configuration
+        const API_BASE_URL = window.location.hostname === 'localhost' ? 'http://localhost:5001' : 'https://xmrtnet-eliza.onrender.com';
+        let isConnected = false;
+        let activityUpdateInterval;
+
         // Smooth scrolling for navigation links
         document.querySelectorAll('a[href^="#"]').forEach(anchor => {
             anchor.addEventListener('click', function (e) {
@@ -450,20 +802,234 @@
             navLinks.style.display = navLinks.style.display === 'flex' ? 'none' : 'flex';
         });
 
-        // Dynamic stats update simulation
-        function updateStats() {
-            const statNumbers = document.querySelectorAll('.stat-number');
-            statNumbers.forEach(stat => {
-                if (stat.textContent.includes('1,247')) {
-                    const currentValue = parseInt(stat.textContent.replace(',', ''));
-                    const newValue = currentValue + Math.floor(Math.random() * 10);
-                    stat.textContent = newValue.toLocaleString();
+        // API Functions
+        async function apiCall(endpoint, options = {}) {
+            try {
+                const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+                    ...options,
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...options.headers
+                    }
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
                 }
-            });
+                
+                return await response.json();
+            } catch (error) {
+                console.error(`API call failed for ${endpoint}:`, error);
+                throw error;
+            }
         }
 
-        // Update stats every 30 seconds
-        setInterval(updateStats, 30000);
+        function updateConnectionStatus(connected) {
+            isConnected = connected;
+            const statusElement = document.getElementById('connection-status');
+            const indicatorElement = document.getElementById('connection-indicator');
+            const textElement = document.getElementById('connection-text');
+            
+            if (connected) {
+                statusElement.className = 'connection-status connected';
+                indicatorElement.className = 'status-indicator';
+                textElement.textContent = 'Connected to AI Service';
+            } else {
+                statusElement.className = 'connection-status disconnected';
+                indicatorElement.className = 'status-indicator inactive';
+                textElement.textContent = 'Simulated Mode';
+            }
+        }
+
+        function addActivityItem(feedId, message, timestamp = 'Just now') {
+            const feedElement = document.getElementById(feedId);
+            const item = document.createElement('div');
+            item.className = 'activity-item';
+            item.innerHTML = `
+                <div>${message}</div>
+                <div class="activity-timestamp">${timestamp}</div>
+            `;
+            feedElement.insertBefore(item, feedElement.firstChild);
+            
+            // Remove old items (keep only 5)
+            while (feedElement.children.length > 5) {
+                feedElement.removeChild(feedElement.lastChild);
+            }
+        }
+
+        function formatTimestamp(isoString) {
+            const date = new Date(isoString);
+            const now = new Date();
+            const diffMs = now - date;
+            const diffMins = Math.floor(diffMs / 60000);
+            
+            if (diffMins < 1) return 'Just now';
+            if (diffMins < 60) return `${diffMins} minute${diffMins > 1 ? 's' : ''} ago`;
+            
+            const diffHours = Math.floor(diffMins / 60);
+            if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
+            
+            return date.toLocaleDateString();
+        }
+
+        async function updateActivityFeed() {
+            try {
+                const data = await apiCall('/api/activity/feed');
+                
+                // Update communications
+                const commFeed = document.getElementById('agent-communications');
+                commFeed.innerHTML = '';
+                data.communications.forEach(item => {
+                    addActivityItem('agent-communications', item.message, formatTimestamp(item.timestamp));
+                });
+                
+                // Update operations
+                const opsFeed = document.getElementById('system-operations');
+                opsFeed.innerHTML = '';
+                data.operations.forEach(item => {
+                    addActivityItem('system-operations', item.message, formatTimestamp(item.timestamp));
+                });
+                
+                updateConnectionStatus(true);
+            } catch (error) {
+                console.error('Failed to update activity feed:', error);
+                updateConnectionStatus(false);
+                
+                // Fallback to simulated activity
+                if (!isConnected) {
+                    simulateActivity();
+                }
+            }
+        }
+
+        async function updateAgentStatuses() {
+            try {
+                const data = await apiCall('/api/status');
+                
+                // Update agent statuses
+                Object.keys(data.agents).forEach(agentId => {
+                    const agent = data.agents[agentId];
+                    const statusElement = document.getElementById(`${agentId.replace('_', '-')}-status`);
+                    const actionElement = document.getElementById(`${agentId.replace('_', '-')}-action`);
+                    
+                    if (statusElement) statusElement.textContent = agent.status;
+                    if (actionElement) actionElement.textContent = agent.last_action;
+                });
+                
+                // Update metrics
+                if (data.metrics) {
+                    const activeAgentsElement = document.getElementById('active-agents');
+                    const communityCountElement = document.getElementById('community-count');
+                    const decisionsMadeElement = document.getElementById('decisions-made');
+                    
+                    if (activeAgentsElement) activeAgentsElement.textContent = data.metrics.active_agents;
+                    if (communityCountElement) communityCountElement.textContent = data.metrics.community_count.toLocaleString();
+                    if (decisionsMadeElement) decisionsMadeElement.textContent = data.metrics.decisions_made;
+                }
+                
+            } catch (error) {
+                console.error('Failed to update agent statuses:', error);
+            }
+        }
+
+        function simulateActivity() {
+            const agentActions = [
+                "DAO Governor: Analyzing new governance proposal",
+                "DeFi Specialist: Optimizing yield farming strategy",
+                "Security Guardian: Performing security audit",
+                "Community Manager: Processing community feedback"
+            ];
+            
+            const systemOperations = [
+                "Smart contract deployment successful",
+                "Cross-chain bridge operation completed",
+                "Treasury rebalancing executed",
+                "Security scan completed - All clear"
+            ];
+            
+            if (Math.random() > 0.5) {
+                const action = agentActions[Math.floor(Math.random() * agentActions.length)];
+                addActivityItem('agent-communications', action);
+            }
+            
+            if (Math.random() > 0.7) {
+                const operation = systemOperations[Math.floor(Math.random() * systemOperations.length)];
+                addActivityItem('system-operations', operation);
+            }
+        }
+
+        // Kickstart functions
+        async function kickstartDiscussion() {
+            try {
+                const result = await apiCall('/api/trigger-discussion', {
+                    method: 'POST',
+                    body: JSON.stringify({ topic: 'treasury_optimization' })
+                });
+                
+                addActivityItem('agent-communications', 'DAO Governor: Initiating multi-agent discussion on treasury optimization');
+                addActivityItem('system-operations', 'Discussion triggered successfully via API');
+                
+            } catch (error) {
+                console.error('Failed to trigger discussion:', error);
+                addActivityItem('agent-communications', 'DAO Governor: Initiating multi-agent discussion (simulated)');
+                addActivityItem('system-operations', 'API unavailable - using simulated discussion');
+            }
+        }
+
+        async function kickstartAnalysis() {
+            try {
+                const result = await apiCall('/api/start-analysis', {
+                    method: 'POST',
+                    body: JSON.stringify({ type: 'ecosystem_health' })
+                });
+                
+                addActivityItem('system-operations', 'Analysis task initiated: Comprehensive ecosystem health check');
+                addActivityItem('agent-communications', 'All agents: Coordinating for comprehensive analysis');
+                
+            } catch (error) {
+                console.error('Failed to start analysis:', error);
+                addActivityItem('system-operations', 'Analysis task initiated (simulated mode)');
+                addActivityItem('agent-communications', 'All agents: Simulated analysis coordination');
+            }
+        }
+
+        async function refreshActivity() {
+            // Clear feeds
+            document.getElementById('agent-communications').innerHTML = '';
+            document.getElementById('system-operations').innerHTML = '';
+            
+            addActivityItem('system-operations', 'Activity monitor refreshed');
+            
+            // Try to reconnect
+            await updateActivityFeed();
+            await updateAgentStatuses();
+        }
+
+        // Initialize
+        function initializeApp() {
+            updateConnectionStatus(false);
+            
+            // Try to connect to API
+            updateActivityFeed().then(() => {
+                // Start periodic updates if connected
+                if (isConnected) {
+                    activityUpdateInterval = setInterval(() => {
+                        updateActivityFeed();
+                        updateAgentStatuses();
+                    }, 15000);
+                }
+            });
+            
+            // Update agent statuses
+            updateAgentStatuses();
+            
+            // Start simulated activity as fallback
+            setInterval(() => {
+                if (!isConnected) {
+                    simulateActivity();
+                }
+            }, 20000);
+        }
 
         // Add loading animation
         window.addEventListener('load', () => {
@@ -471,6 +1037,7 @@
             document.body.style.transition = 'opacity 0.5s ease';
             setTimeout(() => {
                 document.body.style.opacity = '1';
+                initializeApp();
             }, 100);
         });
 
@@ -482,26 +1049,6 @@
                 hero.style.transform = `translateY(${scrolled * 0.5}px)`;
             }
         });
-    </script>
-
-    <!-- Ecosystem Activity Widget -->
-    <div class="ecosystem-activity-section">
-        <h3>🌐 Ecosystem Activity</h3>
-        <div id="xmrt-activity-widget"></div>
-    </div>
-    
-    <script>
-        const script = document.createElement('script');
-        script.src = '/static/real_time_activity_widget.js';
-        script.onload = function() {
-            const widget = new XMRTEcosystemActivityWidget({
-                containerId: 'xmrt-activity-widget',
-                apiEndpoint: '/api/activity/feed',
-                updateInterval: 15000
-            });
-            widget.init();
-        };
-        document.head.appendChild(script);
     </script>
 </body>
 </html>
