@@ -454,7 +454,9 @@ def index():
         .status-indicator { width: 12px; height: 12px; border-radius: 50%; }
         .status-active { background: #4CAF50; }
         .status-inactive { background: #f44336; }
-        .chat-container { background: #1a1a1a; border: 1px solid #333; border-radius: 8px; padding: 20px; height: 400px; overflow-y: auto; margin-bottom: 20px; }
+        .activity-feed { background: #1a1a1a; border: 1px solid #333; border-radius: 8px; padding: 20px; height: 400px; overflow-y: auto; margin-bottom: 20px; }
+        .activity-item { margin: 10px 0; padding: 10px; border-radius: 5px; background: #2a2a2a; border-left: 4px solid #4CAF50; }
+        .activity-timestamp { color: #888; font-size: 0.8em; margin-top: 5px; }
         .message { margin: 10px 0; padding: 10px; border-radius: 5px; }
         .message.user { background: #2196F3; text-align: right; }
         .message.agent { background: #4CAF50; }
@@ -466,9 +468,16 @@ def index():
         .btn-success { background: #4CAF50; color: white; }
         .btn-warning { background: #FF9800; color: white; }
         .autonomous-controls { display: flex; gap: 10px; margin: 20px 0; flex-wrap: wrap; }
+        .activity-dashboard { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin: 20px 0; }
+        .activity-panel { background: #1a1a1a; border: 1px solid #333; border-radius: 8px; padding: 20px; }
+        .activity-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+        .connection-status { position: fixed; top: 20px; right: 20px; background: #4CAF50; color: white; padding: 8px 15px; border-radius: 20px; font-size: 0.9em; }
+        .connection-status.disconnected { background: #f44336; }
     </style>
 </head>
 <body>
+    <div class="connection-status" id="connectionStatus">Connected</div>
+    
     <div class="container">
         <div class="header">
             <h1>🤖 XMRT DAO Hub - Autonomous Communication</h1>
@@ -480,25 +489,25 @@ def index():
                 <h3>🤖 Agent Status</h3>
                 <div class="agent-status">
                     <span>DAO Governor</span>
-                    <div class="status-indicator status-active"></div>
+                    <div class="status-indicator status-active" id="governor-indicator"></div>
                 </div>
                 <div class="agent-status">
                     <span>DeFi Specialist</span>
-                    <div class="status-indicator status-active"></div>
+                    <div class="status-indicator status-active" id="defi-indicator"></div>
                 </div>
                 <div class="agent-status">
                     <span>Community Manager</span>
-                    <div class="status-indicator status-active"></div>
+                    <div class="status-indicator status-active" id="community-indicator"></div>
                 </div>
                 <div class="agent-status">
                     <span>Security Guardian</span>
-                    <div class="status-indicator status-active"></div>
+                    <div class="status-indicator status-active" id="security-indicator"></div>
                 </div>
             </div>
             
             <div class="status-card">
                 <h3>🔄 Autonomous Status</h3>
-                <p><strong>Communication:</strong> <span style="color: #4CAF50;">Active</span></p>
+                <p><strong>Communication:</strong> <span style="color: #4CAF50;" id="commStatus">Active</span></p>
                 <p><strong>Active Discussions:</strong> <span id="discussionCount">0</span></p>
                 <p><strong>Last Activity:</strong> <span id="lastActivity">Just now</span></p>
                 <p><strong>Messages Today:</strong> <span id="messageCount">0</span></p>
@@ -507,13 +516,35 @@ def index():
         
         <div class="autonomous-controls">
             <button class="btn btn-warning" onclick="triggerAutonomousDiscussion()">🚀 Trigger Discussion</button>
-            <button class="btn btn-success" onclick="refreshChat()">🔄 Refresh Chat</button>
+            <button class="btn btn-success" onclick="refreshActivity()">🔄 Refresh Activity</button>
             <button class="btn btn-primary" onclick="getSystemStatus()">📊 System Status</button>
         </div>
         
-        <div class="chat-container" id="chatContainer">
-            <div class="message autonomous">
-                <strong>System:</strong> Autonomous communication system initialized. Agents are ready for inter-agent discussions.
+        <div class="activity-dashboard">
+            <div class="activity-panel">
+                <div class="activity-header">
+                    <h3>🤖 Agent Communications</h3>
+                    <div class="status-indicator status-active" id="comm-status-indicator"></div>
+                </div>
+                <div class="activity-feed" id="agentCommunications">
+                    <div class="activity-item">
+                        <div>Connecting to activity feed...</div>
+                        <div class="activity-timestamp">Just now</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="activity-panel">
+                <div class="activity-header">
+                    <h3>⚡ System Operations</h3>
+                    <div class="status-indicator status-active" id="ops-status-indicator"></div>
+                </div>
+                <div class="activity-feed" id="systemOperations">
+                    <div class="activity-item">
+                        <div>Initializing system monitoring...</div>
+                        <div class="activity-timestamp">Just now</div>
+                    </div>
+                </div>
             </div>
         </div>
         
@@ -525,6 +556,65 @@ def index():
 
     <script>
         let messageCount = 0;
+        let isConnected = false;
+        
+        function updateConnectionStatus(connected) {
+            isConnected = connected;
+            const statusElement = document.getElementById('connectionStatus');
+            if (connected) {
+                statusElement.textContent = 'Connected';
+                statusElement.className = 'connection-status';
+            } else {
+                statusElement.textContent = 'Disconnected';
+                statusElement.className = 'connection-status disconnected';
+            }
+        }
+        
+        function formatTimestamp(timestamp) {
+            const date = new Date(timestamp);
+            const now = new Date();
+            const diff = now - date;
+            
+            if (diff < 60000) {
+                return 'Just now';
+            } else if (diff < 3600000) {
+                return `${Math.floor(diff / 60000)}m ago`;
+            } else {
+                return date.toLocaleTimeString();
+            }
+        }
+        
+        function updateActivityFeed(communications, operations) {
+            // Update communications feed
+            const commFeed = document.getElementById('agentCommunications');
+            if (communications && communications.length > 0) {
+                commFeed.innerHTML = communications.map(item => `
+                    <div class="activity-item">
+                        <div>${item.message}</div>
+                        <div class="activity-timestamp">${formatTimestamp(item.timestamp)}</div>
+                    </div>
+                `).join('');
+                document.getElementById('comm-status-indicator').className = 'status-indicator status-active';
+            } else {
+                commFeed.innerHTML = '<div class="activity-item"><div>No recent communications</div><div class="activity-timestamp">Waiting for activity...</div></div>';
+                document.getElementById('comm-status-indicator').className = 'status-indicator status-inactive';
+            }
+
+            // Update operations feed
+            const opsFeed = document.getElementById('systemOperations');
+            if (operations && operations.length > 0) {
+                opsFeed.innerHTML = operations.map(item => `
+                    <div class="activity-item">
+                        <div>${item.message}</div>
+                        <div class="activity-timestamp">${formatTimestamp(item.timestamp)}</div>
+                    </div>
+                `).join('');
+                document.getElementById('ops-status-indicator').className = 'status-indicator status-active';
+            } else {
+                opsFeed.innerHTML = '<div class="activity-item"><div>No recent operations</div><div class="activity-timestamp">Waiting for activity...</div></div>';
+                document.getElementById('ops-status-indicator').className = 'status-indicator status-inactive';
+            }
+        }
         
         function handleKeyPress(event) {
             if (event.key === 'Enter') {
@@ -537,97 +627,103 @@ def index():
             const message = input.value.trim();
             if (!message) return;
             
-            // Add user message to chat
-            addMessageToChat('User', message, 'user');
             input.value = '';
             
-            // Send to API (use existing enhanced chat endpoint if available)
-            fetch('/api/chat', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ message: message })
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.response) {
-                    addMessageToChat(data.agent || 'Agent', data.response, 'agent');
+            // Trigger autonomous discussion based on message
+            triggerAutonomousDiscussion(message);
+        }
+        
+        async function refreshActivity() {
+            try {
+                // Use the activity monitor API endpoints
+                const response = await fetch('/api/activity/feed');
+                if (response.ok) {
+                    const data = await response.json();
+                    updateActivityFeed(data.communications, data.operations);
+                    updateConnectionStatus(true);
+                } else {
+                    throw new Error('Failed to fetch activity feed');
                 }
-                // Refresh chat to get any autonomous discussions
-                setTimeout(refreshChat, 2000);
-            })
-            .catch(error => console.error('Error:', error));
+            } catch (error) {
+                console.error('Error refreshing activity:', error);
+                updateConnectionStatus(false);
+            }
         }
         
-        function addMessageToChat(sender, message, type) {
-            const chatContainer = document.getElementById('chatContainer');
-            const messageDiv = document.createElement('div');
-            messageDiv.className = `message ${type}`;
-            messageDiv.innerHTML = `<strong>${sender}:</strong> ${message}`;
-            chatContainer.appendChild(messageDiv);
-            chatContainer.scrollTop = chatContainer.scrollHeight;
-            
-            messageCount++;
-            document.getElementById('messageCount').textContent = messageCount;
-            document.getElementById('lastActivity').textContent = 'Just now';
-        }
-        
-        function refreshChat() {
-            // Try enhanced chat history first, fallback to basic
-            fetch('/api/chat/history')
-            .then(response => response.json())
-            .then(data => {
-                const chatContainer = document.getElementById('chatContainer');
-                chatContainer.innerHTML = '<div class="message autonomous"><strong>System:</strong> Autonomous communication system active.</div>';
+        async function triggerAutonomousDiscussion(customTopic = null) {
+            try {
+                const topics = [
+                    'ecosystem optimization strategies',
+                    'yield farming opportunities analysis', 
+                    'community engagement initiatives',
+                    'security audit recommendations',
+                    'governance proposal evaluation'
+                ];
+                const topic = customTopic || topics[Math.floor(Math.random() * topics.length)];
                 
-                const history = data.history || [];
-                history.forEach(msg => {
-                    const type = msg.type === 'autonomous_discussion' ? 'autonomous' : 
-                               msg.sender === 'User' ? 'user' : 'agent';
-                    addMessageToChat(msg.sender, msg.message, type);
+                const response = await fetch('/api/trigger-discussion', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ topic: topic })
                 });
-            })
-            .catch(error => console.error('Error:', error));
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    console.log('Autonomous discussion triggered:', data);
+                    // Refresh activity after triggering
+                    setTimeout(refreshActivity, 2000);
+                } else {
+                    // Fallback to original endpoint
+                    const fallbackResponse = await fetch('/api/autonomous/discussion/trigger', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ topic: topic })
+                    });
+                    if (fallbackResponse.ok) {
+                        setTimeout(refreshActivity, 2000);
+                    }
+                }
+            } catch (error) {
+                console.error('Error triggering discussion:', error);
+            }
         }
         
-        function triggerAutonomousDiscussion() {
-            const topics = [
-                'ecosystem optimization strategies',
-                'yield farming opportunities analysis', 
-                'community engagement initiatives',
-                'security audit recommendations',
-                'governance proposal evaluation'
-            ];
-            const topic = topics[Math.floor(Math.random() * topics.length)];
-            
-            fetch('/api/autonomous/discussion/trigger', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ topic: topic })
-            })
-            .then(response => response.json())
-            .then(data => {
-                console.log('Autonomous discussion triggered:', data);
-                setTimeout(refreshChat, 3000);
-            })
-            .catch(error => console.error('Error:', error));
+        async function getSystemStatus() {
+            try {
+                // Try activity monitor API first
+                let response = await fetch('/api/status');
+                if (!response.ok) {
+                    // Fallback to original endpoint
+                    response = await fetch('/api/autonomous/system/status');
+                }
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    console.log('System status:', data);
+                    document.getElementById('discussionCount').textContent = data.active_discussions || 0;
+                    updateConnectionStatus(true);
+                } else {
+                    throw new Error('Failed to get system status');
+                }
+            } catch (error) {
+                console.error('Error getting system status:', error);
+                updateConnectionStatus(false);
+            }
         }
         
-        function getSystemStatus() {
-            fetch('/api/autonomous/system/status')
-            .then(response => response.json())
-            .then(data => {
-                console.log('System status:', data);
-                document.getElementById('discussionCount').textContent = data.active_discussions || 0;
-            })
-            .catch(error => console.error('Error:', error));
-        }
-        
-        // Auto-refresh chat every 30 seconds
-        setInterval(refreshChat, 30000);
+        // Auto-refresh activity every 15 seconds
+        setInterval(refreshActivity, 15000);
         
         // Initial load
-        refreshChat();
-        getSystemStatus();
+        document.addEventListener('DOMContentLoaded', function() {
+            refreshActivity();
+            getSystemStatus();
+            
+            // Kickstart activity if needed
+            setTimeout(() => {
+                fetch('/api/kickstart', { method: 'POST' }).catch(console.error);
+            }, 3000);
+        });
     </script>
 </body>
 </html>
