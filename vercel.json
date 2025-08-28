@@ -1,0 +1,17 @@
+
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "frontend/xmrt-dao-frontend/package.json",
+      "use": "@vercel/node@2.10.3",
+      "config": { "includeFiles": ["backend/**", "python_service/**", "requirements.txt"] }
+    }
+  ],
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "frontend/xmrt-dao-frontend/index.html"
+    }
+  ]
+}
