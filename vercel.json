@@ -3,7 +3,7 @@
   "version": 2,
   "builds": [
     {
-      "src": "frontend/xmrt-dao-frontend/package.json",
+      "src": "./package.json",
       "use": "@vercel/node@2.10.3",
       "config": {
         "distDir": "dist",
@@ -14,7 +14,7 @@
   "routes": [
     {
       "src": "/(.*)",
-      "dest": "frontend/xmrt-dao-frontend/dist/index.html"
+      "dest": "index.html"
     }
   ]
 }
