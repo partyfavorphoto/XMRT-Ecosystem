@@ -1,3 +1,4 @@
+
 {
   "version": 2,
   "builds": [
@@ -10,9 +11,7 @@
   "routes": [
     {
       "src": "/(.*)",
-      "dest": "frontend/xmrt-dao-frontend/index.html"
+      "dest": "frontend/xmrt-dao-frontend/dist/index.html"
     }
   ]
 }
-
-
