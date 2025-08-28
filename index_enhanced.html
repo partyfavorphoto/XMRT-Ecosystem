@@ -1,0 +1,858 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>XMRT DAO Hub - Enhanced Multi-Agent Communication</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        header {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            padding: 1rem 0;
+            position: fixed;
+            width: 100%;
+            top: 0;
+            z-index: 1000;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: white;
+            text-decoration: none;
+        }
+
+        .nav-links {
+            display: flex;
+            list-style: none;
+            gap: 2rem;
+        }
+
+        .nav-links a {
+            color: white;
+            text-decoration: none;
+            transition: color 0.3s ease;
+        }
+
+        .nav-links a:hover {
+            color: #ffd700;
+        }
+
+        .hero {
+            padding: 120px 0 40px;
+            text-align: center;
+            color: white;
+        }
+
+        .hero h1 {
+            font-size: 3.5rem;
+            margin-bottom: 1rem;
+            background: linear-gradient(45deg, #ffd700, #ff6b6b);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .hero p {
+            font-size: 1.3rem;
+            margin-bottom: 2rem;
+            opacity: 0.9;
+        }
+
+        .main-dashboard {
+            padding: 20px 0 80px;
+            color: white;
+        }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 1fr 1.5fr;
+            gap: 2rem;
+            margin-top: 2rem;
+        }
+
+        .panel {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 2rem;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .panel h3 {
+            font-size: 1.4rem;
+            margin-bottom: 0;
+        }
+
+        .status-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #4ade80;
+            animation: pulse 2s infinite;
+        }
+
+        .status-indicator.inactive {
+            background: #ef4444;
+            animation: none;
+        }
+
+        .agents-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .agent-card {
+            background: rgba(0, 0, 0, 0.2);
+            padding: 1rem;
+            border-radius: 10px;
+            border-left: 4px solid #ffd700;
+            transition: all 0.3s ease;
+        }
+
+        .agent-card:hover {
+            transform: translateX(5px);
+            background: rgba(0, 0, 0, 0.3);
+        }
+
+        .agent-card.dao-governor { border-left-color: #ffd700; }
+        .agent-card.defi-specialist { border-left-color: #10b981; }
+        .agent-card.security-guardian { border-left-color: #ef4444; }
+        .agent-card.community-manager { border-left-color: #8b5cf6; }
+
+        .agent-name {
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .agent-action {
+            font-size: 0.9rem;
+            opacity: 0.8;
+            margin-top: 0.5rem;
+        }
+
+        .chat-container {
+            height: 600px;
+            display: flex;
+            flex-direction: column;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .chat-header {
+            background: rgba(0, 0, 0, 0.4);
+            padding: 1rem;
+            font-weight: bold;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 1rem;
+            scroll-behavior: smooth;
+        }
+
+        .chat-message {
+            margin-bottom: 1rem;
+            padding: 0.75rem;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border-left: 4px solid;
+            animation: fadeInUp 0.5s ease-out;
+        }
+
+        .chat-message.dao-governor { border-left-color: #ffd700; }
+        .chat-message.defi-specialist { border-left-color: #10b981; }
+        .chat-message.security-guardian { border-left-color: #ef4444; }
+        .chat-message.community-manager { border-left-color: #8b5cf6; }
+
+        .chat-sender {
+            font-weight: bold;
+            margin-bottom: 0.25rem;
+            font-size: 0.9rem;
+        }
+
+        .chat-sender.dao-governor { color: #ffd700; }
+        .chat-sender.defi-specialist { color: #10b981; }
+        .chat-sender.security-guardian { color: #ef4444; }
+        .chat-sender.community-manager { color: #8b5cf6; }
+
+        .chat-content {
+            color: rgba(255, 255, 255, 0.9);
+            line-height: 1.4;
+        }
+
+        .chat-timestamp {
+            color: #94a3b8;
+            font-size: 0.75rem;
+            margin-top: 0.25rem;
+            text-align: right;
+        }
+
+        .controls-panel {
+            background: rgba(0, 0, 0, 0.4);
+            padding: 1rem;
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            background: linear-gradient(45deg, #10b981, #059669);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 25px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 0.9rem;
+        }
+
+        .btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(16, 185, 129, 0.3);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn.primary {
+            background: linear-gradient(45deg, #ff6b6b, #ffd700);
+        }
+
+        .btn.primary:hover:not(:disabled) {
+            box-shadow: 0 8px 25px rgba(255, 107, 107, 0.3);
+        }
+
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .metric-card {
+            background: rgba(0, 0, 0, 0.2);
+            padding: 1rem;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .metric-value {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #ffd700;
+        }
+
+        .metric-label {
+            font-size: 0.9rem;
+            opacity: 0.8;
+            margin-top: 0.25rem;
+        }
+
+        .connection-status {
+            position: fixed;
+            top: 80px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 10px 15px;
+            border-radius: 25px;
+            font-size: 0.9rem;
+            z-index: 999;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s ease;
+        }
+
+        .connection-status.connected {
+            background: rgba(16, 185, 129, 0.8);
+        }
+
+        .connection-status.disconnected {
+            background: rgba(239, 68, 68, 0.8);
+        }
+
+        .spinner {
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top: 2px solid #ffd700;
+            width: 16px;
+            height: 16px;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+        }
+
+        .notification {
+            position: fixed;
+            top: 120px;
+            right: 20px;
+            background: rgba(16, 185, 129, 0.9);
+            color: white;
+            padding: 15px 20px;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            z-index: 998;
+            transform: translateX(400px);
+            transition: transform 0.3s ease;
+        }
+
+        .notification.show {
+            transform: translateX(0);
+        }
+
+        @media (max-width: 768px) {
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .hero h1 {
+                font-size: 2.5rem;
+            }
+
+            .agents-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .nav-links {
+                display: none;
+            }
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.05); opacity: 0.8; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .auto-refresh {
+            font-size: 0.8rem;
+            opacity: 0.7;
+            margin-left: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="connection-status" id="connection-status">
+        <div class="status-indicator" id="connection-indicator"></div>
+        <span id="connection-text">Connecting...</span>
+    </div>
+
+    <div class="notification" id="notification">
+        <span id="notification-text"></span>
+    </div>
+
+    <header>
+        <nav class="container">
+            <a href="#" class="logo">🚀 XMRT DAO Hub - Enhanced</a>
+            <ul class="nav-links">
+                <li><a href="#home">Home</a></li>
+                <li><a href="#agents">AI Agents</a></li>
+                <li><a href="#chat">Live Chat</a></li>
+                <li><a href="#metrics">Metrics</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <main>
+        <section id="home" class="hero">
+            <div class="container">
+                <h1>XMRT DAO Hub</h1>
+                <p>Real-time autonomous multi-agent communication with WebSocket integration</p>
+            </div>
+        </section>
+
+        <section class="main-dashboard">
+            <div class="container">
+                <div class="dashboard-grid">
+                    <!-- Left Panel: Agent Status & System Metrics -->
+                    <div class="left-panel">
+                        <div class="panel">
+                            <div class="panel-header">
+                                <h3>🤖 AI Agent Status</h3>
+                                <div class="status-indicator" id="agents-status"></div>
+                            </div>
+                            <div class="agents-grid" id="agents-container">
+                                <div class="agent-card dao-governor">
+                                    <div class="agent-name">
+                                        <div class="status-indicator" id="dao-governor-indicator"></div>
+                                        DAO Governor
+                                    </div>
+                                    <div class="agent-action" id="dao-governor-action">Initializing governance systems...</div>
+                                </div>
+                                <div class="agent-card defi-specialist">
+                                    <div class="agent-name">
+                                        <div class="status-indicator" id="defi-specialist-indicator"></div>
+                                        DeFi Specialist
+                                    </div>
+                                    <div class="agent-action" id="defi-specialist-action">Initializing yield optimization...</div>
+                                </div>
+                                <div class="agent-card security-guardian">
+                                    <div class="agent-name">
+                                        <div class="status-indicator" id="security-guardian-indicator"></div>
+                                        Security Guardian
+                                    </div>
+                                    <div class="agent-action" id="security-guardian-action">Initializing security monitoring...</div>
+                                </div>
+                                <div class="agent-card community-manager">
+                                    <div class="agent-name">
+                                        <div class="status-indicator" id="community-manager-indicator"></div>
+                                        Community Manager
+                                    </div>
+                                    <div class="agent-action" id="community-manager-action">Initializing engagement tracking...</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="panel">
+                            <div class="panel-header">
+                                <h3>📊 System Metrics</h3>
+                                <div class="auto-refresh">Auto-updating every 10s</div>
+                            </div>
+                            <div class="metrics-grid">
+                                <div class="metric-card">
+                                    <div class="metric-value" id="total-messages">0</div>
+                                    <div class="metric-label">Messages Today</div>
+                                </div>
+                                <div class="metric-card">
+                                    <div class="metric-value" id="active-discussions">0</div>
+                                    <div class="metric-label">Active Discussions</div>
+                                </div>
+                                <div class="metric-card">
+                                    <div class="metric-value" id="uptime">99.8%</div>
+                                    <div class="metric-label">System Uptime</div>
+                                </div>
+                                <div class="metric-card">
+                                    <div class="metric-value" id="response-time">0.3s</div>
+                                    <div class="metric-label">Response Time</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right Panel: Live Chat -->
+                    <div class="right-panel">
+                        <div class="panel" style="padding: 0; height: 700px;">
+                            <div class="chat-container">
+                                <div class="chat-header">
+                                    <span>💬 Live Agent Communications</span>
+                                    <div class="status-indicator" id="chat-status"></div>
+                                </div>
+                                <div class="chat-messages" id="chat-messages">
+                                    <div class="chat-message">
+                                        <div class="chat-sender">System</div>
+                                        <div class="chat-content">Initializing enhanced multi-agent communication system...</div>
+                                        <div class="chat-timestamp">Starting up...</div>
+                                    </div>
+                                </div>
+                                <div class="controls-panel">
+                                    <button class="btn primary" onclick="triggerDiscussion()">🚀 Trigger Discussion</button>
+                                    <button class="btn" onclick="kickstartSystem()">⚡ Kickstart System</button>
+                                    <button class="btn" onclick="refreshData()">🔄 Refresh Data</button>
+                                    <button class="btn" onclick="clearChat()">🗑️ Clear Chat</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        // Enhanced WebSocket and API integration
+        const API_BASE_URL = window.location.origin;
+        let socket = null;
+        let isConnected = false;
+        let updateInterval = null;
+
+        // Initialize Socket.IO connection
+        function initializeSocket() {
+            socket = io(API_BASE_URL);
+
+            socket.on('connect', function() {
+                console.log('🔌 WebSocket connected');
+                updateConnectionStatus(true);
+                showNotification('Real-time communication established');
+            });
+
+            socket.on('disconnect', function() {
+                console.log('❌ WebSocket disconnected');
+                updateConnectionStatus(false);
+                showNotification('Connection lost - attempting to reconnect...', 'error');
+            });
+
+            socket.on('connection_status', function(data) {
+                console.log('Connection status:', data);
+            });
+
+            socket.on('new_communication', function(data) {
+                console.log('🆕 New communication:', data);
+                addChatMessage(data);
+                updateAgentStatus(data.agent, data.message);
+            });
+
+            socket.on('agent_status_update', function(data) {
+                console.log('👤 Agent status update:', data);
+                updateAllAgentStatuses(data.agents);
+            });
+        }
+
+        // Connection status management
+        function updateConnectionStatus(connected) {
+            isConnected = connected;
+            const statusElement = document.getElementById('connection-status');
+            const indicatorElement = document.getElementById('connection-indicator');
+            const textElement = document.getElementById('connection-text');
+
+            if (connected) {
+                statusElement.className = 'connection-status connected';
+                indicatorElement.className = 'status-indicator';
+                textElement.textContent = 'Connected';
+            } else {
+                statusElement.className = 'connection-status disconnected';
+                indicatorElement.className = 'status-indicator inactive';
+                textElement.textContent = 'Disconnected';
+            }
+        }
+
+        // Notification system
+        function showNotification(message, type = 'success') {
+            const notification = document.getElementById('notification');
+            const text = document.getElementById('notification-text');
+
+            text.textContent = message;
+            notification.className = `notification show ${type}`;
+
+            setTimeout(() => {
+                notification.className = 'notification';
+            }, 3000);
+        }
+
+        // Chat message management
+        function addChatMessage(data) {
+            const chatMessages = document.getElementById('chat-messages');
+            const messageElement = document.createElement('div');
+
+            const agentClass = data.agent || 'system';
+            const agentDisplayName = data.agent_display_name || data.agent || 'System';
+            const timestamp = formatTimestamp(data.timestamp);
+
+            messageElement.className = `chat-message ${agentClass}`;
+            messageElement.innerHTML = `
+                <div class="chat-sender ${agentClass}">${agentDisplayName}</div>
+                <div class="chat-content">${data.message}</div>
+                <div class="chat-timestamp">${timestamp}</div>
+            `;
+
+            chatMessages.appendChild(messageElement);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+
+            // Remove old messages if too many
+            const messages = chatMessages.children;
+            if (messages.length > 50) {
+                chatMessages.removeChild(messages[0]);
+            }
+        }
+
+        // Agent status updates
+        function updateAgentStatus(agentId, action) {
+            const actionElement = document.getElementById(`${agentId.replace('_', '-')}-action`);
+            const indicatorElement = document.getElementById(`${agentId.replace('_', '-')}-indicator`);
+
+            if (actionElement) {
+                actionElement.textContent = action.substring(0, 80) + (action.length > 80 ? '...' : '');
+            }
+
+            if (indicatorElement) {
+                indicatorElement.className = 'status-indicator';
+            }
+        }
+
+        function updateAllAgentStatuses(agents) {
+            Object.keys(agents).forEach(agentId => {
+                const agent = agents[agentId];
+                updateAgentStatus(agentId, agent.last_action || agent.status);
+            });
+        }
+
+        // Utility functions
+        function formatTimestamp(timestamp) {
+            if (!timestamp) return 'Just now';
+
+            const date = new Date(timestamp);
+            const now = new Date();
+            const diff = now - date;
+
+            if (diff < 60000) return 'Just now';
+            if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`;
+            if (diff < 86400000) return `${Math.floor(diff / 3600000)}h ago`;
+            return date.toLocaleDateString();
+        }
+
+        // API calls with enhanced error handling
+        async function apiCall(endpoint, options = {}) {
+            try {
+                const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+                    ...options,
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...options.headers
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                return await response.json();
+            } catch (error) {
+                console.error(`API call failed for ${endpoint}:`, error);
+                showNotification(`API Error: ${error.message}`, 'error');
+                throw error;
+            }
+        }
+
+        // Action functions
+        async function triggerDiscussion() {
+            const button = event.target;
+            const originalText = button.innerHTML;
+
+            try {
+                button.disabled = true;
+                button.innerHTML = '🔄 Triggering... <div class="spinner"></div>';
+
+                const topics = [
+                    'yield_optimization_strategies',
+                    'governance_proposal_analysis',
+                    'security_audit_findings',
+                    'community_growth_initiatives',
+                    'cross_chain_expansion'
+                ];
+
+                const randomTopic = topics[Math.floor(Math.random() * topics.length)];
+
+                const response = await apiCall('/api/trigger-discussion', {
+                    method: 'POST',
+                    body: JSON.stringify({ topic: randomTopic })
+                });
+
+                showNotification(`Discussion "${randomTopic.replace('_', ' ')}" initiated successfully`);
+
+            } catch (error) {
+                showNotification('Failed to trigger discussion', 'error');
+            } finally {
+                setTimeout(() => {
+                    button.disabled = false;
+                    button.innerHTML = originalText;
+                }, 2000);
+            }
+        }
+
+        async function kickstartSystem() {
+            const button = event.target;
+            const originalText = button.innerHTML;
+
+            try {
+                button.disabled = true;
+                button.innerHTML = '⚡ Activating... <div class="spinner"></div>';
+
+                const response = await apiCall('/api/kickstart', {
+                    method: 'POST'
+                });
+
+                showNotification('System activated successfully');
+                loadSystemData();
+
+            } catch (error) {
+                showNotification('Failed to kickstart system', 'error');
+            } finally {
+                setTimeout(() => {
+                    button.disabled = false;
+                    button.innerHTML = originalText;
+                }, 2000);
+            }
+        }
+
+        async function refreshData() {
+            try {
+                await Promise.all([
+                    loadActivityFeed(),
+                    loadSystemStatus()
+                ]);
+                showNotification('Data refreshed successfully');
+            } catch (error) {
+                showNotification('Failed to refresh data', 'error');
+            }
+        }
+
+        function clearChat() {
+            const chatMessages = document.getElementById('chat-messages');
+            chatMessages.innerHTML = `
+                <div class="chat-message">
+                    <div class="chat-sender">System</div>
+                    <div class="chat-content">Chat cleared - waiting for new activity...</div>
+                    <div class="chat-timestamp">Just now</div>
+                </div>
+            `;
+            showNotification('Chat cleared');
+        }
+
+        // Data loading functions
+        async function loadActivityFeed() {
+            try {
+                const data = await apiCall('/api/activity/feed');
+
+                const chatMessages = document.getElementById('chat-messages');
+                chatMessages.innerHTML = '';
+
+                if (data.communications && data.communications.length > 0) {
+                    data.communications.slice(0, 20).reverse().forEach(comm => {
+                        addChatMessage(comm);
+                    });
+                } else {
+                    addChatMessage({
+                        agent: 'system',
+                        agent_display_name: 'System',
+                        message: 'No recent communications - system ready for interaction',
+                        timestamp: new Date().toISOString()
+                    });
+                }
+
+            } catch (error) {
+                console.error('Failed to load activity feed:', error);
+            }
+        }
+
+        async function loadSystemStatus() {
+            try {
+                const data = await apiCall('/api/status');
+
+                if (data.agents) {
+                    updateAllAgentStatuses(data.agents);
+                }
+
+                if (data.metrics) {
+                    updateMetrics(data.metrics);
+                }
+
+                // Update status indicators
+                document.getElementById('agents-status').className = 'status-indicator';
+                document.getElementById('chat-status').className = 'status-indicator';
+
+            } catch (error) {
+                console.error('Failed to load system status:', error);
+                document.getElementById('agents-status').className = 'status-indicator inactive';
+                document.getElementById('chat-status').className = 'status-indicator inactive';
+            }
+        }
+
+        function updateMetrics(metrics) {
+            document.getElementById('total-messages').textContent = metrics.total_messages || 0;
+            document.getElementById('active-discussions').textContent = metrics.active_discussions || 0;
+            document.getElementById('uptime').textContent = (metrics.uptime || 99.8).toFixed(1) + '%';
+            document.getElementById('response-time').textContent = (metrics.response_time || 0.3).toFixed(1) + 's';
+        }
+
+        // Initialize application
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🚀 XMRT DAO Hub Enhanced - Initializing...');
+
+            // Initialize WebSocket connection
+            initializeSocket();
+
+            // Load initial data
+            loadActivityFeed();
+            loadSystemStatus();
+
+            // Set up periodic updates
+            updateInterval = setInterval(() => {
+                if (isConnected) {
+                    loadSystemStatus();
+                }
+            }, 10000); // Update every 10 seconds
+
+            // Trigger initial system activation after 3 seconds
+            setTimeout(() => {
+                kickstartSystem();
+            }, 3000);
+
+            console.log('✅ Enhanced XMRT DAO Hub initialized successfully');
+        });
+
+        // Cleanup on page unload
+        window.addEventListener('beforeunload', () => {
+            if (updateInterval) {
+                clearInterval(updateInterval);
+            }
+            if (socket) {
+                socket.disconnect();
+            }
+        });
+    </script>
+</body>
+</html>
