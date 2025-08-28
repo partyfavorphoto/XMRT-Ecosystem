@@ -68,7 +68,6 @@
     "solidity-coverage": "^0.8.5"
   },
   "engines": {
-    "node": "^18.0",
-    "pnpm": "",
+    "node": "^18.0"
   }
 }
