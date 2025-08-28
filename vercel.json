@@ -5,7 +5,7 @@
     {
       "src": "frontend/xmrt-dao-frontend/package.json",
       "use": "@vercel/node@2.10.3",
-      "config": { "includeFiles": ["backend/**", "python_service/**", "requirements.txt"] }
+      "config": { "distDir": "dist", "includeFiles": ["backend/**", "python_service/**", "requirements.txt"] }
     }
   ],
   "routes": [
