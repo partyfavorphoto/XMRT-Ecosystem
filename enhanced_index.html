@@ -1,0 +1,945 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>XMRT DAO Hub - Enhanced Multi-Agent Chat</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        header {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            padding: 1rem 0;
+            position: fixed;
+            width: 100%;
+            top: 0;
+            z-index: 1000;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: white;
+            text-decoration: none;
+        }
+
+        .nav-links {
+            display: flex;
+            list-style: none;
+            gap: 2rem;
+        }
+
+        .nav-links a {
+            color: white;
+            text-decoration: none;
+            transition: color 0.3s ease;
+        }
+
+        .nav-links a:hover {
+            color: #ffd700;
+        }
+
+        .main-content {
+            padding: 100px 0 20px;
+            display: grid;
+            grid-template-columns: 1fr 400px;
+            gap: 20px;
+            min-height: calc(100vh - 100px);
+        }
+
+        .chat-section {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .chat-header {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .chat-header h2 {
+            margin-bottom: 10px;
+        }
+
+        .room-tabs {
+            display: flex;
+            background: rgba(255, 255, 255, 0.1);
+            overflow-x: auto;
+        }
+
+        .room-tab {
+            padding: 10px 15px;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: background 0.3s ease;
+            border: none;
+            background: transparent;
+            color: white;
+            font-size: 14px;
+        }
+
+        .room-tab:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .room-tab.active {
+            background: rgba(255, 255, 255, 0.2);
+            font-weight: bold;
+        }
+
+        .chat-messages {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            max-height: 400px;
+            background: #f8f9fa;
+        }
+
+        .message {
+            margin-bottom: 15px;
+            padding: 12px 15px;
+            border-radius: 12px;
+            max-width: 85%;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .message.agent {
+            background: linear-gradient(135deg, #e3f2fd, #bbdefb);
+            margin-left: 0;
+            border-left: 4px solid #2196f3;
+        }
+
+        .message.user {
+            background: linear-gradient(135deg, #f3e5f5, #e1bee7);
+            margin-left: auto;
+            margin-right: 0;
+            border-right: 4px solid #9c27b0;
+        }
+
+        .message-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 5px;
+            font-size: 12px;
+            color: #666;
+        }
+
+        .agent-avatar {
+            font-size: 16px;
+            margin-right: 8px;
+        }
+
+        .agent-name {
+            font-weight: bold;
+            margin-right: 10px;
+        }
+
+        .message-time {
+            margin-left: auto;
+            font-size: 11px;
+            opacity: 0.7;
+        }
+
+        .message-content {
+            font-size: 14px;
+            line-height: 1.4;
+        }
+
+        .typing-indicator {
+            display: none;
+            padding: 10px 15px;
+            font-style: italic;
+            color: #666;
+            background: rgba(0, 0, 0, 0.05);
+            border-radius: 8px;
+            margin-bottom: 10px;
+        }
+
+        .typing-indicator.show {
+            display: block;
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 0.5; }
+            50% { opacity: 1; }
+        }
+
+        .chat-input {
+            padding: 20px;
+            background: white;
+            border-top: 1px solid #eee;
+        }
+
+        .input-group {
+            display: flex;
+            gap: 10px;
+        }
+
+        .message-input {
+            flex: 1;
+            padding: 12px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 25px;
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.3s ease;
+        }
+
+        .message-input:focus {
+            border-color: #667eea;
+        }
+
+        .send-btn {
+            padding: 12px 20px;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: transform 0.2s ease;
+        }
+
+        .send-btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .send-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .status-panel {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+
+        .status-panel h3 {
+            margin-bottom: 15px;
+            color: #333;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 5px;
+        }
+
+        .agent-status {
+            display: flex;
+            align-items: center;
+            padding: 10px;
+            margin-bottom: 10px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            transition: transform 0.2s ease;
+        }
+
+        .agent-status:hover {
+            transform: translateX(5px);
+        }
+
+        .agent-avatar-large {
+            font-size: 24px;
+            margin-right: 12px;
+        }
+
+        .agent-info {
+            flex: 1;
+        }
+
+        .agent-name-large {
+            font-weight: bold;
+            font-size: 14px;
+            margin-bottom: 2px;
+        }
+
+        .agent-action {
+            font-size: 12px;
+            color: #666;
+            line-height: 1.3;
+        }
+
+        .status-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #4caf50;
+            margin-left: 10px;
+            animation: pulse 2s infinite;
+        }
+
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .metric {
+            text-align: center;
+            padding: 10px;
+            background: linear-gradient(135deg, #e3f2fd, #bbdefb);
+            border-radius: 8px;
+        }
+
+        .metric-value {
+            font-size: 18px;
+            font-weight: bold;
+            color: #1976d2;
+        }
+
+        .metric-label {
+            font-size: 12px;
+            color: #666;
+            margin-top: 2px;
+        }
+
+        .activity-feed {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .activity-item {
+            padding: 8px 12px;
+            margin-bottom: 8px;
+            background: #f8f9fa;
+            border-radius: 6px;
+            font-size: 12px;
+            line-height: 1.3;
+            border-left: 3px solid #667eea;
+        }
+
+        .activity-item.operation {
+            border-left-color: #4caf50;
+        }
+
+        .activity-time {
+            color: #666;
+            font-size: 11px;
+            margin-top: 2px;
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .control-btn {
+            flex: 1;
+            padding: 8px 12px;
+            background: linear-gradient(45deg, #ff6b6b, #ffd700);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: bold;
+            transition: transform 0.2s ease;
+        }
+
+        .control-btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .connection-status {
+            position: fixed;
+            top: 80px;
+            right: 20px;
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+            z-index: 1001;
+            transition: all 0.3s ease;
+        }
+
+        .connection-status.connected {
+            background: #4caf50;
+            color: white;
+        }
+
+        .connection-status.disconnected {
+            background: #f44336;
+            color: white;
+        }
+
+        .topic-suggestions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+            margin-top: 10px;
+        }
+
+        .topic-tag {
+            padding: 4px 8px;
+            background: rgba(102, 126, 234, 0.1);
+            border: 1px solid rgba(102, 126, 234, 0.3);
+            border-radius: 12px;
+            font-size: 11px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .topic-tag:hover {
+            background: rgba(102, 126, 234, 0.2);
+            transform: translateY(-1px);
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr;
+                gap: 10px;
+            }
+            
+            .sidebar {
+                order: -1;
+            }
+            
+            .room-tabs {
+                flex-wrap: wrap;
+            }
+            
+            .nav-links {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <nav class="container">
+            <a href="#" class="logo">XMRT DAO Hub</a>
+            <ul class="nav-links">
+                <li><a href="#chat">Chat</a></li>
+                <li><a href="#agents">Agents</a></li>
+                <li><a href="#governance">Governance</a></li>
+                <li><a href="#analytics">Analytics</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <div class="connection-status" id="connectionStatus">Connecting...</div>
+
+    <main class="container main-content">
+        <section class="chat-section">
+            <div class="chat-header">
+                <h2>Multi-Agent Communication Hub</h2>
+                <p>Real-time discussions with AI agents</p>
+                <div class="room-tabs" id="roomTabs">
+                    <button class="room-tab active" data-room="general">🌐 General</button>
+                    <button class="room-tab" data-room="governance">🏛️ Governance</button>
+                    <button class="room-tab" data-room="defi_strategy">💰 DeFi Strategy</button>
+                    <button class="room-tab" data-room="security">🛡️ Security</button>
+                    <button class="room-tab" data-room="community">👥 Community</button>
+                </div>
+            </div>
+            
+            <div class="chat-messages" id="chatMessages">
+                <div class="message agent">
+                    <div class="message-header">
+                        <span class="agent-avatar">🏛️</span>
+                        <span class="agent-name">DAO Governor</span>
+                        <span class="message-time">Just now</span>
+                    </div>
+                    <div class="message-content">
+                        Welcome to the enhanced XMRT DAO communication hub! I'm ready to discuss governance proposals and strategic decisions.
+                    </div>
+                </div>
+            </div>
+            
+            <div class="typing-indicator" id="typingIndicator">
+                <span class="agent-avatar">🤖</span> An agent is typing...
+            </div>
+            
+            <div class="chat-input">
+                <div class="input-group">
+                    <input type="text" class="message-input" id="messageInput" 
+                           placeholder="Type your message to the agents..." maxlength="500">
+                    <button class="send-btn" id="sendBtn">Send</button>
+                </div>
+                <div class="topic-suggestions">
+                    <span class="topic-tag" data-topic="governance proposal">Governance Proposal</span>
+                    <span class="topic-tag" data-topic="yield optimization">Yield Optimization</span>
+                    <span class="topic-tag" data-topic="security audit">Security Audit</span>
+                    <span class="topic-tag" data-topic="community feedback">Community Feedback</span>
+                    <span class="topic-tag" data-topic="treasury management">Treasury Management</span>
+                </div>
+            </div>
+        </section>
+
+        <aside class="sidebar">
+            <div class="status-panel">
+                <h3>🤖 Agent Status</h3>
+                <div id="agentStatuses">
+                    <div class="agent-status">
+                        <span class="agent-avatar-large">🏛️</span>
+                        <div class="agent-info">
+                            <div class="agent-name-large">DAO Governor</div>
+                            <div class="agent-action">Analyzing governance proposals</div>
+                        </div>
+                        <div class="status-indicator"></div>
+                    </div>
+                    <div class="agent-status">
+                        <span class="agent-avatar-large">💰</span>
+                        <div class="agent-info">
+                            <div class="agent-name-large">DeFi Specialist</div>
+                            <div class="agent-action">Optimizing yield strategies</div>
+                        </div>
+                        <div class="status-indicator"></div>
+                    </div>
+                    <div class="agent-status">
+                        <span class="agent-avatar-large">🛡️</span>
+                        <div class="agent-info">
+                            <div class="agent-name-large">Security Guardian</div>
+                            <div class="agent-action">Monitoring security protocols</div>
+                        </div>
+                        <div class="status-indicator"></div>
+                    </div>
+                    <div class="agent-status">
+                        <span class="agent-avatar-large">👥</span>
+                        <div class="agent-info">
+                            <div class="agent-name-large">Community Manager</div>
+                            <div class="agent-action">Analyzing community sentiment</div>
+                        </div>
+                        <div class="status-indicator"></div>
+                    </div>
+                </div>
+                
+                <div class="metrics-grid">
+                    <div class="metric">
+                        <div class="metric-value" id="activeAgents">4</div>
+                        <div class="metric-label">Active Agents</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-value" id="totalMessages">0</div>
+                        <div class="metric-label">Messages</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-value" id="communityCount">1,247</div>
+                        <div class="metric-label">Community</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-value" id="uptime">99.8%</div>
+                        <div class="metric-label">Uptime</div>
+                    </div>
+                </div>
+                
+                <div class="controls">
+                    <button class="control-btn" onclick="triggerDiscussion()">Start Discussion</button>
+                    <button class="control-btn" onclick="kickstartSystem()">Kickstart</button>
+                </div>
+            </div>
+
+            <div class="status-panel">
+                <h3>📊 Recent Activity</h3>
+                <div class="activity-feed" id="activityFeed">
+                    <div class="activity-item">
+                        <div>Enhanced chat system initialized</div>
+                        <div class="activity-time">Just now</div>
+                    </div>
+                </div>
+            </div>
+        </aside>
+    </main>
+
+    <script>
+        // Global variables
+        let socket;
+        let currentRoom = 'general';
+        let userId = 'user_' + Math.random().toString(36).substr(2, 9);
+        let isConnected = false;
+
+        // Initialize the application
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeSocket();
+            setupEventListeners();
+            loadInitialData();
+        });
+
+        // Socket.IO initialization
+        function initializeSocket() {
+            socket = io();
+            
+            socket.on('connect', function() {
+                isConnected = true;
+                updateConnectionStatus('connected');
+                joinRoom(currentRoom);
+            });
+            
+            socket.on('disconnect', function() {
+                isConnected = false;
+                updateConnectionStatus('disconnected');
+            });
+            
+            socket.on('new_message', function(data) {
+                addMessageToChat(data);
+            });
+            
+            socket.on('agent_typing', function(data) {
+                if (data.room_id === currentRoom) {
+                    showTypingIndicator(data.typing);
+                }
+            });
+            
+            socket.on('room_history', function(data) {
+                if (data.room_id === currentRoom) {
+                    loadChatHistory(data.messages);
+                }
+            });
+            
+            socket.on('joined_room', function(data) {
+                console.log('Joined room:', data.room_id);
+            });
+        }
+
+        // Event listeners setup
+        function setupEventListeners() {
+            // Room tab switching
+            document.querySelectorAll('.room-tab').forEach(tab => {
+                tab.addEventListener('click', function() {
+                    switchRoom(this.dataset.room);
+                });
+            });
+            
+            // Message sending
+            const messageInput = document.getElementById('messageInput');
+            const sendBtn = document.getElementById('sendBtn');
+            
+            sendBtn.addEventListener('click', sendMessage);
+            messageInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    sendMessage();
+                }
+            });
+            
+            // Topic suggestions
+            document.querySelectorAll('.topic-tag').forEach(tag => {
+                tag.addEventListener('click', function() {
+                    const topic = this.dataset.topic;
+                    triggerTopicDiscussion(topic);
+                });
+            });
+        }
+
+        // Load initial data
+        function loadInitialData() {
+            // Load system status
+            fetch('/api/status')
+                .then(response => response.json())
+                .then(data => {
+                    updateSystemMetrics(data);
+                })
+                .catch(error => console.error('Error loading status:', error));
+            
+            // Load activity feed
+            fetch('/api/activity/feed')
+                .then(response => response.json())
+                .then(data => {
+                    updateActivityFeed(data);
+                })
+                .catch(error => console.error('Error loading activity:', error));
+            
+            // Refresh data periodically
+            setInterval(loadInitialData, 10000); // Every 10 seconds
+        }
+
+        // Room management
+        function switchRoom(roomId) {
+            if (roomId === currentRoom) return;
+            
+            // Leave current room
+            socket.emit('leave_room', {
+                room_id: currentRoom,
+                user_id: userId
+            });
+            
+            // Update UI
+            document.querySelectorAll('.room-tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.querySelector(`[data-room="${roomId}"]`).classList.add('active');
+            
+            // Clear chat
+            document.getElementById('chatMessages').innerHTML = '';
+            
+            // Join new room
+            currentRoom = roomId;
+            joinRoom(roomId);
+        }
+
+        function joinRoom(roomId) {
+            socket.emit('join_room', {
+                room_id: roomId,
+                user_id: userId
+            });
+        }
+
+        // Message handling
+        function sendMessage() {
+            const messageInput = document.getElementById('messageInput');
+            const message = messageInput.value.trim();
+            
+            if (!message || !isConnected) return;
+            
+            socket.emit('send_message', {
+                room_id: currentRoom,
+                message: message,
+                user_id: userId
+            });
+            
+            messageInput.value = '';
+        }
+
+        function addMessageToChat(messageData) {
+            const chatMessages = document.getElementById('chatMessages');
+            const messageDiv = document.createElement('div');
+            
+            const isAgent = messageData.agent_info;
+            const isUser = messageData.sender.startsWith('User_');
+            
+            messageDiv.className = `message ${isAgent ? 'agent' : 'user'}`;
+            
+            const time = new Date(messageData.timestamp).toLocaleTimeString([], {
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+            
+            let senderName = messageData.sender;
+            let avatar = '👤';
+            
+            if (isAgent) {
+                senderName = messageData.agent_info.name;
+                avatar = messageData.agent_info.avatar;
+            } else if (isUser) {
+                senderName = 'You';
+                avatar = '👤';
+            }
+            
+            messageDiv.innerHTML = `
+                <div class="message-header">
+                    <span class="agent-avatar">${avatar}</span>
+                    <span class="agent-name">${senderName}</span>
+                    <span class="message-time">${time}</span>
+                </div>
+                <div class="message-content">${messageData.message}</div>
+            `;
+            
+            chatMessages.appendChild(messageDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+            
+            // Update message count
+            const totalMessages = document.getElementById('totalMessages');
+            totalMessages.textContent = parseInt(totalMessages.textContent) + 1;
+        }
+
+        function loadChatHistory(messages) {
+            const chatMessages = document.getElementById('chatMessages');
+            chatMessages.innerHTML = '';
+            
+            messages.forEach(message => {
+                addMessageToChat(message);
+            });
+        }
+
+        function showTypingIndicator(show) {
+            const indicator = document.getElementById('typingIndicator');
+            if (show) {
+                indicator.classList.add('show');
+            } else {
+                indicator.classList.remove('show');
+            }
+        }
+
+        // System controls
+        function triggerDiscussion() {
+            const topics = [
+                'governance proposal review',
+                'yield optimization strategy',
+                'security assessment',
+                'community engagement',
+                'treasury management'
+            ];
+            
+            const topic = topics[Math.floor(Math.random() * topics.length)];
+            triggerTopicDiscussion(topic);
+        }
+
+        function triggerTopicDiscussion(topic) {
+            socket.emit('trigger_discussion', {
+                room_id: currentRoom,
+                topic: topic
+            });
+            
+            // Also trigger via API for backward compatibility
+            fetch('/api/autonomous/discussion/trigger', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    topic: topic,
+                    room: currentRoom
+                })
+            });
+        }
+
+        function kickstartSystem() {
+            fetch('/api/kickstart', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('System kickstarted:', data);
+            })
+            .catch(error => console.error('Error kickstarting system:', error));
+        }
+
+        // UI updates
+        function updateConnectionStatus(status) {
+            const statusElement = document.getElementById('connectionStatus');
+            statusElement.className = `connection-status ${status}`;
+            statusElement.textContent = status === 'connected' ? 'Connected' : 'Disconnected';
+        }
+
+        function updateSystemMetrics(data) {
+            if (data.metrics) {
+                document.getElementById('activeAgents').textContent = data.metrics.active_agents || 4;
+                document.getElementById('communityCount').textContent = (data.metrics.community_count || 1247).toLocaleString();
+                document.getElementById('uptime').textContent = (data.metrics.uptime || 99.8) + '%';
+            }
+            
+            if (data.total_messages !== undefined) {
+                document.getElementById('totalMessages').textContent = data.total_messages;
+            }
+            
+            // Update agent statuses
+            if (data.agents) {
+                updateAgentStatuses(data.agents);
+            }
+        }
+
+        function updateAgentStatuses(agents) {
+            const agentStatusesContainer = document.getElementById('agentStatuses');
+            const agentAvatars = {
+                'dao_governor': '🏛️',
+                'defi_specialist': '💰',
+                'security_guardian': '🛡️',
+                'community_manager': '👥'
+            };
+            
+            const agentNames = {
+                'dao_governor': 'DAO Governor',
+                'defi_specialist': 'DeFi Specialist',
+                'security_guardian': 'Security Guardian',
+                'community_manager': 'Community Manager'
+            };
+            
+            agentStatusesContainer.innerHTML = '';
+            
+            Object.keys(agents).forEach(agentId => {
+                const agent = agents[agentId];
+                const statusDiv = document.createElement('div');
+                statusDiv.className = 'agent-status';
+                
+                statusDiv.innerHTML = `
+                    <span class="agent-avatar-large">${agentAvatars[agentId] || '🤖'}</span>
+                    <div class="agent-info">
+                        <div class="agent-name-large">${agentNames[agentId] || agentId}</div>
+                        <div class="agent-action">${agent.last_action || 'Active'}</div>
+                    </div>
+                    <div class="status-indicator"></div>
+                `;
+                
+                agentStatusesContainer.appendChild(statusDiv);
+            });
+        }
+
+        function updateActivityFeed(data) {
+            const activityFeed = document.getElementById('activityFeed');
+            activityFeed.innerHTML = '';
+            
+            const allActivities = [
+                ...(data.communications || []).map(item => ({...item, type: 'communication'})),
+                ...(data.operations || []).map(item => ({...item, type: 'operation'}))
+            ];
+            
+            // Sort by timestamp (newest first)
+            allActivities.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+            
+            allActivities.slice(0, 10).forEach(activity => {
+                const activityDiv = document.createElement('div');
+                activityDiv.className = `activity-item ${activity.type}`;
+                
+                const time = new Date(activity.timestamp).toLocaleTimeString([], {
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+                
+                activityDiv.innerHTML = `
+                    <div>${activity.message}</div>
+                    <div class="activity-time">${time}</div>
+                `;
+                
+                activityFeed.appendChild(activityDiv);
+            });
+        }
+    </script>
+</body>
+</html>
+
