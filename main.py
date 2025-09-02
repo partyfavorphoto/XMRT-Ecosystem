@@ -3,7 +3,7 @@
 XMRT Ecosystem - Enhanced Multi-Agent System with GitHub MCP Integration
 Real-time AI-powered DAO with GitHub MCP server integration and comprehensive webhook APIs
 Author: Joseph Andrew Lee (XMRT.io)
-Enhanced with GitHub MCP: 2025-09-02
+Enhanced with GitHub MCP: 2025-09-02 (Render Deploy Fix)
 """
 
 import os
