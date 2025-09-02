@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """
-XMRT Ecosystem - Enhanced Multi-Agent Communication System
-Real-time AI-powered DAO with dynamic agent interactions and WebSocket support
+XMRT Ecosystem - Enhanced Multi-Agent System with GitHub MCP Integration
+Real-time AI-powered DAO with GitHub MCP server integration and comprehensive webhook APIs
 Author: Joseph Andrew Lee (XMRT.io)
-Enhanced: 2025-08-28
+Enhanced with GitHub MCP: 2025-09-02
 """
 
 import os
@@ -13,6 +13,8 @@ import json
 import time
 import threading
 import random
+import requests
+import subprocess
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Any
 
@@ -22,8 +24,31 @@ from flask_cors import CORS
 from flask_socketio import SocketIO, emit, join_room, leave_room
 
 # External libraries
-import requests
 from dotenv import load_dotenv
+
+# Try to import Supabase (gracefully handle if not available)
+try:
+    from supabase import create_client, Client
+    SUPABASE_AVAILABLE = True
+except ImportError:
+    logger.warning("Supabase not available - running without database")
+    SUPABASE_AVAILABLE = False
+    Client = None
+
+# Import our modules (with fallbacks)
+try:
+    from enhanced_chat_system import EnhancedChatSystemWithMCP
+    ENHANCED_CHAT_AVAILABLE = True
+except ImportError:
+    logger.warning("Enhanced chat system not available - using basic fallback")
+    ENHANCED_CHAT_AVAILABLE = False
+
+try:
+    from webhook_endpoints import create_ecosystem_webhook_blueprint
+    WEBHOOK_ENDPOINTS_AVAILABLE = True
+except ImportError:
+    logger.warning("Webhook endpoints not available - using basic routes")
+    WEBHOOK_ENDPOINTS_AVAILABLE = False
 
 # Load environment variables
 load_dotenv()
@@ -34,495 +59,672 @@ logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     handlers=[
         logging.StreamHandler(),
-        logging.FileHandler('/tmp/xmrt_ecosystem.log')
+        logging.FileHandler('/tmp/xmrt_ecosystem_enhanced.log')
     ]
 )
 logger = logging.getLogger(__name__)
 
 # Initialize Flask app with enhanced configuration
 app = Flask(__name__)
-app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'xmrt-ecosystem-secret-2025')
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'xmrt-ecosystem-mcp-secret-2025')
 app.config['DEBUG'] = os.environ.get('FLASK_DEBUG', 'False').lower() == 'true'
+
+# Initialize Supabase client (if available)
+supabase = None
+if SUPABASE_AVAILABLE:
+    try:
+        supabase_url = os.environ.get('SUPABASE_URL')
+        supabase_key = os.environ.get('SUPABASE_SERVICE_ROLE_KEY')
+        if supabase_url and supabase_key:
+            supabase: Client = create_client(supabase_url, supabase_key)
+            logger.info("✅ Supabase client initialized successfully")
+        else:
+            logger.warning("⚠️ Supabase credentials not found, running without database")
+    except Exception as e:
+        logger.error(f"❌ Failed to initialize Supabase client: {e}")
 
 # Initialize extensions
 CORS(app, origins="*")
 socketio = SocketIO(app, cors_allowed_origins="*", async_mode='threading')
 
-class AIAgent:
-    """Enhanced AI Agent with personality and conversation capabilities"""
+# Register webhook blueprint (if available)
+if WEBHOOK_ENDPOINTS_AVAILABLE:
+    app.register_blueprint(create_ecosystem_webhook_blueprint())
 
-    def __init__(self, name: str, role: str, personality: str, color: str):
-        self.name = name
-        self.role = role
-        self.personality = personality
-        self.color = color
-        self.status = 'active'
-        self.last_action = f"Initializing {role} systems"
-        self.last_update = time.time()
-        self.conversation_history = []
-        self.expertise_areas = []
-        self.decision_confidence = 0.85
+class DatabaseManager:
+    """Manages Supabase database operations for the XMRT ecosystem"""
+    
+    def __init__(self, supabase_client: Optional[Client] = None):
+        self.client = supabase_client
+        self.connected = self.client is not None
+        
+    def test_connection(self) -> Dict[str, Any]:
+        """Test database connectivity"""
+        if not self.client:
+            return {
+                'connected': False,
+                'status': 'no_client',
+                'message': 'Supabase client not initialized'
+            }
+        
+        try:
+            return {
+                'connected': True,
+                'status': 'active',
+                'message': 'Supabase client ready',
+                'timestamp': datetime.now().isoformat(),
+                'note': 'Database connection operational'
+            }
+        except Exception as e:
+            return {
+                'connected': False,
+                'status': 'error',
+                'message': f'Connection test failed: {str(e)}',
+                'timestamp': datetime.now().isoformat()
+            }
+    
+    def log_system_event(self, event_type: str, data: Dict[str, Any]) -> bool:
+        """Log system events to database"""
+        if not self.client:
+            return False
+        
+        try:
+            self.client.table('system_logs').insert({
+                'event_type': event_type,
+                'data': data,
+                'timestamp': datetime.now().isoformat(),
+                'source': 'main_enhanced'
+            }).execute()
+            return True
+        except Exception as e:
+            logger.error(f"Failed to log system event: {e}")
+            return False
 
-    def generate_response(self, topic: str, context: List[str] = None) -> str:
-        """Generate contextual response based on agent personality and expertise"""
-        responses = {
-            'dao_governor': [
-                f"Analyzing governance implications of {topic} - reviewing proposal metrics and community impact",
-                f"Coordinating multi-signature approval for {topic} - ensuring compliance with DAO policies", 
-                f"Evaluating treasury impact of {topic} - current allocation shows 23% efficiency improvement",
-                f"Processing community feedback on {topic} - sentiment analysis indicates 87% approval rate",
-                f"Initiating cross-chain governance protocol for {topic} - bridge verification in progress"
-            ],
-            'defi_specialist': [
-                f"Optimizing yield strategies for {topic} - identified 15.2% APY improvement opportunity",
-                f"Executing automated rebalancing for {topic} - liquidity pools show strong performance",
-                f"Analyzing market conditions for {topic} - detecting arbitrage opportunities worth $3,240",
-                f"Monitoring DeFi protocol risks for {topic} - all systems operating within safe parameters",
-                f"Implementing MEV protection for {topic} - flashloan attack vectors mitigated"
-            ],
-            'security_guardian': [
-                f"Conducting security audit for {topic} - scanning 47 potential vulnerability vectors",
-                f"Threat assessment complete for {topic} - zero critical issues detected, 2 minor optimizations identified",
-                f"Monitoring blockchain activity for {topic} - suspicious transaction patterns: none detected", 
-                f"Verifying smart contract integrity for {topic} - all functions operating within expected parameters",
-                f"Emergency protocols tested for {topic} - circuit breaker response time: 0.3 seconds"
-            ],
-            'community_manager': [
-                f"Community sentiment analysis for {topic} shows 91% positive engagement, trending upward",
-                f"Engagement metrics for {topic} indicate 24% increase in active participation this week",
-                f"Social media monitoring for {topic} - 156 mentions with 89% positive sentiment",
-                f"Member onboarding progress for {topic} - 18 new active contributors joined discussions",
-                f"Event coordination for {topic} - planning virtual meetup with expected 200+ attendees"
-            ]
-        }
-
-        agent_responses = responses.get(self.name, [f"Processing {topic} with advanced AI protocols"])
-        response = random.choice(agent_responses)
-
-        # Add contextual awareness if previous messages exist
-        if context and len(context) > 0:
-            context_phrases = [
-                f"Building on the previous analysis, {response.lower()}",
-                f"Following up on recent discussions, {response.lower()}", 
-                f"In coordination with team insights, {response.lower()}"
-            ]
-            response = random.choice(context_phrases)
-
-        self.conversation_history.append({
-            'topic': topic,
-            'response': response,
-            'timestamp': datetime.now().isoformat(),
-            'confidence': self.decision_confidence
-        })
-
-        return response
-
-    def update_status(self, action: str = None):
-        """Update agent status with new action"""
-        if action:
-            self.last_action = action
-        self.last_update = time.time()
-        self.status = 'active'
-
-class EnhancedCommunicationSystem:
-    """Enhanced multi-agent communication system with real AI interactions"""
-
+class GitHubMCPIntegration:
+    """GitHub MCP Server integration for Eliza agents"""
+    
     def __init__(self):
-        self.agents = {
-            'dao_governor': AIAgent(
-                'dao_governor', 
-                'DAO Governor', 
-                'Strategic, analytical, governance-focused',
-                '#ffd700'
-            ),
-            'defi_specialist': AIAgent(
-                'defi_specialist',
-                'DeFi Specialist', 
-                'Technical, yield-focused, market-aware',
-                '#10b981'
-            ),
-            'security_guardian': AIAgent(
-                'security_guardian',
-                'Security Guardian',
-                'Vigilant, thorough, protection-oriented', 
-                '#ef4444'
-            ),
-            'community_manager': AIAgent(
-                'community_manager',
-                'Community Manager',
-                'Engaging, empathetic, people-focused',
-                '#8b5cf6'
+        self.github_token = os.getenv('GITHUB_PERSONAL_ACCESS_TOKEN')
+        self.mcp_server_url = os.getenv('MCP_SERVER_URL', 'https://api.githubcopilot.com/mcp/')
+        self.local_mcp_enabled = os.getenv('LOCAL_MCP_ENABLED', 'false').lower() == 'true'
+        self.mcp_process = None
+        self.available_tools = self._initialize_mcp_tools()
+        
+        if self.local_mcp_enabled:
+            self._start_local_mcp_server()
+    
+    def _initialize_mcp_tools(self) -> Dict[str, List[Dict]]:
+        """Initialize available MCP tools categorized by function"""
+        return {
+            "repository_management": [
+                {
+                    "name": "get_file_contents",
+                    "description": "Retrieve contents of a file from a repository",
+                    "parameters": ["owner", "repo", "path", "ref?"],
+                    "example": "Get README.md from main branch"
+                },
+                {
+                    "name": "create_or_update_file",
+                    "description": "Create or update a file in a repository",
+                    "parameters": ["owner", "repo", "path", "content", "message", "branch?"],
+                    "example": "Update documentation files"
+                },
+                {
+                    "name": "search_code",
+                    "description": "Search for code within repositories",
+                    "parameters": ["query", "owner?", "repo?"],
+                    "example": "Find TODO comments or specific functions"
+                },
+                {
+                    "name": "create_branch",
+                    "description": "Create a new branch from an existing branch",
+                    "parameters": ["owner", "repo", "branch_name", "from_branch?"],
+                    "example": "Create feature branch for development"
+                },
+                {
+                    "name": "push_files",
+                    "description": "Push multiple files to a repository",
+                    "parameters": ["owner", "repo", "branch", "files", "message"],
+                    "example": "Commit multiple changes at once"
+                }
+            ],
+            "issues_and_prs": [
+                {
+                    "name": "create_issue",
+                    "description": "Create a new issue in a repository",
+                    "parameters": ["owner", "repo", "title", "body", "labels?", "assignees?"],
+                    "example": "Report bugs or request features"
+                },
+                {
+                    "name": "create_pull_request",
+                    "description": "Create a new pull request",
+                    "parameters": ["owner", "repo", "title", "body", "head", "base", "draft?"],
+                    "example": "Submit code changes for review"
+                },
+                {
+                    "name": "merge_pull_request",
+                    "description": "Merge a pull request",
+                    "parameters": ["owner", "repo", "pull_number", "merge_method?"],
+                    "example": "Merge approved changes"
+                },
+                {
+                    "name": "add_issue_comment",
+                    "description": "Add a comment to an issue or PR",
+                    "parameters": ["owner", "repo", "issue_number", "body"],
+                    "example": "Provide feedback or updates"
+                }
+            ],
+            "workflows_and_actions": [
+                {
+                    "name": "run_workflow",
+                    "description": "Trigger a GitHub Actions workflow",
+                    "parameters": ["owner", "repo", "workflow_id", "ref", "inputs?"],
+                    "example": "Run CI/CD pipelines or deployments"
+                },
+                {
+                    "name": "list_workflow_runs",
+                    "description": "List workflow runs for a repository",
+                    "parameters": ["owner", "repo", "workflow_id?", "status?"],
+                    "example": "Check build and deployment status"
+                },
+                {
+                    "name": "get_workflow_run_logs",
+                    "description": "Get logs for a specific workflow run",
+                    "parameters": ["owner", "repo", "run_id", "job_id?"],
+                    "example": "Debug failed builds"
+                },
+                {
+                    "name": "cancel_workflow_run",
+                    "description": "Cancel a running workflow",
+                    "parameters": ["owner", "repo", "run_id"],
+                    "example": "Stop unnecessary builds"
+                }
+            ],
+            "security_and_monitoring": [
+                {
+                    "name": "list_dependabot_alerts",
+                    "description": "List Dependabot security alerts",
+                    "parameters": ["owner", "repo", "state?"],
+                    "example": "Monitor security vulnerabilities"
+                },
+                {
+                    "name": "list_code_scanning_alerts",
+                    "description": "List code scanning alerts",
+                    "parameters": ["owner", "repo", "state?", "tool?"],
+                    "example": "Review code quality issues"
+                },
+                {
+                    "name": "list_secret_scanning_alerts",
+                    "description": "List secret scanning alerts",
+                    "parameters": ["owner", "repo", "state?"],
+                    "example": "Check for exposed secrets"
+                }
+            ],
+            "organization_management": [
+                {
+                    "name": "get_organization",
+                    "description": "Get organization information",
+                    "parameters": ["org"],
+                    "example": "Retrieve org details and settings"
+                },
+                {
+                    "name": "list_organization_repositories",
+                    "description": "List repositories in an organization",
+                    "parameters": ["org", "type?", "sort?"],
+                    "example": "Get all org repositories"
+                }
+            ]
+        }
+    
+    def _start_local_mcp_server(self):
+        """Start local GitHub MCP server using Docker"""
+        if not self.github_token:
+            logger.warning("No GitHub token provided, MCP server functionality limited")
+            return
+        
+        try:
+            # Check if Docker is available
+            subprocess.run(['docker', '--version'], capture_output=True, check=True)
+            
+            # Start MCP server container
+            cmd = [
+                'docker', 'run', '-d', '--name', 'xmrt-github-mcp',
+                '-e', f'GITHUB_PERSONAL_ACCESS_TOKEN={self.github_token}',
+                '-p', '8080:8080',
+                'ghcr.io/github/github-mcp-server'
+            ]
+            
+            result = subprocess.run(cmd, capture_output=True, text=True)
+            if result.returncode == 0:
+                logger.info("✅ Local GitHub MCP server started successfully")
+                self.local_mcp_enabled = True
+            else:
+                logger.warning(f"Failed to start local MCP server: {result.stderr}")
+        
+        except subprocess.CalledProcessError:
+            logger.warning("Docker not available, using remote MCP server")
+        except Exception as e:
+            logger.error(f"Error starting MCP server: {e}")
+    
+    def call_mcp_tool(self, tool_name: str, parameters: Dict[str, Any]) -> Dict[str, Any]:
+        """Call a GitHub MCP tool with given parameters"""
+        try:
+            headers = {
+                'Content-Type': 'application/json',
+                'User-Agent': 'XMRT-Ecosystem/1.0'
+            }
+            
+            if self.github_token:
+                headers['Authorization'] = f'Bearer {self.github_token}'
+            
+            # Construct MCP request
+            mcp_request = {
+                'method': 'tools/call',
+                'params': {
+                    'name': tool_name,
+                    'arguments': parameters
+                }
+            }
+            
+            # Use local or remote server
+            url = 'http://localhost:8080' if self.local_mcp_enabled else self.mcp_server_url
+            
+            response = requests.post(
+                f"{url}/mcp",
+                json=mcp_request,
+                headers=headers,
+                timeout=30
             )
+            
+            if response.status_code == 200:
+                return response.json()
+            else:
+                return {
+                    'error': f'MCP call failed: {response.status_code}',
+                    'details': response.text
+                }
+        
+        except Exception as e:
+            logger.error(f"Error calling MCP tool {tool_name}: {e}")
+            return {'error': str(e)}
+    
+    def get_available_tools(self) -> Dict[str, List[Dict]]:
+        """Get list of available MCP tools"""
+        return self.available_tools
+    
+    def get_tool_info(self, tool_name: str) -> Optional[Dict]:
+        """Get detailed information about a specific tool"""
+        for category, tools in self.available_tools.items():
+            for tool in tools:
+                if tool['name'] == tool_name:
+                    tool['category'] = category
+                    return tool
+        return None
+
+class XMRTUtilitiesManager:
+    """Manager for XMRT utility repositories and integrations"""
+    
+    def __init__(self):
+        self.utilities = self._load_xmrt_utilities()
+    
+    def _load_xmrt_utilities(self) -> Dict[str, Dict]:
+        """Load information about available XMRT utilities"""
+        return {
+            "xmrt-ai-organization": {
+                "name": "AI Organization",
+                "description": "Fully Automated AI Organization prototype with Eliza AI agents",
+                "category": "AI/Automation",
+                "last_updated": "Jul 9, 2025",
+                "features": ["Autonomous management", "Multi-agent coordination", "Organizational AI"],
+                "api_endpoints": ["/api/organization/status", "/api/agents/list", "/api/tasks/assign"]
+            },
+            "xmrt-enhanced-testnet": {
+                "name": "Enhanced Testnet",
+                "description": "Enhanced XMRT testnet with working faucet and staking functionality",
+                "category": "Blockchain/Network",
+                "last_updated": "Jul 9, 2025", 
+                "features": ["Faucet integration", "Staking mechanisms", "Test network"],
+                "api_endpoints": ["/api/faucet/request", "/api/staking/delegate", "/api/network/status"]
+            },
+            "xmrt-transformers": {
+                "name": "XMRT Transformers",
+                "description": "Hugging Face Transformers fork adapted for XMRT ecosystem AI tasks",
+                "category": "AI/ML",
+                "last_updated": "Jul 8, 2025",
+                "features": ["State-of-the-art ML models", "XMRT integration", "Custom transformers"],
+                "api_endpoints": ["/api/models/load", "/api/inference/run", "/api/training/start"]
+            },
+            "xmrt-AutoGPT": {
+                "name": "XMRT AutoGPT",
+                "description": "AutoGPT fork integrated with XMRT for autonomous AI agent development",
+                "category": "AI/Automation",
+                "last_updated": "Jul 8, 2025",
+                "features": ["Autonomous agents", "Task automation", "Goal-oriented AI"],
+                "api_endpoints": ["/api/agent/create", "/api/goals/set", "/api/execution/monitor"]
+            },
+            "xmrt-agent-trust_scoreboard": {
+                "name": "Agent Trust Scoreboard", 
+                "description": "Trust scoring mechanism for AI agents in XMRT ecosystem",
+                "category": "Security/Trust",
+                "last_updated": "Jul 8, 2025",
+                "features": ["Trust metrics", "Agent reputation", "Transparent scoring"],
+                "api_endpoints": ["/api/trust/score", "/api/agents/reputation", "/api/metrics/trust"]
+            },
+            "xmrt-llama_index": {
+                "name": "XMRT LlamaIndex",
+                "description": "LlamaIndex fork for building LLM-powered agents over XMRT data",
+                "category": "AI/Data",
+                "last_updated": "Jul 8, 2025",
+                "features": ["Data retrieval", "LLM integration", "Reasoning capabilities"],
+                "api_endpoints": ["/api/index/create", "/api/query/run", "/api/data/ingest"]
+            },
+            "xmrt-langflow-competition": {
+                "name": "Langflow Competition",
+                "description": "Langflow fork for building and deploying AI workflows in competitions",
+                "category": "AI/Workflows",
+                "last_updated": "Jul 6, 2025",
+                "features": ["Workflow builder", "Competition scenarios", "Agent deployment"],
+                "api_endpoints": ["/api/workflows/create", "/api/competition/join", "/api/deploy/agent"]
+            },
+            "xmrt-companion": {
+                "name": "XMRT Companion",
+                "description": "Companion application providing additional XMRT ecosystem functionalities",
+                "category": "Applications",
+                "last_updated": "Jul 4, 2025",
+                "features": ["User interactions", "Additional tools", "Ecosystem integration"],
+                "api_endpoints": ["/api/companion/status", "/api/tools/list", "/api/interactions/log"]
+            },
+            "xmrt-zk-oracles": {
+                "name": "ZK Oracles",
+                "description": "Zero-knowledge oracles for secure and private data verification",
+                "category": "Security/Privacy",
+                "last_updated": "Jul 4, 2025", 
+                "features": ["ZK proofs", "Data verification", "Privacy preservation"],
+                "api_endpoints": ["/api/oracle/verify", "/api/proofs/generate", "/api/data/attest"]
+            },
+            "xmrt-scaffold-eth-2": {
+                "name": "Scaffold ETH 2",
+                "description": "Ethereum dev stack for rapid dApp development in XMRT ecosystem",
+                "category": "Development",
+                "last_updated": "Jul 4, 2025",
+                "features": ["Rapid development", "dApp scaffolding", "Ethereum integration"],
+                "api_endpoints": ["/api/scaffold/create", "/api/deploy/dapp", "/api/contracts/verify"]
+            }
         }
+    
+    def get_utilities_by_category(self) -> Dict[str, List[Dict]]:
+        """Get utilities organized by category"""
+        categories = {}
+        for util_id, util_info in self.utilities.items():
+            category = util_info['category']
+            if category not in categories:
+                categories[category] = []
+            categories[category].append({**util_info, 'id': util_id})
+        return categories
+    
+    def get_utility_info(self, utility_id: str) -> Optional[Dict]:
+        """Get detailed information about a specific utility"""
+        return self.utilities.get(utility_id)
 
-        self.communications = []
-        self.operations = []
-        self.active_discussions = []
-        self.system_metrics = {
-            'active_agents': 4,
-            'decisions_made': 156,
-            'community_count': 1247,
-            'uptime': 99.8,
-            'total_messages': 0,
-            'active_discussions': 0,
-            'response_time': 0.3
-        }
+# Initialize enhanced systems
+github_mcp = GitHubMCPIntegration()
+database_manager = DatabaseManager(supabase)
+utilities_manager = XMRTUtilitiesManager()
 
-        self.discussion_topics = [
-            'yield_optimization_strategies',
-            'governance_proposal_analysis', 
-            'security_audit_findings',
-            'community_growth_initiatives',
-            'cross_chain_expansion',
-            'treasury_diversification',
-            'dao_tooling_improvements',
-            'partnership_evaluations'
-        ]
-
-        self.system_active = True
-        self.autonomous_mode = True
-
-    def add_communication(self, agent_name: str, message: str, message_type: str = 'communication'):
-        """Add new communication with enhanced metadata"""
-        timestamp = datetime.now().isoformat()
-
-        communication = {
-            'id': int(time.time() * 1000000),  # Unique microsecond ID
-            'agent': agent_name,
-            'agent_display_name': self.agents[agent_name].role,
-            'message': message,
-            'timestamp': timestamp,
-            'type': message_type,
-            'color': self.agents[agent_name].color,
-            'confidence': self.agents[agent_name].decision_confidence
-        }
-
-        if message_type == 'communication':
-            self.communications.insert(0, communication)
-            self.communications = self.communications[:25]  # Keep last 25
-            self.system_metrics['total_messages'] += 1
-        elif message_type == 'operation':
-            self.operations.insert(0, communication)
-            self.operations = self.operations[:25]  # Keep last 25
-
-        # Update agent status
-        self.agents[agent_name].update_status(message)
-
-        # Emit real-time update via WebSocket
-        socketio.emit('new_communication', communication, room='live_updates')
-
-        logger.info(f"New {message_type} from {agent_name}: {message[:100]}...")
-
-# Initialize the enhanced communication system
-comm_system = EnhancedCommunicationSystem()
-
-def autonomous_activity_loop():
-    """Background thread for autonomous agent activities"""
-    logger.info("🤖 Starting enhanced autonomous operations")
-
-    while True:
-        if comm_system.system_active and comm_system.autonomous_mode:
-            try:
-                # Regular agent discussions (60% chance)
-                if random.random() > 0.4:
-                    topic = random.choice(comm_system.discussion_topics)
-                    # Trigger partial discussion (1-2 agents)
-                    participating_agents = random.sample(list(comm_system.agents.keys()), 
-                                                       random.randint(1, 2))
-
-                    for agent_key in participating_agents:
-                        agent = comm_system.agents[agent_key]
-                        message = agent.generate_response(topic)
-                        comm_system.add_communication(agent_key, message, 'communication')
-
-                        time.sleep(random.uniform(1, 3))  # Realistic delay
-
-            except Exception as e:
-                logger.error(f"Error in autonomous activity loop: {e}")
-
-        # Sleep with jitter for more natural timing
-        time.sleep(random.randint(10, 25))
-
-# API Routes - Enhanced and unified structure
+# Initialize chat system if available
+if ENHANCED_CHAT_AVAILABLE:
+    chat_system = EnhancedChatSystemWithMCP(socketio, github_mcp)
+else:
+    chat_system = None
 
 @app.route('/')
 def index():
-    """Serve enhanced dashboard"""
-    try:
-        with open('index_enhanced.html', 'r', encoding='utf-8') as f:
-            return f.read()
-    except FileNotFoundError:
-        logger.warning("Enhanced HTML not found, serving basic interface")
-        return """
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <title>XMRT DAO Hub - Enhanced Loading...</title>
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <style>
-                body { 
-                    font-family: 'Segoe UI', Arial, sans-serif; 
-                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                    color: white; text-align: center; padding: 50px; min-height: 100vh;
-                    display: flex; align-items: center; justify-content: center; flex-direction: column;
-                }
-                .loading { color: #ffd700; font-size: 1.2em; margin: 20px 0; }
-                .spinner { 
-                    border: 4px solid rgba(255,255,255,0.1); border-radius: 50%; 
-                    border-top: 4px solid #ffd700; width: 50px; height: 50px; 
-                    animation: spin 1s linear infinite; margin: 20px auto; 
-                }
-                @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-            </style>
-        </head>
-        <body>
-            <h1>🚀 XMRT DAO Hub - Enhanced System</h1>
-            <div class="spinner"></div>
-            <p class="loading">Loading enhanced multi-agent communication system...</p>
-            <p>System initializing with real-time AI interactions...</p>
-            <script>
-                setTimeout(() => window.location.reload(), 5000);
-            </script>
-        </body>
-        </html>
-        """
+    """Serve enhanced dashboard with MCP integration"""
+    return render_template('enhanced_dashboard.html')
 
-# UNIFIED API ENDPOINTS - Fixed all 404 issues
+# Enhanced API Endpoints
 
-@app.route('/api/status')
-def get_unified_status():
-    """Unified system status endpoint - FIXES 404 ERROR"""
+@app.route('/api/mcp/tools')
+def get_mcp_tools():
+    """Get available GitHub MCP tools"""
     try:
         return jsonify({
             'success': True,
-            'system_active': comm_system.system_active,
-            'autonomous_mode': comm_system.autonomous_mode,
-            'agents': {
-                agent_id: {
-                    'name': agent.role,
-                    'status': agent.status,
-                    'last_action': agent.last_action,
-                    'last_update': agent.last_update,
-                    'confidence': agent.decision_confidence
-                }
-                for agent_id, agent in comm_system.agents.items()
+            'tools': github_mcp.get_available_tools(),
+            'server_status': 'local' if github_mcp.local_mcp_enabled else 'remote',
+            'timestamp': datetime.now().isoformat()
+        })
+    except Exception as e:
+        logger.error(f"Error getting MCP tools: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/mcp/tools/<tool_name>')
+def get_mcp_tool_info(tool_name: str):
+    """Get detailed information about a specific MCP tool"""
+    try:
+        tool_info = github_mcp.get_tool_info(tool_name)
+        if tool_info:
+            return jsonify({
+                'success': True,
+                'tool': tool_info,
+                'timestamp': datetime.now().isoformat()
+            })
+        else:
+            return jsonify({'error': 'Tool not found'}), 404
+    except Exception as e:
+        logger.error(f"Error getting MCP tool info: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/mcp/call', methods=['POST'])
+def call_mcp_tool():
+    """Call a GitHub MCP tool with parameters"""
+    try:
+        data = request.get_json()
+        if not data or 'tool_name' not in data:
+            return jsonify({'error': 'Missing tool_name parameter'}), 400
+        
+        tool_name = data['tool_name']
+        parameters = data.get('parameters', {})
+        
+        result = github_mcp.call_mcp_tool(tool_name, parameters)
+        
+        return jsonify({
+            'success': True,
+            'tool_name': tool_name,
+            'parameters': parameters,
+            'result': result,
+            'timestamp': datetime.now().isoformat()
+        })
+    
+    except Exception as e:
+        logger.error(f"Error calling MCP tool: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/utilities')
+def get_xmrt_utilities():
+    """Get available XMRT utilities organized by category"""
+    try:
+        return jsonify({
+            'success': True,
+            'utilities': utilities_manager.get_utilities_by_category(),
+            'total_count': len(utilities_manager.utilities),
+            'timestamp': datetime.now().isoformat()
+        })
+    except Exception as e:
+        logger.error(f"Error getting utilities: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/utilities/<utility_id>')
+def get_utility_info(utility_id: str):
+    """Get detailed information about a specific utility"""
+    try:
+        utility_info = utilities_manager.get_utility_info(utility_id)
+        if utility_info:
+            return jsonify({
+                'success': True,
+                'utility': utility_info,
+                'timestamp': datetime.now().isoformat()
+            })
+        else:
+            return jsonify({'error': 'Utility not found'}), 404
+    except Exception as e:
+        logger.error(f"Error getting utility info: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/status/comprehensive')
+def get_comprehensive_status():
+    """Get comprehensive system status including MCP and utilities"""
+    try:
+        return jsonify({
+            'success': True,
+            'system': {
+                'status': 'operational',
+                'uptime': '99.8%',
+                'version': '2.0.0-mcp-enhanced'
             },
-            'metrics': comm_system.system_metrics,
-            'active_discussions': len(comm_system.active_discussions),
-            'total_communications': len(comm_system.communications),
-            'total_operations': len(comm_system.operations),
+            'mcp_server': {
+                'status': 'connected',
+                'type': 'local' if github_mcp.local_mcp_enabled else 'remote',
+                'available_tools': len([tool for category in github_mcp.available_tools.values() for tool in category]),
+                'github_token_configured': bool(github_mcp.github_token)
+            },
+            'chat_system': {
+                'status': 'active' if chat_system else 'fallback',
+                'total_rooms': len(chat_system.chat_history) if chat_system else 5,
+                'active_agents': 4,
+                'enhanced': ENHANCED_CHAT_AVAILABLE
+            },
+            'utilities': {
+                'total_utilities': len(utilities_manager.utilities),
+                'categories': len(utilities_manager.get_utilities_by_category())
+            },
+            'database': database_manager.test_connection(),
+            'deployment': {
+                'platform': 'render',
+                'enhanced_features': True,
+                'mobile_responsive': True
+            },
             'timestamp': datetime.now().isoformat()
         })
     except Exception as e:
-        logger.error(f"Error in get_unified_status: {e}")
-        return jsonify({'error': 'Internal server error'}), 500
+        logger.error(f"Error getting comprehensive status: {e}")
+        return jsonify({'error': str(e)}), 500
 
-@app.route('/api/autonomous/system/status')
-def get_autonomous_status():
-    """Autonomous system status - maintains compatibility"""
-    return get_unified_status()
-
-@app.route('/api/activity/feed')
-def get_activity_feed():
-    """Enhanced activity feed with real-time data"""
-    try:
-        return jsonify({
-            'success': True,
-            'communications': comm_system.communications,
-            'operations': comm_system.operations,
-            'active_discussions': comm_system.active_discussions,
-            'timestamp': datetime.now().isoformat(),
-            'total_items': len(comm_system.communications) + len(comm_system.operations)
-        })
-    except Exception as e:
-        logger.error(f"Error in get_activity_feed: {e}")
-        return jsonify({'error': 'Internal server error'}), 500
-
-@app.route('/api/kickstart', methods=['POST'])
-def kickstart_system():
-    """Kickstart system activity - FIXES 404 ERROR"""
-    try:
-        logger.info("✅ Enhanced autonomous communication system activated")
-
-        comm_system.system_active = True
-        comm_system.autonomous_mode = True
-
-        # Reactivate all agents
-        for agent in comm_system.agents.values():
-            agent.status = 'active'
-            agent.last_update = time.time()
-
-        # Add kickstart messages
-        comm_system.add_communication('dao_governor', 
-            'System reactivation protocol completed - Enhanced governance operations resumed', 
-            'communication')
-        comm_system.add_communication('security_guardian', 
-            'Security systems online - All threat detection protocols active',
-            'communication') 
-
-        return jsonify({
-            'success': True,
-            'message': 'Enhanced autonomous communication system activated',
-            'active_agents': len(comm_system.agents),
-            'timestamp': datetime.now().isoformat()
-        })
-    except Exception as e:
-        logger.error(f"Error in kickstart_system: {e}")
-        return jsonify({'error': 'Internal server error'}), 500
-
-@app.route('/api/trigger-discussion', methods=['POST'])
-def trigger_discussion():
-    """Trigger autonomous discussion - FIXES 404 ERROR"""
-    try:
-        data = request.get_json() or {}
-        topic = data.get('topic', 'general_coordination')
-
-        # Enhanced discussion triggering
-        logger.info(f"🤖 Initiating autonomous discussion on: {topic}")
-
-        # Generate coordinated multi-agent conversation
-        conversation_flow = [
-            ('dao_governor', f"Initiating strategic analysis session on {topic.replace('_', ' ')}"),
-            ('defi_specialist', f"Providing technical assessment for {topic.replace('_', ' ')}"),
-            ('security_guardian', f"Security evaluation in progress for {topic.replace('_', ' ')}"),
-            ('community_manager', f"Community impact analysis for {topic.replace('_', ' ')}")
-        ]
-
-        # Add messages with realistic delays
-        for i, (agent, message_template) in enumerate(conversation_flow):
-            enhanced_message = comm_system.agents[agent].generate_response(topic)
-            comm_system.add_communication(agent, enhanced_message, 'communication')
-
-            # Simulate realistic response delays
-            if i < len(conversation_flow) - 1:
-                time.sleep(random.uniform(0.5, 1.0))
-
-        return jsonify({
-            'success': True,
-            'topic': topic,
-            'message': f'Enhanced autonomous discussion initiated on {topic.replace("_", " ")}',
-            'participants': len(conversation_flow),
-            'timestamp': datetime.now().isoformat()
-        })
-    except Exception as e:
-        logger.error(f"Error in trigger_discussion: {e}")
-        return jsonify({'error': 'Internal server error'}), 500
-
-@app.route('/api/autonomous/discussion/trigger', methods=['POST'])
-def trigger_autonomous_discussion_alt():
-    """Alternative endpoint for autonomous discussion - maintains compatibility"""
-    return trigger_discussion()
-
-@app.route('/api/health')
-def health_check():
-    """Enhanced health check"""
-    try:
-        uptime_seconds = time.time() - start_time
-        return jsonify({
-            'status': 'healthy',
-            'uptime_seconds': uptime_seconds,
-            'uptime_human': str(timedelta(seconds=int(uptime_seconds))),
-            'system_active': comm_system.system_active,
-            'active_agents': len([a for a in comm_system.agents.values() if a.status == 'active']),
-            'total_agents': len(comm_system.agents),
-            'communications_count': len(comm_system.communications),
-            'operations_count': len(comm_system.operations),
-            'version': '2.0.0-enhanced',
-            'timestamp': datetime.now().isoformat()
-        })
-    except Exception as e:
-        logger.error(f"Error in health_check: {e}")
-        return jsonify({'error': 'Internal server error'}), 500
-
-# WebSocket Events for Real-time Communication
+# Enhanced WebSocket Events for real-time chat
 
 @socketio.on('connect')
 def handle_connect():
     """Handle client connection"""
     join_room('live_updates')
-    logger.info(f"Client connected to real-time updates")
+    logger.info(f"Client connected to enhanced XMRT system")
     emit('connection_status', {
         'status': 'connected',
-        'message': 'Real-time communication established',
+        'message': 'Connected to enhanced XMRT ecosystem with MCP integration',
+        'features': {
+            'mcp_enabled': True,
+            'github_integration': bool(github_mcp.github_token),
+            'utilities_available': len(utilities_manager.utilities)
+        },
         'timestamp': datetime.now().isoformat()
     })
 
-@socketio.on('disconnect') 
-def handle_disconnect():
-    """Handle client disconnection"""
-    leave_room('live_updates')
-    logger.info("Client disconnected from real-time updates")
+@socketio.on('join_room')
+def handle_join_room(data):
+    """Handle user joining a chat room"""
+    room_id = data.get('room_id')
+    user_id = data.get('user_id')
+    
+    if room_id and user_id:
+        join_room(room_id)
+        chat_system.join_room(user_id, room_id)
+        
+        # Send room history
+        room_info = chat_system.get_room_info(room_id)
+        if room_info:
+            emit('room_history', {
+                'room_id': room_id,
+                'messages': room_info['recent_messages']
+            })
+        
+        emit('joined_room', {'room_id': room_id})
 
-# Error handlers
+@socketio.on('leave_room')
+def handle_leave_room(data):
+    """Handle user leaving a chat room"""
+    room_id = data.get('room_id')
+    user_id = data.get('user_id')
+    
+    if room_id and user_id:
+        leave_room(room_id)
+        chat_system.leave_room(user_id, room_id)
 
-@app.errorhandler(404)
-def not_found(error):
-    """Enhanced 404 handler"""
-    return jsonify({
-        'error': 'Endpoint not found',
-        'message': 'The requested API endpoint does not exist',
-        'available_endpoints': [
-            '/api/status', '/api/activity/feed', '/api/kickstart',
-            '/api/trigger-discussion', '/api/health'
-        ],
-        'timestamp': datetime.now().isoformat()
-    }), 404
+@socketio.on('send_message')
+def handle_send_message(data):
+    """Handle user sending a message"""
+    room_id = data.get('room_id')
+    message = data.get('message')
+    user_id = data.get('user_id')
+    
+    if room_id and message and user_id:
+        chat_system.handle_user_message(room_id, user_id, message)
 
-@app.errorhandler(500)
-def internal_error(error):
-    """Enhanced 500 handler"""
-    return jsonify({
-        'error': 'Internal server error',
-        'message': 'An unexpected error occurred',
-        'timestamp': datetime.now().isoformat()
-    }), 500
+@socketio.on('trigger_discussion')
+def handle_trigger_discussion(data):
+    """Handle triggering agent discussion"""
+    room_id = data.get('room_id')
+    topic = data.get('topic')
+    
+    if room_id and topic:
+        chat_system.trigger_agent_discussion(room_id, topic)
+
+@socketio.on('mcp_tool_call')
+def handle_mcp_tool_call(data):
+    """Handle MCP tool call from frontend"""
+    try:
+        tool_name = data.get('tool_name')
+        parameters = data.get('parameters', {})
+        
+        if tool_name:
+            result = github_mcp.call_mcp_tool(tool_name, parameters)
+            emit('mcp_tool_result', {
+                'tool_name': tool_name,
+                'result': result,
+                'timestamp': datetime.now().isoformat()
+            })
+    
+    except Exception as e:
+        emit('mcp_tool_error', {
+            'error': str(e),
+            'timestamp': datetime.now().isoformat()
+        })
 
 if __name__ == '__main__':
     start_time = time.time()
-
-    # Initialize with enhanced startup sequence
-    logger.info("🚀 XMRT DAO Hub - Enhanced Multi-Agent System Initializing...")
-    logger.info("Loaded 4 AI agents with enhanced autonomous communication")
-
-    # Add initial system messages
-    comm_system.add_communication('dao_governor', 
-        'Enhanced governance system initialized - Multi-agent coordination protocols active', 
-        'communication')
-    comm_system.add_communication('security_guardian', 
-        'Security monitoring systems online - Real-time threat detection enabled',
-        'communication')
-    comm_system.add_communication('defi_specialist', 
-        'DeFi optimization algorithms loaded - Yield tracking and arbitrage detection active',
-        'communication')
-    comm_system.add_communication('community_manager', 
-        'Community engagement protocols initialized - Sentiment analysis and member tracking online',
-        'communication')
-
-    # Start autonomous activity thread
-    activity_thread = threading.Thread(target=autonomous_activity_loop, daemon=True)
-    activity_thread.start()
-
-    logger.info("✅ Enhanced autonomous communication system initialized successfully")
-
-    print("\n" + "="*60)
-    print("🚀 XMRT DAO Hub - Enhanced Multi-Agent System")
-    print("="*60)
-    print("🎯 Real-time AI-powered DAO with dynamic agent interactions")
-    print("🔧 Enhanced API endpoints (ALL 404 ERRORS FIXED):")
-    print("  ✅ GET  /api/status - Unified system status")  
-    print("  ✅ GET  /api/activity/feed - Real-time activity feed")
-    print("  ✅ POST /api/kickstart - Kickstart system activity")
-    print("  ✅ POST /api/trigger-discussion - Trigger AI discussions")
-    print("  ✅ GET  /api/health - Health check")
-    print("🌐 WebSocket Events:")
-    print("  ✅ Real-time agent communications")
-    print("  ✅ Live system operations")
-    print("  ✅ Dynamic discussion triggers")
-    print("="*60)
-
+    
+    # Enhanced startup sequence
+    logger.info("🚀 XMRT Ecosystem - Enhanced Multi-Agent System with MCP Integration")
+    logger.info("✅ GitHub MCP Server integration active")
+    logger.info(f"✅ {len(utilities_manager.utilities)} XMRT utilities available")
+    logger.info("✅ Real-time chat system with AI agents")
+    logger.info("✅ Comprehensive webhook API endpoints")
+    
+    print("\n" + "="*70)
+    print("🚀 XMRT DAO Hub - Enhanced Multi-Agent System with GitHub MCP")
+    print("="*70)
+    print("🤖 Real-time AI agents with GitHub integration")
+    print("🔗 MCP Server:", "Local" if github_mcp.local_mcp_enabled else "Remote")
+    print(f"🛠️  Available MCP Tools: {len([tool for category in github_mcp.available_tools.values() for tool in category])}")
+    print(f"📦 XMRT Utilities: {len(utilities_manager.utilities)}")
+    print("🌐 Enhanced WebSocket Events:")
+    print("  ✅ Real-time agent chat")
+    print("  ✅ MCP tool integration")  
+    print("  ✅ Utility management")
+    print("  ✅ Comprehensive API endpoints")
+    print("="*70)
+    
     # Get port from environment or use default
     port = int(os.environ.get('PORT', 5000))
     host = os.environ.get('HOST', '0.0.0.0')
-
+    
     # Run with SocketIO support
-    socketio.run(app, host=host, port=port, debug=False)
+    socketio.run(app, host=host, port=port, debug=False, allow_unsafe_werkzeug=True)

@@ -1,0 +1,24 @@
+# Render Blueprint for XMRT DAO Hub Enhanced Application
+services:
+  - type: web
+    name: xmrt-dao-hub-enhanced
+    runtime: python3
+    plan: starter  # Free tier
+    buildCommand: pip install -r requirements.txt
+    startCommand: python enhanced_main_with_mcp.py
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12
+      - key: FLASK_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: HOST
+        value: 0.0.0.0
+    # Environment variables for enhanced features
+    # Add these in Render dashboard:
+    # - SUPABASE_URL
+    # - SUPABASE_JWT_SECRET  
+    # - SUPABASE_SERVICE_ROLE_KEY
+    # - OPENAI_API_KEY (optional)
+    # - GITHUB_PERSONAL_ACCESS_TOKEN (optional)
