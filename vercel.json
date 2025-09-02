@@ -3,18 +3,23 @@
   "version": 2,
   "builds": [
     {
-      "src": "./package.json",
-      "use": "@vercel/node@2.10.3",
-      "config": {
-        "distDir": "dist",
-        "includeFiles": ["backend/**", "python_service/**", "requirements.txt"]
-      }
+      "src": "api/*.py",
+      "use": "@vercel/python"
     }
   ],
   "routes": [
     {
       "src": "/(.*)",
-      "dest": "index.html"
+      "dest": "/api/index.py"
     }
-  ]
+  ],
+  "env": {
+    "PYTHONPATH": "/var/task:/var/task/api",
+    "FLASK_ENV": "production"
+  },
+  "functions": {
+    "api/index.py": {
+      "maxDuration": 30
+    }
+  }
 }
