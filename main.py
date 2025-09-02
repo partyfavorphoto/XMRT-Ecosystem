@@ -85,7 +85,7 @@ if SUPABASE_AVAILABLE:
 
 # Initialize extensions
 CORS(app, origins="*")
-socketio = SocketIO(app, cors_allowed_origins="*", async_mode='threading')
+socketio = SocketIO(app, cors_allowed_origins="*", async_mode='gevent')
 
 # Register webhook blueprint (if available)
 if WEBHOOK_ENDPOINTS_AVAILABLE:
