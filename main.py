@@ -482,6 +482,17 @@ def index():
     """Serve enhanced dashboard with MCP integration"""
     return render_template('enhanced_dashboard.html')
 
+@app.route('/enhanced-test')
+def enhanced_test():
+    """Test route to verify enhanced app is running"""
+    return jsonify({
+        'status': 'ENHANCED VERSION RUNNING',
+        'version': '2.0.0-mobile-first',
+        'features': ['mobile_responsive', 'mcp_integration', 'supabase_db'],
+        'template': 'enhanced_dashboard.html',
+        'timestamp': datetime.now().isoformat()
+    })
+
 # Enhanced API Endpoints
 
 @app.route('/api/mcp/tools')
@@ -702,7 +713,7 @@ if __name__ == '__main__':
     start_time = time.time()
     
     # Enhanced startup sequence
-    logger.info("🚀 XMRT Ecosystem - Enhanced Multi-Agent System with MCP Integration")
+    logger.info("🚀 XMRT DAO HUB ENHANCED - NEW MOBILE-FIRST VERSION STARTING 🚀")
     logger.info("✅ GitHub MCP Server integration active")
     logger.info(f"✅ {len(utilities_manager.utilities)} XMRT utilities available")
     logger.info("✅ Real-time chat system with AI agents")
