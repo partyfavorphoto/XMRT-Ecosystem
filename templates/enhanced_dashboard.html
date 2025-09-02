@@ -83,9 +83,14 @@
             border-radius: 8px;
         }
 
-        .nav-links a:hover {
-            background: rgba(255, 255, 255, 0.1);
+        .nav-links a:hover, .nav-links a.active {
+            background: rgba(255, 255, 255, 0.2);
             color: var(--accent-color);
+        }
+
+        .nav-links a.active {
+            font-weight: 600;
+            border-left: 3px solid var(--accent-color);
         }
 
         /* Main Layout */
@@ -511,29 +516,249 @@
         .method-put { background: var(--warning-color); color: white; }
         .method-delete { background: var(--error-color); color: white; }
 
-        /* Responsive Design */
-        @media (max-width: 1200px) {
+        /* Mobile-First Responsive Design */
+        /* Base mobile styles (default) */
+        .container {
+            padding: 0 15px;
+        }
+
+        .main-layout {
+            display: block;
+            padding: 15px 0;
+            gap: 20px;
+        }
+
+        .sidebar-left, .sidebar-right, .main-content {
+            margin-bottom: 20px;
+        }
+
+        /* Mobile Navigation */
+        .mobile-nav-toggle {
+            display: block;
+            background: none;
+            border: none;
+            color: white;
+            font-size: 1.5rem;
+            cursor: pointer;
+            padding: 8px;
+            border-radius: 4px;
+            transition: background 0.3s ease;
+        }
+
+        .mobile-nav-toggle:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .nav-links {
+            position: fixed;
+            top: 80px;
+            left: -100%;
+            width: 100%;
+            height: calc(100vh - 80px);
+            background: rgba(31, 41, 55, 0.95);
+            backdrop-filter: blur(15px);
+            flex-direction: column;
+            padding: 20px;
+            transition: left 0.3s ease;
+            z-index: 999;
+        }
+
+        .nav-links.active {
+            left: 0;
+        }
+
+        .nav-links a {
+            padding: 15px 20px;
+            margin-bottom: 10px;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            font-size: 1.1rem;
+        }
+
+        /* Tab Content Sections */
+        .content-section {
+            display: none;
+        }
+
+        .content-section.active {
+            display: block;
+        }
+
+        /* Touch-friendly buttons */
+        .action-btn, .send-btn, .room-tab {
+            min-height: 48px;
+            touch-action: manipulation;
+        }
+
+        .room-tab {
+            padding: 15px 20px;
+            font-size: 14px;
+        }
+
+        .message-input {
+            padding: 15px;
+            font-size: 16px; /* Prevents zoom on iOS */
+        }
+
+        .send-btn {
+            padding: 15px 25px;
+        }
+
+        /* Mobile cards */
+        .card {
+            margin-bottom: 20px;
+        }
+
+        .card-content {
+            padding: 15px;
+        }
+
+        /* Mobile status grid */
+        .status-grid {
+            grid-template-columns: 1fr;
+            gap: 12px;
+        }
+
+        .status-item {
+            padding: 15px;
+        }
+
+        /* Mobile utilities */
+        .utilities-grid {
+            grid-template-columns: 1fr;
+            gap: 15px;
+        }
+
+        .utility-card {
+            padding: 20px 15px;
+        }
+
+        /* Mobile chat */
+        .chat-container {
+            height: 70vh;
+            min-height: 400px;
+        }
+
+        .chat-rooms {
+            flex-wrap: nowrap;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+        }
+
+        .chat-rooms::-webkit-scrollbar {
+            display: none;
+        }
+
+        .chat-messages {
+            padding: 15px;
+        }
+
+        .message {
+            max-width: 95%;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+
+        /* Tablet Styles */
+        @media (min-width: 768px) {
+            .container {
+                padding: 0 20px;
+            }
+
             .main-layout {
+                display: grid;
                 grid-template-columns: 1fr;
+                gap: 20px;
+                padding: 20px 0;
+            }
+
+            .mobile-nav-toggle {
+                display: none;
+            }
+
+            .nav-links {
+                position: static;
+                top: auto;
+                left: auto;
+                width: auto;
+                height: auto;
+                background: none;
+                backdrop-filter: none;
+                flex-direction: row;
+                padding: 0;
+                gap: 2rem;
+            }
+
+            .nav-links a {
+                padding: 8px 16px;
+                margin-bottom: 0;
+                border: none;
+                font-size: 1rem;
+            }
+
+            .status-grid {
+                grid-template-columns: repeat(2, 1fr);
                 gap: 15px;
             }
-            
-            .sidebar-left, .sidebar-right {
-                order: -1;
+
+            .utilities-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .room-tab {
+                padding: 12px 16px;
+            }
+
+            .message-input {
+                padding: 12px 15px;
+            }
+
+            .send-btn {
+                padding: 12px 20px;
             }
         }
 
-        @media (max-width: 768px) {
-            .nav-links {
-                display: none;
+        /* Desktop Styles */
+        @media (min-width: 1024px) {
+            .main-layout {
+                grid-template-columns: 350px 1fr;
+                gap: 20px;
             }
-            
+
+            .sidebar-left {
+                order: -1;
+            }
+
+            .main-content {
+                order: 0;
+            }
+
+            .sidebar-right {
+                order: 1;
+            }
+
             .utilities-grid {
-                grid-template-columns: 1fr;
+                grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
             }
-            
-            .status-grid {
-                grid-template-columns: 1fr;
+        }
+
+        /* Large Desktop Styles */
+        @media (min-width: 1200px) {
+            .main-layout {
+                grid-template-columns: 350px 1fr 400px;
+            }
+
+            .sidebar-right {
+                order: 2;
+            }
+        }
+
+        /* High DPI displays */
+        @media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+            .card {
+                box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
             }
         }
 
@@ -576,16 +801,19 @@
 <body>
     <header>
         <nav class="container">
-            <a href="#" class="logo">
+            <a href="#" class="logo" onclick="showSection('overview')">
                 🚀 XMRT DAO Hub
                 <span style="font-size: 0.6em; opacity: 0.8;">Enhanced with MCP</span>
             </a>
-            <ul class="nav-links">
-                <li><a href="#chat">💬 Chat</a></li>
-                <li><a href="#agents">🤖 Agents</a></li>
-                <li><a href="#mcp">🔗 MCP Tools</a></li>
-                <li><a href="#utilities">🛠️ Utilities</a></li>
-                <li><a href="#api">📡 API</a></li>
+            <button class="mobile-nav-toggle" onclick="toggleMobileNav()" aria-label="Toggle navigation">
+                ☰
+            </button>
+            <ul class="nav-links" id="navLinks">
+                <li><a href="#chat" onclick="showSection('chat'); closeMobileNav();">💬 Chat</a></li>
+                <li><a href="#agents" onclick="showSection('agents'); closeMobileNav();">🤖 Agents</a></li>
+                <li><a href="#mcp" onclick="showSection('mcp'); closeMobileNav();">🔗 MCP Tools</a></li>
+                <li><a href="#utilities" onclick="showSection('utilities'); closeMobileNav();">🛠️ Utilities</a></li>
+                <li><a href="#api" onclick="showSection('api'); closeMobileNav();">📡 API</a></li>
             </ul>
         </nav>
     </header>
@@ -593,67 +821,102 @@
     <div class="connection-status" id="connectionStatus">Connecting...</div>
 
     <main class="container main-layout">
-        <!-- Left Sidebar: System Status & MCP Tools -->
-        <aside class="sidebar-left">
-            <!-- System Status -->
-            <div class="card">
-                <div class="card-header">
-                    <h3>🔧 System Status</h3>
-                </div>
-                <div class="card-content">
-                    <div class="status-grid" id="systemStatus">
-                        <div class="status-item">
-                            <div class="status-icon info">🌐</div>
-                            <div class="status-info">
-                                <h4>System</h4>
-                                <p id="systemState">Initializing...</p>
-                            </div>
-                        </div>
-                        <div class="status-item">
-                            <div class="status-icon success">🔗</div>
-                            <div class="status-info">
-                                <h4>MCP Server</h4>
-                                <p id="mcpStatus">Checking...</p>
-                            </div>
-                        </div>
-                        <div class="status-item">
-                            <div class="status-icon success">🤖</div>
-                            <div class="status-info">
-                                <h4>AI Agents</h4>
-                                <p id="agentCount">4 Active</p>
-                            </div>
-                        </div>
-                        <div class="status-item">
-                            <div class="status-icon info">📦</div>
-                            <div class="status-info">
-                                <h4>Utilities</h4>
-                                <p id="utilitiesCount">Loading...</p>
-                            </div>
-                        </div>
+        <!-- Overview Section (Default) -->
+        <section class="content-section active" id="overview-section">
+            <div class="sidebar-left">
+                <!-- System Status -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3>🔧 System Status</h3>
                     </div>
-                    <div class="action-buttons">
-                        <button class="action-btn" onclick="kickstartSystem()">🚀 Kickstart</button>
-                        <button class="action-btn secondary" onclick="refreshStatus()">🔄 Refresh</button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- MCP Tools -->
-            <div class="card">
-                <div class="card-header">
-                    <h3>🔗 GitHub MCP Tools</h3>
-                </div>
-                <div class="card-content">
-                    <div class="tools-section" id="mcpTools">
-                        <div class="loading"></div>
-                        <p style="text-align: center; margin-top: 10px;">Loading MCP tools...</p>
+                    <div class="card-content">
+                        <div class="status-grid" id="systemStatus">
+                            <div class="status-item">
+                                <div class="status-icon info">🌐</div>
+                                <div class="status-info">
+                                    <h4>System</h4>
+                                    <p id="systemState">Initializing...</p>
+                                </div>
+                            </div>
+                            <div class="status-item">
+                                <div class="status-icon success">🔗</div>
+                                <div class="status-info">
+                                    <h4>MCP Server</h4>
+                                    <p id="mcpStatus">Checking...</p>
+                                </div>
+                            </div>
+                            <div class="status-item">
+                                <div class="status-icon success">🤖</div>
+                                <div class="status-info">
+                                    <h4>AI Agents</h4>
+                                    <p id="agentCount">4 Active</p>
+                                </div>
+                            </div>
+                            <div class="status-item">
+                                <div class="status-icon info">📦</div>
+                                <div class="status-info">
+                                    <h4>Utilities</h4>
+                                    <p id="utilitiesCount">Loading...</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="action-buttons">
+                            <button class="action-btn" onclick="kickstartSystem()">🚀 Kickstart</button>
+                            <button class="action-btn secondary" onclick="refreshStatus()">🔄 Refresh</button>
+                        </div>
                     </div>
                 </div>
             </div>
-        </aside>
+            
+            <div class="main-content">
+                <div class="card">
+                    <div class="card-header">
+                        <h3>🚀 Welcome to XMRT DAO Hub</h3>
+                        <p style="margin: 5px 0 0 0; font-size: 0.9rem; opacity: 0.9;">Enhanced Multi-Agent System with GitHub MCP Integration</p>
+                    </div>
+                    <div class="card-content">
+                        <h4 style="margin-bottom: 15px; color: var(--primary-color);">System Features</h4>
+                        <div class="status-grid">
+                            <div class="status-item">
+                                <div class="status-icon success">💬</div>
+                                <div class="status-info">
+                                    <h4>Real-time Chat</h4>
+                                    <p>Multi-room agent communication</p>
+                                </div>
+                            </div>
+                            <div class="status-item">
+                                <div class="status-icon info">🔗</div>
+                                <div class="status-info">
+                                    <h4>GitHub MCP</h4>
+                                    <p>25+ integrated development tools</p>
+                                </div>
+                            </div>
+                            <div class="status-item">
+                                <div class="status-icon warning">🛠️</div>
+                                <div class="status-info">
+                                    <h4>XMRT Utilities</h4>
+                                    <p>18 specialized development tools</p>
+                                </div>
+                            </div>
+                            <div class="status-item">
+                                <div class="status-icon success">📡</div>
+                                <div class="status-info">
+                                    <h4>Webhook APIs</h4>
+                                    <p>RESTful integration endpoints</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="action-buttons" style="margin-top: 20px;">
+                            <button class="action-btn" onclick="showSection('chat')">🚀 Start Chatting</button>
+                            <button class="action-btn secondary" onclick="showSection('mcp')">🔗 Explore MCP</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
 
-        <!-- Main Content: Chat System -->
-        <section class="main-content">
+        <!-- Chat Section -->
+        <section class="content-section" id="chat-section">
             <div class="card">
                 <div class="card-header">
                     <h3>💬 Multi-Agent Communication Hub</h3>
@@ -696,12 +959,94 @@
             </div>
         </section>
 
-        <!-- Right Sidebar: Utilities & API Endpoints -->
-        <aside class="sidebar-right">
-            <!-- XMRT Utilities -->
+        <!-- Agents Section -->
+        <section class="content-section" id="agents-section">
+            <div class="card">
+                <div class="card-header">
+                    <h3>🤖 AI Agents Dashboard</h3>
+                    <p style="margin: 5px 0 0 0; font-size: 0.9rem; opacity: 0.9;">Manage and interact with specialized AI agents</p>
+                </div>
+                <div class="card-content">
+                    <div class="utilities-grid" id="agentsGrid">
+                        <div class="utility-card">
+                            <div class="utility-header">
+                                <div class="utility-name">🏛️ DAO Governor</div>
+                                <div class="utility-category">Governance</div>
+                            </div>
+                            <div class="utility-description">Manages governance proposals, voting mechanisms, and community coordination</div>
+                            <div class="utility-features">
+                                <span class="feature-tag">Proposals</span>
+                                <span class="feature-tag">Voting</span>
+                                <span class="feature-tag">Coordination</span>
+                            </div>
+                        </div>
+                        <div class="utility-card">
+                            <div class="utility-header">
+                                <div class="utility-name">💰 DeFi Strategist</div>
+                                <div class="utility-category">Finance</div>
+                            </div>
+                            <div class="utility-description">Analyzes market trends, manages liquidity, and optimizes yield strategies</div>
+                            <div class="utility-features">
+                                <span class="feature-tag">Market Analysis</span>
+                                <span class="feature-tag">Yield Optimization</span>
+                                <span class="feature-tag">Risk Management</span>
+                            </div>
+                        </div>
+                        <div class="utility-card">
+                            <div class="utility-header">
+                                <div class="utility-name">🛡️ Security Guardian</div>
+                                <div class="utility-category">Security</div>
+                            </div>
+                            <div class="utility-description">Monitors smart contracts, detects threats, and ensures protocol security</div>
+                            <div class="utility-features">
+                                <span class="feature-tag">Contract Auditing</span>
+                                <span class="feature-tag">Threat Detection</span>
+                                <span class="feature-tag">Security Monitoring</span>
+                            </div>
+                        </div>
+                        <div class="utility-card">
+                            <div class="utility-header">
+                                <div class="utility-name">👥 Community Manager</div>
+                                <div class="utility-category">Community</div>
+                            </div>
+                            <div class="utility-description">Engages community members, manages social media, and facilitates discussions</div>
+                            <div class="utility-features">
+                                <span class="feature-tag">Engagement</span>
+                                <span class="feature-tag">Social Media</span>
+                                <span class="feature-tag">Discussion Facilitation</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="action-buttons">
+                        <button class="action-btn" onclick="showSection('chat')">💬 Chat with Agents</button>
+                        <button class="action-btn secondary" onclick="refreshAgents()">🔄 Refresh Status</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- MCP Tools Section -->
+        <section class="content-section" id="mcp-section">
+            <div class="card">
+                <div class="card-header">
+                    <h3>🔗 GitHub MCP Tools</h3>
+                    <p style="margin: 5px 0 0 0; font-size: 0.9rem; opacity: 0.9;">Model Context Protocol integration with GitHub development tools</p>
+                </div>
+                <div class="card-content">
+                    <div class="tools-section" id="mcpTools">
+                        <div class="loading"></div>
+                        <p style="text-align: center; margin-top: 10px;">Loading MCP tools...</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Utilities Section -->
+        <section class="content-section" id="utilities-section">
             <div class="card">
                 <div class="card-header">
                     <h3>🛠️ XMRT Utilities</h3>
+                    <p style="margin: 5px 0 0 0; font-size: 0.9rem; opacity: 0.9;">Specialized development and DAO management tools</p>
                 </div>
                 <div class="card-content">
                     <div id="utilitiesContainer">
@@ -710,11 +1055,14 @@
                     </div>
                 </div>
             </div>
+        </section>
 
-            <!-- API Endpoints -->
+        <!-- API Section -->
+        <section class="content-section" id="api-section">
             <div class="card">
                 <div class="card-header">
                     <h3>📡 Webhook API Endpoints</h3>
+                    <p style="margin: 5px 0 0 0; font-size: 0.9rem; opacity: 0.9;">RESTful API endpoints for system integration</p>
                 </div>
                 <div class="card-content">
                     <div class="endpoints-list">
@@ -753,10 +1101,11 @@
                     </div>
                     <div class="action-buttons">
                         <button class="action-btn" onclick="testEndpoints()">🧪 Test APIs</button>
+                        <button class="action-btn secondary" onclick="showApiDocs()">📖 Documentation</button>
                     </div>
                 </div>
             </div>
-        </aside>
+        </section>
     </main>
 
     <script>
@@ -766,12 +1115,14 @@
         let userId = 'user_' + Math.random().toString(36).substr(2, 9);
         let isConnected = false;
         let systemData = {};
+        let currentSection = 'overview';
 
         // Initialize the application
         document.addEventListener('DOMContentLoaded', function() {
             initializeSocket();
             setupEventListeners();
             loadInitialData();
+            showSection('overview'); // Show overview by default
         });
 
         // Socket.IO initialization with enhanced features
@@ -1128,6 +1479,159 @@
                     features.utilities_available + ' Available';
             }
         }
+
+        // Mobile Navigation Functions
+        function toggleMobileNav() {
+            const navLinks = document.getElementById('navLinks');
+            navLinks.classList.toggle('active');
+        }
+
+        function closeMobileNav() {
+            const navLinks = document.getElementById('navLinks');
+            navLinks.classList.remove('active');
+        }
+
+        // Section Navigation Functions
+        function showSection(sectionName) {
+            // Hide all sections
+            const sections = document.querySelectorAll('.content-section');
+            sections.forEach(section => {
+                section.classList.remove('active');
+            });
+
+            // Show the selected section
+            const targetSection = document.getElementById(sectionName + '-section');
+            if (targetSection) {
+                targetSection.classList.add('active');
+                currentSection = sectionName;
+                
+                // Update URL hash without triggering scroll
+                history.replaceState(null, null, '#' + sectionName);
+                
+                // Update navigation highlight
+                updateNavHighlight(sectionName);
+                
+                // Load section-specific data if needed
+                loadSectionData(sectionName);
+            }
+        }
+
+        function updateNavHighlight(activeSection) {
+            const navLinks = document.querySelectorAll('.nav-links a');
+            navLinks.forEach(link => {
+                link.classList.remove('active');
+                if (link.getAttribute('href').includes(activeSection)) {
+                    link.classList.add('active');
+                }
+            });
+        }
+
+        function loadSectionData(sectionName) {
+            switch(sectionName) {
+                case 'mcp':
+                    loadMCPTools();
+                    break;
+                case 'utilities':
+                    loadUtilities();
+                    break;
+                case 'agents':
+                    refreshAgents();
+                    break;
+                case 'api':
+                    // API section is static, no dynamic loading needed
+                    break;
+                case 'chat':
+                    // Ensure chat is initialized
+                    if (socket && isConnected) {
+                        joinRoom(currentRoom);
+                    }
+                    break;
+            }
+        }
+
+        // Enhanced Mobile Touch Support
+        function setupTouchSupport() {
+            // Add touch event listeners for better mobile experience
+            document.addEventListener('touchstart', function(e) {
+                // Handle touch start for better responsiveness
+            }, { passive: true });
+
+            document.addEventListener('touchend', function(e) {
+                // Handle touch end
+            }, { passive: true });
+
+            // Prevent zoom on double tap for buttons
+            let lastTouchEnd = 0;
+            document.addEventListener('touchend', function (event) {
+                const now = (new Date()).getTime();
+                if (now - lastTouchEnd <= 300) {
+                    event.preventDefault();
+                }
+                lastTouchEnd = now;
+            }, false);
+        }
+
+        // Additional Agent Functions
+        function refreshAgents() {
+            // Simulate refreshing agent status
+            const agentsGrid = document.getElementById('agentsGrid');
+            if (agentsGrid) {
+                // Add loading state
+                agentsGrid.style.opacity = '0.5';
+                setTimeout(() => {
+                    agentsGrid.style.opacity = '1';
+                    console.log('✅ Agent status refreshed');
+                }, 1000);
+            }
+        }
+
+        function showApiDocs() {
+            alert('API Documentation will open in a new window/tab.\n\nFor now, you can test the endpoints using the "Test APIs" button or by making direct HTTP requests to the listed endpoints.');
+        }
+
+        // Handle URL hash changes for direct navigation
+        function handleHashChange() {
+            const hash = window.location.hash.substr(1);
+            if (hash && ['overview', 'chat', 'agents', 'mcp', 'utilities', 'api'].includes(hash)) {
+                showSection(hash);
+            }
+        }
+
+        // Listen for hash changes
+        window.addEventListener('hashchange', handleHashChange);
+
+        // Handle initial hash on page load
+        window.addEventListener('load', function() {
+            handleHashChange();
+        });
+
+        // Enhanced responsive features
+        function setupResponsiveFeatures() {
+            // Handle orientation change on mobile
+            window.addEventListener('orientationchange', function() {
+                setTimeout(() => {
+                    closeMobileNav();
+                }, 100);
+            });
+
+            // Handle window resize
+            let resizeTimer;
+            window.addEventListener('resize', function() {
+                clearTimeout(resizeTimer);
+                resizeTimer = setTimeout(() => {
+                    // Close mobile nav if window becomes larger
+                    if (window.innerWidth >= 768) {
+                        closeMobileNav();
+                    }
+                }, 100);
+            });
+        }
+
+        // Initialize enhanced features
+        document.addEventListener('DOMContentLoaded', function() {
+            setupTouchSupport();
+            setupResponsiveFeatures();
+        });
 
         // Periodic data refresh
         setInterval(() => {
