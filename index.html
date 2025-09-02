@@ -3,9 +3,24 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>XMRT DAO Hub - Enhanced Multi-Agent Chat</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.js"></script>
+    <title>XMRT DAO Hub - Enhanced Multi-Agent System</title>
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <style>
+        :root {
+            --primary-color: #667eea;
+            --secondary-color: #764ba2;
+            --accent-color: #ffd700;
+            --success-color: #10b981;
+            --error-color: #ef4444;
+            --warning-color: #f59e0b;
+            --info-color: #3b82f6;
+            --dark-bg: #1f2937;
+            --light-bg: #f8fafc;
+            --card-bg: rgba(255, 255, 255, 0.95);
+            --border-radius: 12px;
+            --shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+
         * {
             margin: 0;
             padding: 0;
@@ -13,25 +28,25 @@
         }
 
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             line-height: 1.6;
             color: #333;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
             min-height: 100vh;
         }
 
         .container {
-            max-width: 1400px;
+            max-width: 1600px;
             margin: 0 auto;
-            padding: 0 20px;
+            padding: 0 15px;
         }
 
+        /* Enhanced Header */
         header {
             background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(10px);
+            backdrop-filter: blur(15px);
             padding: 1rem 0;
-            position: fixed;
-            width: 100%;
+            position: sticky;
             top: 0;
             z-index: 1000;
             border-bottom: 1px solid rgba(255, 255, 255, 0.2);
@@ -45,119 +60,279 @@
 
         .logo {
             font-size: 1.8rem;
-            font-weight: bold;
+            font-weight: 800;
             color: white;
             text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+        }
+
+        /* Mobile Navigation */
+        .mobile-nav-toggle {
+            display: block;
+            background: none;
+            border: none;
+            color: white;
+            font-size: 1.5rem;
+            cursor: pointer;
+            padding: 8px;
+            border-radius: 4px;
+            transition: background 0.3s ease;
+        }
+
+        .mobile-nav-toggle:hover {
+            background: rgba(255, 255, 255, 0.1);
         }
 
         .nav-links {
-            display: flex;
+            position: fixed;
+            top: 80px;
+            left: -100%;
+            width: 100%;
+            height: calc(100vh - 80px);
+            background: rgba(31, 41, 55, 0.95);
+            backdrop-filter: blur(15px);
+            flex-direction: column;
+            padding: 20px;
+            transition: left 0.3s ease;
+            z-index: 999;
             list-style: none;
-            gap: 2rem;
+        }
+
+        .nav-links.active {
+            left: 0;
         }
 
         .nav-links a {
             color: white;
             text-decoration: none;
-            transition: color 0.3s ease;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            padding: 15px 20px;
+            margin-bottom: 10px;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            font-size: 1.1rem;
+            display: block;
+            cursor: pointer;
         }
 
-        .nav-links a:hover {
-            color: #ffd700;
+        .nav-links a:hover, .nav-links a.active {
+            background: rgba(255, 255, 255, 0.2);
+            color: var(--accent-color);
         }
 
-        .main-content {
-            padding: 100px 0 20px;
-            display: grid;
-            grid-template-columns: 1fr 400px;
+        .nav-links a.active {
+            font-weight: 600;
+            border-left: 3px solid var(--accent-color);
+        }
+
+        /* Main Layout - Mobile First */
+        .main-layout {
+            display: block;
+            padding: 15px 0;
             gap: 20px;
-            min-height: calc(100vh - 100px);
         }
 
-        .chat-section {
-            background: rgba(255, 255, 255, 0.95);
-            border-radius: 15px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        .content-section {
+            display: none;
+            margin-bottom: 20px;
+        }
+
+        .content-section.active {
+            display: block;
+        }
+
+        /* Cards */
+        .card {
+            background: var(--card-bg);
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow);
             overflow: hidden;
-            display: flex;
-            flex-direction: column;
+            margin-bottom: 20px;
         }
 
-        .chat-header {
-            background: linear-gradient(45deg, #667eea, #764ba2);
+        .card-header {
+            background: linear-gradient(45deg, var(--primary-color), var(--secondary-color));
             color: white;
             padding: 20px;
             text-align: center;
         }
 
-        .chat-header h2 {
-            margin-bottom: 10px;
+        .card-header h3 {
+            margin: 0;
+            font-size: 1.2rem;
+            font-weight: 600;
         }
 
-        .room-tabs {
+        .card-content {
+            padding: 15px;
+        }
+
+        /* Status Grid */
+        .status-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .status-item {
             display: flex;
-            background: rgba(255, 255, 255, 0.1);
-            overflow-x: auto;
+            align-items: center;
+            gap: 10px;
+            padding: 15px;
+            background: var(--light-bg);
+            border-radius: 8px;
+            transition: transform 0.2s ease;
         }
 
-        .room-tab {
-            padding: 10px 15px;
-            cursor: pointer;
-            white-space: nowrap;
-            transition: background 0.3s ease;
-            border: none;
-            background: transparent;
-            color: white;
-            font-size: 14px;
+        .status-item:hover {
+            transform: translateY(-2px);
         }
 
-        .room-tab:hover {
-            background: rgba(255, 255, 255, 0.1);
+        .status-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
         }
 
-        .room-tab.active {
-            background: rgba(255, 255, 255, 0.2);
-            font-weight: bold;
+        .status-icon.success { background: var(--success-color); color: white; }
+        .status-icon.warning { background: var(--warning-color); color: white; }
+        .status-icon.info { background: var(--info-color); color: white; }
+
+        .status-info h4 {
+            font-size: 0.9rem;
+            margin-bottom: 2px;
         }
 
-        .chat-messages {
+        .status-info p {
+            font-size: 0.8rem;
+            color: #666;
+        }
+
+        /* Action Buttons */
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+            flex-wrap: wrap;
+        }
+
+        .action-btn {
             flex: 1;
-            padding: 20px;
-            overflow-y: auto;
-            max-height: 400px;
-            background: #f8f9fa;
+            min-height: 48px;
+            padding: 15px 25px;
+            background: linear-gradient(45deg, var(--success-color), #059669);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: transform 0.2s ease;
+            touch-action: manipulation;
         }
 
-        .message {
+        .action-btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .action-btn.secondary {
+            background: linear-gradient(45deg, var(--warning-color), #d97706);
+        }
+
+        /* Demo Features Grid */
+        .features-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 15px;
+            margin: 20px 0;
+        }
+
+        .feature-card {
+            padding: 20px 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border-left: 4px solid var(--primary-color);
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+
+        .feature-card:hover {
+            background: #e3f2fd;
+            transform: translateY(-2px);
+        }
+
+        .feature-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .feature-name {
+            font-weight: 600;
+            color: #333;
+            margin-left: 10px;
+        }
+
+        .feature-description {
+            font-size: 0.85rem;
+            color: #666;
+            margin-bottom: 8px;
+        }
+
+        .feature-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+        }
+
+        .feature-tag {
+            font-size: 0.7rem;
+            padding: 2px 6px;
+            background: rgba(102, 126, 234, 0.1);
+            border: 1px solid rgba(102, 126, 234, 0.3);
+            border-radius: 8px;
+            color: var(--primary-color);
+        }
+
+        /* Connection Status */
+        .connection-status {
+            position: fixed;
+            top: 90px;
+            right: 20px;
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            z-index: 1001;
+            transition: all 0.3s ease;
+            background: var(--info-color);
+            color: white;
+        }
+
+        /* Demo Chat Interface */
+        .demo-chat {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+
+        .demo-message {
             margin-bottom: 15px;
             padding: 12px 15px;
             border-radius: 12px;
             max-width: 85%;
-            animation: slideIn 0.3s ease;
-        }
-
-        @keyframes slideIn {
-            from {
-                opacity: 0;
-                transform: translateY(10px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        .message.agent {
             background: linear-gradient(135deg, #e3f2fd, #bbdefb);
-            margin-left: 0;
-            border-left: 4px solid #2196f3;
-        }
-
-        .message.user {
-            background: linear-gradient(135deg, #f3e5f5, #e1bee7);
-            margin-left: auto;
-            margin-right: 0;
-            border-right: 4px solid #9c27b0;
+            border-left: 4px solid var(--info-color);
         }
 
         .message-header {
@@ -168,13 +343,13 @@
             color: #666;
         }
 
-        .agent-avatar {
+        .message-avatar {
             font-size: 16px;
             margin-right: 8px;
         }
 
-        .agent-name {
-            font-weight: bold;
+        .message-name {
+            font-weight: 600;
             margin-right: 10px;
         }
 
@@ -189,756 +364,477 @@
             line-height: 1.4;
         }
 
-        .typing-indicator {
-            display: none;
-            padding: 10px 15px;
-            font-style: italic;
-            color: #666;
-            background: rgba(0, 0, 0, 0.05);
-            border-radius: 8px;
-            margin-bottom: 10px;
-        }
+        /* Tablet Styles */
+        @media (min-width: 768px) {
+            .container {
+                padding: 0 20px;
+            }
 
-        .typing-indicator.show {
-            display: block;
-            animation: pulse 1.5s infinite;
-        }
-
-        @keyframes pulse {
-            0%, 100% { opacity: 0.5; }
-            50% { opacity: 1; }
-        }
-
-        .chat-input {
-            padding: 20px;
-            background: white;
-            border-top: 1px solid #eee;
-        }
-
-        .input-group {
-            display: flex;
-            gap: 10px;
-        }
-
-        .message-input {
-            flex: 1;
-            padding: 12px 15px;
-            border: 2px solid #e0e0e0;
-            border-radius: 25px;
-            font-size: 14px;
-            outline: none;
-            transition: border-color 0.3s ease;
-        }
-
-        .message-input:focus {
-            border-color: #667eea;
-        }
-
-        .send-btn {
-            padding: 12px 20px;
-            background: linear-gradient(45deg, #667eea, #764ba2);
-            color: white;
-            border: none;
-            border-radius: 25px;
-            cursor: pointer;
-            font-weight: bold;
-            transition: transform 0.2s ease;
-        }
-
-        .send-btn:hover {
-            transform: translateY(-2px);
-        }
-
-        .send-btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-            transform: none;
-        }
-
-        .sidebar {
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
-        }
-
-        .status-panel {
-            background: rgba(255, 255, 255, 0.95);
-            border-radius: 15px;
-            padding: 20px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
-        }
-
-        .status-panel h3 {
-            margin-bottom: 15px;
-            color: #333;
-            border-bottom: 2px solid #667eea;
-            padding-bottom: 5px;
-        }
-
-        .agent-status {
-            display: flex;
-            align-items: center;
-            padding: 10px;
-            margin-bottom: 10px;
-            background: #f8f9fa;
-            border-radius: 8px;
-            transition: transform 0.2s ease;
-        }
-
-        .agent-status:hover {
-            transform: translateX(5px);
-        }
-
-        .agent-avatar-large {
-            font-size: 24px;
-            margin-right: 12px;
-        }
-
-        .agent-info {
-            flex: 1;
-        }
-
-        .agent-name-large {
-            font-weight: bold;
-            font-size: 14px;
-            margin-bottom: 2px;
-        }
-
-        .agent-action {
-            font-size: 12px;
-            color: #666;
-            line-height: 1.3;
-        }
-
-        .status-indicator {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background: #4caf50;
-            margin-left: 10px;
-            animation: pulse 2s infinite;
-        }
-
-        .metrics-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px;
-            margin-top: 15px;
-        }
-
-        .metric {
-            text-align: center;
-            padding: 10px;
-            background: linear-gradient(135deg, #e3f2fd, #bbdefb);
-            border-radius: 8px;
-        }
-
-        .metric-value {
-            font-size: 18px;
-            font-weight: bold;
-            color: #1976d2;
-        }
-
-        .metric-label {
-            font-size: 12px;
-            color: #666;
-            margin-top: 2px;
-        }
-
-        .activity-feed {
-            max-height: 300px;
-            overflow-y: auto;
-        }
-
-        .activity-item {
-            padding: 8px 12px;
-            margin-bottom: 8px;
-            background: #f8f9fa;
-            border-radius: 6px;
-            font-size: 12px;
-            line-height: 1.3;
-            border-left: 3px solid #667eea;
-        }
-
-        .activity-item.operation {
-            border-left-color: #4caf50;
-        }
-
-        .activity-time {
-            color: #666;
-            font-size: 11px;
-            margin-top: 2px;
-        }
-
-        .controls {
-            display: flex;
-            gap: 10px;
-            margin-top: 15px;
-        }
-
-        .control-btn {
-            flex: 1;
-            padding: 8px 12px;
-            background: linear-gradient(45deg, #ff6b6b, #ffd700);
-            color: white;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 12px;
-            font-weight: bold;
-            transition: transform 0.2s ease;
-        }
-
-        .control-btn:hover {
-            transform: translateY(-2px);
-        }
-
-        .connection-status {
-            position: fixed;
-            top: 80px;
-            right: 20px;
-            padding: 8px 15px;
-            border-radius: 20px;
-            font-size: 12px;
-            font-weight: bold;
-            z-index: 1001;
-            transition: all 0.3s ease;
-        }
-
-        .connection-status.connected {
-            background: #4caf50;
-            color: white;
-        }
-
-        .connection-status.disconnected {
-            background: #f44336;
-            color: white;
-        }
-
-        .topic-suggestions {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 5px;
-            margin-top: 10px;
-        }
-
-        .topic-tag {
-            padding: 4px 8px;
-            background: rgba(102, 126, 234, 0.1);
-            border: 1px solid rgba(102, 126, 234, 0.3);
-            border-radius: 12px;
-            font-size: 11px;
-            cursor: pointer;
-            transition: all 0.2s ease;
-        }
-
-        .topic-tag:hover {
-            background: rgba(102, 126, 234, 0.2);
-            transform: translateY(-1px);
-        }
-
-        @media (max-width: 768px) {
-            .main-content {
+            .main-layout {
+                display: grid;
                 grid-template-columns: 1fr;
-                gap: 10px;
+                gap: 20px;
+                padding: 20px 0;
             }
 
-            .sidebar {
-                order: -1;
-            }
-
-            .room-tabs {
-                flex-wrap: wrap;
+            .mobile-nav-toggle {
+                display: none;
             }
 
             .nav-links {
-                display: none;
+                position: static;
+                top: auto;
+                left: auto;
+                width: auto;
+                height: auto;
+                background: none;
+                backdrop-filter: none;
+                flex-direction: row;
+                padding: 0;
+                gap: 2rem;
             }
+
+            .nav-links a {
+                padding: 8px 16px;
+                margin-bottom: 0;
+                border: none;
+                font-size: 1rem;
+            }
+
+            .status-grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 15px;
+            }
+
+            .features-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        /* Desktop Styles */
+        @media (min-width: 1024px) {
+            .main-layout {
+                grid-template-columns: 350px 1fr;
+                gap: 20px;
+            }
+
+            .features-grid {
+                grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            }
+        }
+
+        /* Large Desktop Styles */
+        @media (min-width: 1200px) {
+            .main-layout {
+                grid-template-columns: 350px 1fr 400px;
+            }
+        }
+
+        /* Loading States */
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid var(--primary-color);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Deployment Banner */
+        .deployment-banner {
+            background: linear-gradient(45deg, var(--success-color), #059669);
+            color: white;
+            padding: 15px 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .deployment-banner h4 {
+            margin-bottom: 5px;
+        }
+
+        .deployment-banner p {
+            font-size: 0.9rem;
+            opacity: 0.9;
         }
     </style>
 </head>
 <body>
     <header>
         <nav class="container">
-            <a href="#" class="logo">XMRT DAO Hub</a>
-            <ul class="nav-links">
-                <li><a href="#chat">Chat</a></li>
-                <li><a href="#agents">Agents</a></li>
-                <li><a href="#governance">Governance</a></li>
-                <li><a href="#analytics">Analytics</a></li>
+            <div class="logo" onclick="showSection('overview')">
+                🚀 XMRT DAO Hub
+                <span style="font-size: 0.6em; opacity: 0.8;">Vite Build</span>
+            </div>
+            <button class="mobile-nav-toggle" onclick="toggleMobileNav()" aria-label="Toggle navigation">
+                ☰
+            </button>
+            <ul class="nav-links" id="navLinks">
+                <li><a onclick="showSection('overview'); closeMobileNav();">🏠 Overview</a></li>
+                <li><a onclick="showSection('chat'); closeMobileNav();">💬 Chat Demo</a></li>
+                <li><a onclick="showSection('agents'); closeMobileNav();">🤖 Agents</a></li>
+                <li><a onclick="showSection('mcp'); closeMobileNav();">🔗 MCP Tools</a></li>
+                <li><a onclick="showSection('utilities'); closeMobileNav();">🛠️ Utilities</a></li>
+                <li><a onclick="showSection('api'); closeMobileNav();">📡 API Docs</a></li>
             </ul>
         </nav>
     </header>
 
-    <div class="connection-status" id="connectionStatus">Connecting...</div>
+    <div class="connection-status" id="connectionStatus">Vite Static Build</div>
 
-    <main class="container main-content">
-        <section class="chat-section">
-            <div class="chat-header">
-                <h2>Multi-Agent Communication Hub</h2>
-                <p>Real-time discussions with AI agents</p>
-                <div class="room-tabs" id="roomTabs">
-                    <button class="room-tab active" data-room="general">🌐 General</button>
-                    <button class="room-tab" data-room="governance">🏛️ Governance</button>
-                    <button class="room-tab" data-room="defi_strategy">💰 DeFi Strategy</button>
-                    <button class="room-tab" data-room="security">🛡️ Security</button>
-                    <button class="room-tab" data-room="community">👥 Community</button>
+    <main class="container main-layout">
+        <!-- Overview Section (Default) -->
+        <section class="content-section active" id="overview-section">
+            <div class="card">
+                <div class="card-header">
+                    <h3>🚀 Welcome to XMRT DAO Hub</h3>
+                    <p style="margin: 5px 0 0 0; font-size: 0.9rem; opacity: 0.9;">Enhanced Multi-Agent System with Mobile-First Design</p>
                 </div>
-            </div>
-
-            <div class="chat-messages" id="chatMessages">
-                <div class="message agent">
-                    <div class="message-header">
-                        <span class="agent-avatar">🏛️</span>
-                        <span class="agent-name">DAO Governor</span>
-                        <span class="message-time">Just now</span>
+                <div class="card-content">
+                    <div class="deployment-banner">
+                        <h4>🎉 Dual Deployment Architecture</h4>
+                        <p><strong>Vercel:</strong> Static Vite Build (You're here!) | <strong>Render:</strong> Full Flask App with Real-time Features</p>
                     </div>
-                    <div class="message-content">
-                        Welcome to the enhanced XMRT DAO communication hub! I'm ready to discuss governance proposals and strategic decisions.
+                    
+                    <h4 style="margin-bottom: 15px; color: var(--primary-color);">System Features</h4>
+                    <div class="status-grid">
+                        <div class="status-item">
+                            <div class="status-icon success">📱</div>
+                            <div class="status-info">
+                                <h4>Mobile-First Design</h4>
+                                <p>Responsive across all devices</p>
+                            </div>
+                        </div>
+                        <div class="status-item">
+                            <div class="status-icon info">⚡</div>
+                            <div class="status-info">
+                                <h4>Vite Build</h4>
+                                <p>Fast static deployment on Vercel</p>
+                            </div>
+                        </div>
+                        <div class="status-item">
+                            <div class="status-icon warning">🛠️</div>
+                            <div class="status-info">
+                                <h4>Functional Navigation</h4>
+                                <p>All tabs working perfectly</p>
+                            </div>
+                        </div>
+                        <div class="status-item">
+                            <div class="status-icon success">🔗</div>
+                            <div class="status-info">
+                                <h4>Dual Deployment</h4>
+                                <p>Static + Dynamic versions</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="action-buttons">
+                        <button class="action-btn" onclick="showSection('chat')">💬 View Chat Demo</button>
+                        <button class="action-btn secondary" onclick="window.open('https://your-render-app.onrender.com', '_blank')">🚀 Full Flask App</button>
                     </div>
                 </div>
             </div>
 
-            <div class="typing-indicator" id="typingIndicator">
-                <span class="agent-avatar">🤖</span> An agent is typing...
-            </div>
-
-            <div class="chat-input">
-                <div class="input-group">
-                    <input type="text" class="message-input" id="messageInput" 
-                           placeholder="Type your message to the agents..." maxlength="500">
-                    <button class="send-btn" id="sendBtn">Send</button>
+            <div class="card">
+                <div class="card-header">
+                    <h3>🏗️ Architecture Overview</h3>
                 </div>
-                <div class="topic-suggestions">
-                    <span class="topic-tag" data-topic="governance proposal">Governance Proposal</span>
-                    <span class="topic-tag" data-topic="yield optimization">Yield Optimization</span>
-                    <span class="topic-tag" data-topic="security audit">Security Audit</span>
-                    <span class="topic-tag" data-topic="community feedback">Community Feedback</span>
-                    <span class="topic-tag" data-topic="treasury management">Treasury Management</span>
+                <div class="card-content">
+                    <div class="features-grid">
+                        <div class="feature-card">
+                            <div class="feature-header">
+                                <span>🌐</span>
+                                <div class="feature-name">Vercel Deployment</div>
+                            </div>
+                            <div class="feature-description">Static Vite build with mobile-first responsive design</div>
+                            <div class="feature-tags">
+                                <span class="feature-tag">Static</span>
+                                <span class="feature-tag">Fast CDN</span>
+                                <span class="feature-tag">Mobile-First</span>
+                            </div>
+                        </div>
+                        <div class="feature-card">
+                            <div class="feature-header">
+                                <span>🐍</span>
+                                <div class="feature-name">Render Deployment</div>
+                            </div>
+                            <div class="feature-description">Full Python Flask app with real-time features and database</div>
+                            <div class="feature-tags">
+                                <span class="feature-tag">Flask</span>
+                                <span class="feature-tag">WebSockets</span>
+                                <span class="feature-tag">Database</span>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </section>
 
-        <aside class="sidebar">
-            <div class="status-panel">
-                <h3>🤖 Agent Status</h3>
-                <div id="agentStatuses">
-                    <div class="agent-status">
-                        <span class="agent-avatar-large">🏛️</span>
-                        <div class="agent-info">
-                            <div class="agent-name-large">DAO Governor</div>
-                            <div class="agent-action">Analyzing governance proposals</div>
-                        </div>
-                        <div class="status-indicator"></div>
-                    </div>
-                    <div class="agent-status">
-                        <span class="agent-avatar-large">💰</span>
-                        <div class="agent-info">
-                            <div class="agent-name-large">DeFi Specialist</div>
-                            <div class="agent-action">Optimizing yield strategies</div>
-                        </div>
-                        <div class="status-indicator"></div>
-                    </div>
-                    <div class="agent-status">
-                        <span class="agent-avatar-large">🛡️</span>
-                        <div class="agent-info">
-                            <div class="agent-name-large">Security Guardian</div>
-                            <div class="agent-action">Monitoring security protocols</div>
-                        </div>
-                        <div class="status-indicator"></div>
-                    </div>
-                    <div class="agent-status">
-                        <span class="agent-avatar-large">👥</span>
-                        <div class="agent-info">
-                            <div class="agent-name-large">Community Manager</div>
-                            <div class="agent-action">Analyzing community sentiment</div>
-                        </div>
-                        <div class="status-indicator"></div>
-                    </div>
+        <!-- Chat Demo Section -->
+        <section class="content-section" id="chat-section">
+            <div class="card">
+                <div class="card-header">
+                    <h3>💬 Multi-Agent Chat Demo</h3>
+                    <p style="margin: 5px 0 0 0; font-size: 0.9rem; opacity: 0.9;">Static demo of real-time chat interface</p>
                 </div>
-
-                <div class="metrics-grid">
-                    <div class="metric">
-                        <div class="metric-value" id="activeAgents">4</div>
-                        <div class="metric-label">Active Agents</div>
+                <div class="card-content">
+                    <div class="demo-chat">
+                        <div class="demo-message">
+                            <div class="message-header">
+                                <span class="message-avatar">🏛️</span>
+                                <span class="message-name">DAO Governor</span>
+                                <span class="message-time">Just now</span>
+                            </div>
+                            <div class="message-content">
+                                Welcome to the XMRT DAO Hub! This is a static demo of our mobile-first responsive design. The full interactive version with real-time agents is available on Render.
+                            </div>
+                        </div>
+                        <div class="demo-message">
+                            <div class="message-header">
+                                <span class="message-avatar">💰</span>
+                                <span class="message-name">DeFi Specialist</span>
+                                <span class="message-time">2 min ago</span>
+                            </div>
+                            <div class="message-content">
+                                The mobile-first design ensures optimal experience across all devices. Try resizing your browser or viewing on mobile!
+                            </div>
+                        </div>
                     </div>
-                    <div class="metric">
-                        <div class="metric-value" id="totalMessages">0</div>
-                        <div class="metric-label">Messages</div>
-                    </div>
-                    <div class="metric">
-                        <div class="metric-value" id="communityCount">1,247</div>
-                        <div class="metric-label">Community</div>
-                    </div>
-                    <div class="metric">
-                        <div class="metric-value" id="uptime">99.8%</div>
-                        <div class="metric-label">Uptime</div>
-                    </div>
-                </div>
-
-                <div class="controls">
-                    <button class="control-btn" onclick="triggerDiscussion()">Start Discussion</button>
-                    <button class="control-btn" onclick="kickstartSystem()">Kickstart</button>
-                </div>
-            </div>
-
-            <div class="status-panel">
-                <h3>📊 Recent Activity</h3>
-                <div class="activity-feed" id="activityFeed">
-                    <div class="activity-item">
-                        <div>Enhanced chat system initialized</div>
-                        <div class="activity-time">Just now</div>
+                    <div class="action-buttons">
+                        <button class="action-btn" onclick="alert('This is a static demo. Visit the Render deployment for full chat functionality!')">💬 Try Live Chat</button>
+                        <button class="action-btn secondary" onclick="showSection('agents')">🤖 Meet the Agents</button>
                     </div>
                 </div>
             </div>
-        </aside>
+        </section>
+
+        <!-- Agents Section -->
+        <section class="content-section" id="agents-section">
+            <div class="card">
+                <div class="card-header">
+                    <h3>🤖 AI Agents Dashboard</h3>
+                    <p style="margin: 5px 0 0 0; font-size: 0.9rem; opacity: 0.9;">Meet our specialized AI agents</p>
+                </div>
+                <div class="card-content">
+                    <div class="features-grid">
+                        <div class="feature-card">
+                            <div class="feature-header">
+                                <span>🏛️</span>
+                                <div class="feature-name">DAO Governor</div>
+                            </div>
+                            <div class="feature-description">Manages governance proposals, voting mechanisms, and community coordination</div>
+                            <div class="feature-tags">
+                                <span class="feature-tag">Governance</span>
+                                <span class="feature-tag">Voting</span>
+                                <span class="feature-tag">Leadership</span>
+                            </div>
+                        </div>
+                        <div class="feature-card">
+                            <div class="feature-header">
+                                <span>💰</span>
+                                <div class="feature-name">DeFi Specialist</div>
+                            </div>
+                            <div class="feature-description">Analyzes markets, manages liquidity, and optimizes yield strategies</div>
+                            <div class="feature-tags">
+                                <span class="feature-tag">DeFi</span>
+                                <span class="feature-tag">Yield</span>
+                                <span class="feature-tag">Analysis</span>
+                            </div>
+                        </div>
+                        <div class="feature-card">
+                            <div class="feature-header">
+                                <span>🛡️</span>
+                                <div class="feature-name">Security Guardian</div>
+                            </div>
+                            <div class="feature-description">Monitors smart contracts, detects threats, ensures protocol security</div>
+                            <div class="feature-tags">
+                                <span class="feature-tag">Security</span>
+                                <span class="feature-tag">Auditing</span>
+                                <span class="feature-tag">Protection</span>
+                            </div>
+                        </div>
+                        <div class="feature-card">
+                            <div class="feature-header">
+                                <span>👥</span>
+                                <div class="feature-name">Community Manager</div>
+                            </div>
+                            <div class="feature-description">Engages community members, manages social media, facilitates discussions</div>
+                            <div class="feature-tags">
+                                <span class="feature-tag">Community</span>
+                                <span class="feature-tag">Social</span>
+                                <span class="feature-tag">Engagement</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- MCP Tools Section -->
+        <section class="content-section" id="mcp-section">
+            <div class="card">
+                <div class="card-header">
+                    <h3>🔗 GitHub MCP Tools</h3>
+                    <p style="margin: 5px 0 0 0; font-size: 0.9rem; opacity: 0.9;">Model Context Protocol integration tools</p>
+                </div>
+                <div class="card-content">
+                    <div class="features-grid">
+                        <div class="feature-card">
+                            <div class="feature-header">
+                                <span>📁</span>
+                                <div class="feature-name">Repository Management</div>
+                            </div>
+                            <div class="feature-description">Create, update, and manage repository files and branches</div>
+                            <div class="feature-tags">
+                                <span class="feature-tag">Git</span>
+                                <span class="feature-tag">Files</span>
+                                <span class="feature-tag">Branches</span>
+                            </div>
+                        </div>
+                        <div class="feature-card">
+                            <div class="feature-header">
+                                <span>🔍</span>
+                                <div class="feature-name">Code Search</div>
+                            </div>
+                            <div class="feature-description">Search code across repositories, find functions and patterns</div>
+                            <div class="feature-tags">
+                                <span class="feature-tag">Search</span>
+                                <span class="feature-tag">Code</span>
+                                <span class="feature-tag">Analysis</span>
+                            </div>
+                        </div>
+                        <div class="feature-card">
+                            <div class="feature-header">
+                                <span>⚡</span>
+                                <div class="feature-name">Workflow Automation</div>
+                            </div>
+                            <div class="feature-description">Trigger and monitor GitHub Actions workflows</div>
+                            <div class="feature-tags">
+                                <span class="feature-tag">CI/CD</span>
+                                <span class="feature-tag">Actions</span>
+                                <span class="feature-tag">Automation</span>
+                            </div>
+                        </div>
+                        <div class="feature-card">
+                            <div class="feature-header">
+                                <span>🛡️</span>
+                                <div class="feature-name">Security Scanning</div>
+                            </div>
+                            <div class="feature-description">Monitor security alerts and vulnerability scans</div>
+                            <div class="feature-tags">
+                                <span class="feature-tag">Security</span>
+                                <span class="feature-tag">Vulnerabilities</span>
+                                <span class="feature-tag">Monitoring</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Utilities Section -->
+        <section class="content-section" id="utilities-section">
+            <div class="card">
+                <div class="card-header">
+                    <h3>🛠️ XMRT Utilities</h3>
+                    <p style="margin: 5px 0 0 0; font-size: 0.9rem; opacity: 0.9;">Specialized development and DAO tools</p>
+                </div>
+                <div class="card-content">
+                    <div class="features-grid">
+                        <div class="feature-card">
+                            <div class="feature-header">
+                                <span>🏗️</span>
+                                <div class="feature-name">Smart Contract Tools</div>
+                            </div>
+                            <div class="feature-description">Deploy, interact with, and manage smart contracts</div>
+                            <div class="feature-tags">
+                                <span class="feature-tag">Solidity</span>
+                                <span class="feature-tag">Deployment</span>
+                                <span class="feature-tag">Testing</span>
+                            </div>
+                        </div>
+                        <div class="feature-card">
+                            <div class="feature-header">
+                                <span>📊</span>
+                                <div class="feature-name">DAO Analytics</div>
+                            </div>
+                            <div class="feature-description">Track proposals, votes, and treasury metrics</div>
+                            <div class="feature-tags">
+                                <span class="feature-tag">Analytics</span>
+                                <span class="feature-tag">Metrics</span>
+                                <span class="feature-tag">Dashboard</span>
+                            </div>
+                        </div>
+                        <div class="feature-card">
+                            <div class="feature-header">
+                                <span>🔗</span>
+                                <div class="feature-name">API Integration</div>
+                            </div>
+                            <div class="feature-description">Connect with external services and data sources</div>
+                            <div class="feature-tags">
+                                <span class="feature-tag">REST API</span>
+                                <span class="feature-tag">Webhooks</span>
+                                <span class="feature-tag">Integration</span>
+                            </div>
+                        </div>
+                        <div class="feature-card">
+                            <div class="feature-header">
+                                <span>🚀</span>
+                                <div class="feature-name">Deployment Tools</div>
+                            </div>
+                            <div class="feature-description">Automated deployment and infrastructure management</div>
+                            <div class="feature-tags">
+                                <span class="feature-tag">DevOps</span>
+                                <span class="feature-tag">CI/CD</span>
+                                <span class="feature-tag">Infrastructure</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- API Documentation Section -->
+        <section class="content-section" id="api-section">
+            <div class="card">
+                <div class="card-header">
+                    <h3>📡 API Documentation</h3>
+                    <p style="margin: 5px 0 0 0; font-size: 0.9rem; opacity: 0.9;">RESTful API endpoints and integration guide</p>
+                </div>
+                <div class="card-content">
+                    <h4 style="margin-bottom: 15px; color: var(--primary-color);">Available Endpoints</h4>
+                    
+                    <div style="font-family: monospace; font-size: 0.9rem; background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+                        <div style="margin-bottom: 10px;"><strong style="color: var(--success-color);">GET</strong> /api/status/comprehensive</div>
+                        <div style="margin-bottom: 10px;"><strong style="color: var(--success-color);">GET</strong> /api/mcp/tools</div>
+                        <div style="margin-bottom: 10px;"><strong style="color: var(--info-color);">POST</strong> /api/mcp/call</div>
+                        <div style="margin-bottom: 10px;"><strong style="color: var(--success-color);">GET</strong> /api/utilities</div>
+                        <div style="margin-bottom: 10px;"><strong style="color: var(--info-color);">POST</strong> /api/webhook/receive</div>
+                        <div style="margin-bottom: 10px;"><strong style="color: var(--info-color);">POST</strong> /api/ecosystem/sync</div>
+                        <div style="margin-bottom: 10px;"><strong style="color: var(--success-color);">GET</strong> /api/activity/feed</div>
+                        <div><strong style="color: var(--info-color);">POST</strong> /api/kickstart</div>
+                    </div>
+
+                    <div class="deployment-banner">
+                        <h4>📖 Full API Documentation</h4>
+                        <p>Complete API documentation and interactive testing available on the Render deployment</p>
+                    </div>
+
+                    <div class="action-buttons">
+                        <button class="action-btn" onclick="window.open('https://your-render-app.onrender.com/api/status/comprehensive', '_blank')">🧪 Test Live API</button>
+                        <button class="action-btn secondary" onclick="alert('API documentation available on the full Flask deployment')">📚 View Docs</button>
+                    </div>
+                </div>
+            </div>
+        </section>
     </main>
 
-    <script>
-        // Global variables
-        let socket;
-        let currentRoom = 'general';
-        let userId = 'user_' + Math.random().toString(36).substr(2, 9);
-        let isConnected = false;
-
-        // Initialize the application
-        document.addEventListener('DOMContentLoaded', function() {
-            initializeSocket();
-            setupEventListeners();
-            loadInitialData();
-        });
-
-        // Socket.IO initialization
-        function initializeSocket() {
-            socket = io();
-
-            socket.on('connect', function() {
-                isConnected = true;
-                updateConnectionStatus('connected');
-                joinRoom(currentRoom);
-            });
-
-            socket.on('disconnect', function() {
-                isConnected = false;
-                updateConnectionStatus('disconnected');
-            });
-
-            socket.on('new_message', function(data) {
-                addMessageToChat(data);
-            });
-
-            socket.on('agent_typing', function(data) {
-                if (data.room_id === currentRoom) {
-                    showTypingIndicator(data.typing);
-                }
-            });
-
-            socket.on('room_history', function(data) {
-                if (data.room_id === currentRoom) {
-                    loadChatHistory(data.messages);
-                }
-            });
-
-            socket.on('joined_room', function(data) {
-                console.log('Joined room:', data.room_id);
-            });
-        }
-
-        // Event listeners setup
-        function setupEventListeners() {
-            // Room tab switching
-            document.querySelectorAll('.room-tab').forEach(tab => {
-                tab.addEventListener('click', function() {
-                    switchRoom(this.dataset.room);
-                });
-            });
-
-            // Message sending
-            const messageInput = document.getElementById('messageInput');
-            const sendBtn = document.getElementById('sendBtn');
-
-            sendBtn.addEventListener('click', sendMessage);
-            messageInput.addEventListener('keypress', function(e) {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault();
-                    sendMessage();
-                }
-            });
-
-            // Topic suggestions
-            document.querySelectorAll('.topic-tag').forEach(tag => {
-                tag.addEventListener('click', function() {
-                    const topic = this.dataset.topic;
-                    triggerTopicDiscussion(topic);
-                });
-            });
-        }
-
-        // Load initial data
-        function loadInitialData() {
-            // Load system status
-            fetch('/api/status')
-                .then(response => response.json())
-                .then(data => {
-                    updateSystemMetrics(data);
-                })
-                .catch(error => console.error('Error loading status:', error));
-
-            // Load activity feed
-            fetch('/api/activity/feed')
-                .then(response => response.json())
-                .then(data => {
-                    updateActivityFeed(data);
-                })
-                .catch(error => console.error('Error loading activity:', error));
-
-            // Refresh data periodically
-            setInterval(loadInitialData, 10000); // Every 10 seconds
-        }
-
-        // Room management
-        function switchRoom(roomId) {
-            if (roomId === currentRoom) return;
-
-            // Leave current room
-            socket.emit('leave_room', {
-                room_id: currentRoom,
-                user_id: userId
-            });
-
-            // Update UI
-            document.querySelectorAll('.room-tab').forEach(tab => {
-                tab.classList.remove('active');
-            });
-            document.querySelector(`[data-room="${roomId}"]`).classList.add('active');
-
-            // Clear chat
-            document.getElementById('chatMessages').innerHTML = '';
-
-            // Join new room
-            currentRoom = roomId;
-            joinRoom(roomId);
-        }
-
-        function joinRoom(roomId) {
-            socket.emit('join_room', {
-                room_id: roomId,
-                user_id: userId
-            });
-        }
-
-        // Message handling
-        function sendMessage() {
-            const messageInput = document.getElementById('messageInput');
-            const message = messageInput.value.trim();
-
-            if (!message || !isConnected) return;
-
-            socket.emit('send_message', {
-                room_id: currentRoom,
-                message: message,
-                user_id: userId
-            });
-
-            messageInput.value = '';
-        }
-
-        function addMessageToChat(messageData) {
-            const chatMessages = document.getElementById('chatMessages');
-            const messageDiv = document.createElement('div');
-
-            const isAgent = messageData.agent_info;
-            const isUser = messageData.sender.startsWith('User_');
-
-            messageDiv.className = `message ${isAgent ? 'agent' : 'user'}`;
-
-            const time = new Date(messageData.timestamp).toLocaleTimeString([], {
-                hour: '2-digit',
-                minute: '2-digit'
-            });
-
-            let senderName = messageData.sender;
-            let avatar = '👤';
-
-            if (isAgent) {
-                senderName = messageData.agent_info.name;
-                avatar = messageData.agent_info.avatar;
-            } else if (isUser) {
-                senderName = 'You';
-                avatar = '👤';
-            }
-
-            messageDiv.innerHTML = `
-                <div class="message-header">
-                    <span class="agent-avatar">${avatar}</span>
-                    <span class="agent-name">${senderName}</span>
-                    <span class="message-time">${time}</span>
-                </div>
-                <div class="message-content">${messageData.message}</div>
-            `;
-
-            chatMessages.appendChild(messageDiv);
-            chatMessages.scrollTop = chatMessages.scrollHeight;
-
-            // Update message count
-            const totalMessages = document.getElementById('totalMessages');
-            totalMessages.textContent = parseInt(totalMessages.textContent) + 1;
-        }
-
-        function loadChatHistory(messages) {
-            const chatMessages = document.getElementById('chatMessages');
-            chatMessages.innerHTML = '';
-
-            messages.forEach(message => {
-                addMessageToChat(message);
-            });
-        }
-
-        function showTypingIndicator(show) {
-            const indicator = document.getElementById('typingIndicator');
-            if (show) {
-                indicator.classList.add('show');
-            } else {
-                indicator.classList.remove('show');
-            }
-        }
-
-        // System controls
-        function triggerDiscussion() {
-            const topics = [
-                'governance proposal review',
-                'yield optimization strategy',
-                'security assessment',
-                'community engagement',
-                'treasury management'
-            ];
-
-            const topic = topics[Math.floor(Math.random() * topics.length)];
-            triggerTopicDiscussion(topic);
-        }
-
-        function triggerTopicDiscussion(topic) {
-            socket.emit('trigger_discussion', {
-                room_id: currentRoom,
-                topic: topic
-            });
-
-            // Also trigger via API for backward compatibility
-            fetch('/api/autonomous/discussion/trigger', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    topic: topic,
-                    room: currentRoom
-                })
-            });
-        }
-
-        function kickstartSystem() {
-            fetch('/api/kickstart', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                }
-            })
-            .then(response => response.json())
-            .then(data => {
-                console.log('System kickstarted:', data);
-            })
-            .catch(error => console.error('Error kickstarting system:', error));
-        }
-
-        // UI updates
-        function updateConnectionStatus(status) {
-            const statusElement = document.getElementById('connectionStatus');
-            statusElement.className = `connection-status ${status}`;
-            statusElement.textContent = status === 'connected' ? 'Connected' : 'Disconnected';
-        }
-
-        function updateSystemMetrics(data) {
-            if (data.metrics) {
-                document.getElementById('activeAgents').textContent = data.metrics.active_agents || 4;
-                document.getElementById('communityCount').textContent = (data.metrics.community_count || 1247).toLocaleString();
-                document.getElementById('uptime').textContent = (data.metrics.uptime || 99.8) + '%';
-            }
-
-            if (data.total_messages !== undefined) {
-                document.getElementById('totalMessages').textContent = data.total_messages;
-            }
-
-            // Update agent statuses
-            if (data.agents) {
-                updateAgentStatuses(data.agents);
-            }
-        }
-
-        function updateAgentStatuses(agents) {
-            const agentStatusesContainer = document.getElementById('agentStatuses');
-            const agentAvatars = {
-                'dao_governor': '🏛️',
-                'defi_specialist': '💰',
-                'security_guardian': '🛡️',
-                'community_manager': '👥'
-            };
-
-            const agentNames = {
-                'dao_governor': 'DAO Governor',
-                'defi_specialist': 'DeFi Specialist',
-                'security_guardian': 'Security Guardian',
-                'community_manager': 'Community Manager'
-            };
-
-            agentStatusesContainer.innerHTML = '';
-
-            Object.keys(agents).forEach(agentId => {
-                const agent = agents[agentId];
-                const statusDiv = document.createElement('div');
-                statusDiv.className = 'agent-status';
-
-                statusDiv.innerHTML = `
-                    <span class="agent-avatar-large">${agentAvatars[agentId] || '🤖'}</span>
-                    <div class="agent-info">
-                        <div class="agent-name-large">${agentNames[agentId] || agentId}</div>
-                        <div class="agent-action">${agent.last_action || 'Active'}</div>
-                    </div>
-                    <div class="status-indicator"></div>
-                `;
-
-                agentStatusesContainer.appendChild(statusDiv);
-            });
-        }
-
-        function updateActivityFeed(data) {
-            const activityFeed = document.getElementById('activityFeed');
-            activityFeed.innerHTML = '';
-
-            const allActivities = [
-                ...(data.communications || []).map(item => ({...item, type: 'communication'})),
-                ...(data.operations || []).map(item => ({...item, type: 'operation'}))
-            ];
-
-            // Sort by timestamp (newest first)
-            allActivities.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-
-            allActivities.slice(0, 10).forEach(activity => {
-                const activityDiv = document.createElement('div');
-                activityDiv.className = `activity-item ${activity.type}`;
-
-                const time = new Date(activity.timestamp).toLocaleTimeString([], {
-                    hour: '2-digit',
-                    minute: '2-digit'
-                });
-
-                activityDiv.innerHTML = `
-                    <div>${activity.message}</div>
-                    <div class="activity-time">${time}</div>
-                `;
-
-                activityFeed.appendChild(activityDiv);
-            });
-        }
-    </script>
+    <script type="module" src="/src/main.js"></script>
 </body>
 </html>

@@ -1,29 +1,38 @@
 {
   "name": "xmrt-ecosystem",
   "version": "1.0.0",
-  "description": "Full-stack XMRT-Ecosystem DAO prototype with Eliza AI integration",
+  "description": "XMRT DAO Hub - Enhanced Multi-Agent System with GitHub MCP Integration",
+  "type": "module",
   "scripts": {
-    "build": "echo 'Build completed - Python Flask deployment'",
-    "vercel-build": "echo 'Vercel build for Python Flask app'",
-    "dev": "python enhanced_main_with_mcp.py",
-    "start": "python enhanced_main_with_mcp.py",
-    "test": "python -m pytest tests/ || echo 'No tests found'",
-    "clean": "rm -rf __pycache__ *.pyc .pytest_cache logs/*.log"
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "vercel-build": "npm run build"
   },
   "keywords": [
     "dao",
     "blockchain",
     "ai",
-    "eliza",
     "ethereum",
     "defi",
-    "governance"
+    "governance",
+    "vite",
+    "responsive"
   ],
   "author": "Joseph Andrew Lee (DevGruGold)",
   "license": "MIT",
   "repository": {
     "type": "git",
     "url": "https://github.com/DevGruGold/XMRT-Ecosystem.git"
+  },
+  "dependencies": {
+    "socket.io-client": "^4.7.5"
+  },
+  "devDependencies": {
+    "vite": "^5.4.1",
+    "@vitejs/plugin-legacy": "^5.4.1",
+    "autoprefixer": "^10.4.19",
+    "postcss": "^8.4.39"
   },
   "engines": {
     "node": "18.x"
