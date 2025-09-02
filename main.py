@@ -6,6 +6,11 @@ Author: Joseph Andrew Lee (XMRT.io)
 Enhanced with GitHub MCP: 2025-09-02 (Render Deploy Fix)
 """
 
+# Gevent monkey patching - MUST be first
+import gevent.monkey
+gevent.monkey.patch_all()
+
+
 import os
 import sys
 import logging
@@ -85,7 +90,15 @@ if SUPABASE_AVAILABLE:
 
 # Initialize extensions
 CORS(app, origins="*")
-socketio = SocketIO(app, cors_allowed_origins="*", async_mode='gevent')
+socketio = SocketIO(
+    app, 
+    cors_allowed_origins="*", 
+    async_mode='gevent',
+    engineio_logger=True,
+    logger=True,
+    ping_timeout=60,
+    ping_interval=25
+)
 
 # Register webhook blueprint (if available)
 if WEBHOOK_ENDPOINTS_AVAILABLE:
