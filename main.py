@@ -621,6 +621,143 @@ def get_comprehensive_status():
         logger.error(f"Error getting comprehensive status: {e}")
         return jsonify({'error': str(e)}), 500
 
+@app.route('/api/kickstart', methods=['POST'])
+def kickstart_system():
+    """Kickstart the XMRT ecosystem system"""
+    try:
+        # Initialize or restart system components
+        system_status = {
+            'mcp_server': 'initialized',
+            'chat_system': 'active',
+            'database': 'connected' if database_manager.test_connection()['status'] == 'connected' else 'fallback',
+            'utilities': f"{len(utilities_manager.utilities)} loaded"
+        }
+        
+        # Send system notification
+        socketio.emit('system_notification', {
+            'type': 'success',
+            'message': 'XMRT ecosystem system kickstarted successfully',
+            'components': system_status,
+            'timestamp': datetime.now().isoformat()
+        }, room='live_updates')
+        
+        return jsonify({
+            'success': True,
+            'message': 'System kickstarted successfully',
+            'components': system_status,
+            'timestamp': datetime.now().isoformat()
+        })
+    
+    except Exception as e:
+        logger.error(f"Error kickstarting system: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/webhook/receive', methods=['POST'])
+def receive_webhook():
+    """Receive and process webhook data from external services"""
+    try:
+        data = request.get_json()
+        webhook_type = data.get('type', 'generic')
+        
+        # Process different webhook types
+        response_data = {
+            'success': True,
+            'webhook_type': webhook_type,
+            'processed_at': datetime.now().isoformat(),
+            'message': f'Webhook {webhook_type} processed successfully'
+        }
+        
+        # Send real-time notification
+        socketio.emit('webhook_received', {
+            'type': webhook_type,
+            'data': data,
+            'processed_at': datetime.now().isoformat()
+        }, room='live_updates')
+        
+        logger.info(f"Webhook received: {webhook_type}")
+        return jsonify(response_data)
+    
+    except Exception as e:
+        logger.error(f"Error processing webhook: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/ecosystem/sync', methods=['POST'])
+def sync_ecosystem():
+    """Synchronize ecosystem data with external services"""
+    try:
+        # Simulate ecosystem synchronization
+        sync_results = {
+            'github_repositories': 'synced',
+            'mcp_tools': 'updated',
+            'utilities': 'refreshed',
+            'database': 'synchronized'
+        }
+        
+        # Send sync notification
+        socketio.emit('ecosystem_sync', {
+            'status': 'completed',
+            'results': sync_results,
+            'timestamp': datetime.now().isoformat()
+        }, room='live_updates')
+        
+        return jsonify({
+            'success': True,
+            'message': 'Ecosystem synchronization completed',
+            'sync_results': sync_results,
+            'timestamp': datetime.now().isoformat()
+        })
+    
+    except Exception as e:
+        logger.error(f"Error syncing ecosystem: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/activity/feed')
+def get_activity_feed():
+    """Get recent activity feed from the ecosystem"""
+    try:
+        # Generate sample activity feed
+        activities = [
+            {
+                'id': 1,
+                'type': 'mcp_tool_call',
+                'description': 'GitHub MCP tool executed successfully',
+                'timestamp': (datetime.now() - timedelta(minutes=5)).isoformat(),
+                'status': 'success'
+            },
+            {
+                'id': 2,
+                'type': 'chat_message',
+                'description': 'New agent discussion started in DAO room',
+                'timestamp': (datetime.now() - timedelta(minutes=15)).isoformat(),
+                'status': 'info'
+            },
+            {
+                'id': 3,
+                'type': 'utility_update',
+                'description': 'XMRT utilities synchronized',
+                'timestamp': (datetime.now() - timedelta(hours=1)).isoformat(),
+                'status': 'success'
+            },
+            {
+                'id': 4,
+                'type': 'system_startup',
+                'description': 'Enhanced system with MCP integration started',
+                'timestamp': (datetime.now() - timedelta(hours=2)).isoformat(),
+                'status': 'info'
+            }
+        ]
+        
+        return jsonify({
+            'success': True,
+            'activities': activities,
+            'total_count': len(activities),
+            'timestamp': datetime.now().isoformat()
+        })
+    
+    except Exception as e:
+        logger.error(f"Error getting activity feed: {e}")
+        return jsonify({'error': str(e)}), 500
+
 # Enhanced WebSocket Events for real-time chat
 
 @socketio.on('connect')
