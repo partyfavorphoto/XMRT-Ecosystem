@@ -1,0 +1,1140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>XMRT DAO Hub - Enhanced Multi-Agent System with GitHub MCP</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.js"></script>
+    <style>
+        :root {
+            --primary-color: #667eea;
+            --secondary-color: #764ba2;
+            --accent-color: #ffd700;
+            --success-color: #10b981;
+            --error-color: #ef4444;
+            --warning-color: #f59e0b;
+            --info-color: #3b82f6;
+            --dark-bg: #1f2937;
+            --light-bg: #f8fafc;
+            --card-bg: rgba(255, 255, 255, 0.95);
+            --border-radius: 12px;
+            --shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        /* Enhanced Header */
+        header {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(15px);
+            padding: 1rem 0;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 1.8rem;
+            font-weight: 800;
+            color: white;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .nav-links {
+            display: flex;
+            list-style: none;
+            gap: 2rem;
+        }
+
+        .nav-links a {
+            color: white;
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            padding: 8px 16px;
+            border-radius: 8px;
+        }
+
+        .nav-links a:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--accent-color);
+        }
+
+        /* Main Layout */
+        .main-layout {
+            display: grid;
+            grid-template-columns: 350px 1fr 400px;
+            gap: 20px;
+            padding: 20px 0;
+            min-height: calc(100vh - 80px);
+        }
+
+        .sidebar-left, .sidebar-right {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .main-content {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        /* Cards */
+        .card {
+            background: var(--card-bg);
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow);
+            overflow: hidden;
+        }
+
+        .card-header {
+            background: linear-gradient(45deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .card-header h3 {
+            margin: 0;
+            font-size: 1.2rem;
+            font-weight: 600;
+        }
+
+        .card-content {
+            padding: 20px;
+        }
+
+        /* Status Indicators */
+        .status-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .status-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px;
+            background: var(--light-bg);
+            border-radius: 8px;
+            transition: transform 0.2s ease;
+        }
+
+        .status-item:hover {
+            transform: translateY(-2px);
+        }
+
+        .status-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+        }
+
+        .status-icon.success { background: var(--success-color); color: white; }
+        .status-icon.warning { background: var(--warning-color); color: white; }
+        .status-icon.info { background: var(--info-color); color: white; }
+
+        .status-info h4 {
+            font-size: 0.9rem;
+            margin-bottom: 2px;
+        }
+
+        .status-info p {
+            font-size: 0.8rem;
+            color: #666;
+        }
+
+        /* MCP Tools Section */
+        .tools-section {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .tool-category {
+            margin-bottom: 20px;
+        }
+
+        .category-header {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--primary-color);
+            margin-bottom: 10px;
+            padding: 8px 12px;
+            background: rgba(102, 126, 234, 0.1);
+            border-radius: 6px;
+        }
+
+        .tool-item {
+            padding: 12px;
+            margin-bottom: 8px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border-left: 4px solid var(--primary-color);
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+
+        .tool-item:hover {
+            background: #e3f2fd;
+            transform: translateX(5px);
+        }
+
+        .tool-name {
+            font-weight: 600;
+            margin-bottom: 4px;
+            color: #333;
+        }
+
+        .tool-description {
+            font-size: 0.85rem;
+            color: #666;
+            margin-bottom: 6px;
+        }
+
+        .tool-parameters {
+            font-size: 0.75rem;
+            color: var(--info-color);
+            font-family: monospace;
+        }
+
+        /* Chat Section */
+        .chat-container {
+            display: flex;
+            flex-direction: column;
+            height: 600px;
+        }
+
+        .chat-rooms {
+            display: flex;
+            background: rgba(255, 255, 255, 0.1);
+            overflow-x: auto;
+        }
+
+        .room-tab {
+            padding: 12px 16px;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: background 0.3s ease;
+            border: none;
+            background: transparent;
+            color: white;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .room-tab:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .room-tab.active {
+            background: rgba(255, 255, 255, 0.2);
+            font-weight: 600;
+        }
+
+        .chat-messages {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            background: #f8f9fa;
+        }
+
+        .message {
+            margin-bottom: 15px;
+            padding: 12px 15px;
+            border-radius: 12px;
+            max-width: 85%;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .message.agent {
+            background: linear-gradient(135deg, #e3f2fd, #bbdefb);
+            margin-left: 0;
+            border-left: 4px solid var(--info-color);
+        }
+
+        .message.user {
+            background: linear-gradient(135deg, #f3e5f5, #e1bee7);
+            margin-left: auto;
+            margin-right: 0;
+            border-right: 4px solid #9c27b0;
+        }
+
+        .message-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 5px;
+            font-size: 12px;
+            color: #666;
+        }
+
+        .message-avatar {
+            font-size: 16px;
+            margin-right: 8px;
+        }
+
+        .message-name {
+            font-weight: 600;
+            margin-right: 10px;
+        }
+
+        .message-time {
+            margin-left: auto;
+            font-size: 11px;
+            opacity: 0.7;
+        }
+
+        .message-content {
+            font-size: 14px;
+            line-height: 1.4;
+        }
+
+        .chat-input {
+            padding: 20px;
+            background: white;
+            border-top: 1px solid #e5e7eb;
+        }
+
+        .input-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .message-input {
+            flex: 1;
+            padding: 12px 15px;
+            border: 2px solid #e5e7eb;
+            border-radius: 25px;
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.3s ease;
+        }
+
+        .message-input:focus {
+            border-color: var(--primary-color);
+        }
+
+        .send-btn {
+            padding: 12px 20px;
+            background: linear-gradient(45deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: transform 0.2s ease;
+        }
+
+        .send-btn:hover {
+            transform: translateY(-2px);
+        }
+
+        /* Utilities Section */
+        .utilities-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 15px;
+        }
+
+        .utility-card {
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border-left: 4px solid var(--success-color);
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+
+        .utility-card:hover {
+            background: #e8f5e8;
+            transform: translateY(-2px);
+        }
+
+        .utility-header {
+            display: flex;
+            justify-content: between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .utility-name {
+            font-weight: 600;
+            color: #333;
+        }
+
+        .utility-category {
+            font-size: 0.75rem;
+            padding: 2px 8px;
+            background: var(--info-color);
+            color: white;
+            border-radius: 12px;
+        }
+
+        .utility-description {
+            font-size: 0.85rem;
+            color: #666;
+            margin-bottom: 8px;
+        }
+
+        .utility-features {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+        }
+
+        .feature-tag {
+            font-size: 0.7rem;
+            padding: 2px 6px;
+            background: rgba(102, 126, 234, 0.1);
+            border: 1px solid rgba(102, 126, 234, 0.3);
+            border-radius: 8px;
+            color: var(--primary-color);
+        }
+
+        /* Connection Status */
+        .connection-status {
+            position: fixed;
+            top: 90px;
+            right: 20px;
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            z-index: 1001;
+            transition: all 0.3s ease;
+        }
+
+        .connection-status.connected {
+            background: var(--success-color);
+            color: white;
+        }
+
+        .connection-status.disconnected {
+            background: var(--error-color);
+            color: white;
+        }
+
+        /* Action Buttons */
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .action-btn {
+            flex: 1;
+            padding: 10px 15px;
+            background: linear-gradient(45deg, var(--success-color), #059669);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 600;
+            transition: transform 0.2s ease;
+        }
+
+        .action-btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .action-btn.secondary {
+            background: linear-gradient(45deg, var(--warning-color), #d97706);
+        }
+
+        /* API Endpoints */
+        .endpoints-list {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .endpoint-item {
+            padding: 10px;
+            margin-bottom: 8px;
+            background: #f8f9fa;
+            border-radius: 6px;
+            font-family: monospace;
+            font-size: 0.85rem;
+        }
+
+        .endpoint-method {
+            display: inline-block;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-weight: 600;
+            margin-right: 8px;
+        }
+
+        .method-get { background: var(--info-color); color: white; }
+        .method-post { background: var(--success-color); color: white; }
+        .method-put { background: var(--warning-color); color: white; }
+        .method-delete { background: var(--error-color); color: white; }
+
+        /* Responsive Design */
+        @media (max-width: 1200px) {
+            .main-layout {
+                grid-template-columns: 1fr;
+                gap: 15px;
+            }
+            
+            .sidebar-left, .sidebar-right {
+                order: -1;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .nav-links {
+                display: none;
+            }
+            
+            .utilities-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .status-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Loading States */
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid var(--primary-color);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Scrollbar Styling */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--primary-color);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--secondary-color);
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <nav class="container">
+            <a href="#" class="logo">
+                🚀 XMRT DAO Hub
+                <span style="font-size: 0.6em; opacity: 0.8;">Enhanced with MCP</span>
+            </a>
+            <ul class="nav-links">
+                <li><a href="#chat">💬 Chat</a></li>
+                <li><a href="#agents">🤖 Agents</a></li>
+                <li><a href="#mcp">🔗 MCP Tools</a></li>
+                <li><a href="#utilities">🛠️ Utilities</a></li>
+                <li><a href="#api">📡 API</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <div class="connection-status" id="connectionStatus">Connecting...</div>
+
+    <main class="container main-layout">
+        <!-- Left Sidebar: System Status & MCP Tools -->
+        <aside class="sidebar-left">
+            <!-- System Status -->
+            <div class="card">
+                <div class="card-header">
+                    <h3>🔧 System Status</h3>
+                </div>
+                <div class="card-content">
+                    <div class="status-grid" id="systemStatus">
+                        <div class="status-item">
+                            <div class="status-icon info">🌐</div>
+                            <div class="status-info">
+                                <h4>System</h4>
+                                <p id="systemState">Initializing...</p>
+                            </div>
+                        </div>
+                        <div class="status-item">
+                            <div class="status-icon success">🔗</div>
+                            <div class="status-info">
+                                <h4>MCP Server</h4>
+                                <p id="mcpStatus">Checking...</p>
+                            </div>
+                        </div>
+                        <div class="status-item">
+                            <div class="status-icon success">🤖</div>
+                            <div class="status-info">
+                                <h4>AI Agents</h4>
+                                <p id="agentCount">4 Active</p>
+                            </div>
+                        </div>
+                        <div class="status-item">
+                            <div class="status-icon info">📦</div>
+                            <div class="status-info">
+                                <h4>Utilities</h4>
+                                <p id="utilitiesCount">Loading...</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="action-buttons">
+                        <button class="action-btn" onclick="kickstartSystem()">🚀 Kickstart</button>
+                        <button class="action-btn secondary" onclick="refreshStatus()">🔄 Refresh</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- MCP Tools -->
+            <div class="card">
+                <div class="card-header">
+                    <h3>🔗 GitHub MCP Tools</h3>
+                </div>
+                <div class="card-content">
+                    <div class="tools-section" id="mcpTools">
+                        <div class="loading"></div>
+                        <p style="text-align: center; margin-top: 10px;">Loading MCP tools...</p>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content: Chat System -->
+        <section class="main-content">
+            <div class="card">
+                <div class="card-header">
+                    <h3>💬 Multi-Agent Communication Hub</h3>
+                    <p style="margin: 5px 0 0 0; font-size: 0.9rem; opacity: 0.9;">Real-time discussions with AI agents powered by GitHub MCP</p>
+                </div>
+                
+                <div class="chat-container">
+                    <div class="chat-rooms" id="chatRooms">
+                        <button class="room-tab active" data-room="general">🌐 General</button>
+                        <button class="room-tab" data-room="governance">🏛️ Governance</button>
+                        <button class="room-tab" data-room="defi_strategy">💰 DeFi Strategy</button>
+                        <button class="room-tab" data-room="security">🛡️ Security</button>
+                        <button class="room-tab" data-room="community">👥 Community</button>
+                    </div>
+                    
+                    <div class="chat-messages" id="chatMessages">
+                        <div class="message agent">
+                            <div class="message-header">
+                                <span class="message-avatar">🏛️</span>
+                                <span class="message-name">DAO Governor</span>
+                                <span class="message-time">Just now</span>
+                            </div>
+                            <div class="message-content">
+                                Welcome to the enhanced XMRT DAO communication hub with GitHub MCP integration! I can now interact directly with GitHub repositories, manage issues, run workflows, and much more. How can I assist you today?
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="chat-input">
+                        <div class="input-group">
+                            <input type="text" class="message-input" id="messageInput" 
+                                   placeholder="Type your message to the agents..." maxlength="500">
+                            <button class="send-btn" id="sendBtn">Send</button>
+                        </div>
+                        <div style="font-size: 0.8rem; color: #666; text-align: center;">
+                            💡 Try: "Create an issue", "Check workflow status", "Search for TODOs", "List recent commits"
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Right Sidebar: Utilities & API Endpoints -->
+        <aside class="sidebar-right">
+            <!-- XMRT Utilities -->
+            <div class="card">
+                <div class="card-header">
+                    <h3>🛠️ XMRT Utilities</h3>
+                </div>
+                <div class="card-content">
+                    <div id="utilitiesContainer">
+                        <div class="loading"></div>
+                        <p style="text-align: center; margin-top: 10px;">Loading utilities...</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- API Endpoints -->
+            <div class="card">
+                <div class="card-header">
+                    <h3>📡 Webhook API Endpoints</h3>
+                </div>
+                <div class="card-content">
+                    <div class="endpoints-list">
+                        <div class="endpoint-item">
+                            <span class="endpoint-method method-get">GET</span>
+                            /api/status/comprehensive
+                        </div>
+                        <div class="endpoint-item">
+                            <span class="endpoint-method method-get">GET</span>
+                            /api/mcp/tools
+                        </div>
+                        <div class="endpoint-item">
+                            <span class="endpoint-method method-post">POST</span>
+                            /api/mcp/call
+                        </div>
+                        <div class="endpoint-item">
+                            <span class="endpoint-method method-get">GET</span>
+                            /api/utilities
+                        </div>
+                        <div class="endpoint-item">
+                            <span class="endpoint-method method-post">POST</span>
+                            /api/webhook/receive
+                        </div>
+                        <div class="endpoint-item">
+                            <span class="endpoint-method method-post">POST</span>
+                            /api/ecosystem/sync
+                        </div>
+                        <div class="endpoint-item">
+                            <span class="endpoint-method method-get">GET</span>
+                            /api/activity/feed
+                        </div>
+                        <div class="endpoint-item">
+                            <span class="endpoint-method method-post">POST</span>
+                            /api/kickstart
+                        </div>
+                    </div>
+                    <div class="action-buttons">
+                        <button class="action-btn" onclick="testEndpoints()">🧪 Test APIs</button>
+                    </div>
+                </div>
+            </div>
+        </aside>
+    </main>
+
+    <script>
+        // Global variables
+        let socket;
+        let currentRoom = 'general';
+        let userId = 'user_' + Math.random().toString(36).substr(2, 9);
+        let isConnected = false;
+        let systemData = {};
+
+        // Initialize the application
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeSocket();
+            setupEventListeners();
+            loadInitialData();
+        });
+
+        // Socket.IO initialization with enhanced features
+        function initializeSocket() {
+            socket = io();
+            
+            socket.on('connect', function() {
+                isConnected = true;
+                updateConnectionStatus('connected');
+                joinRoom(currentRoom);
+                console.log('✅ Connected to enhanced XMRT system with MCP integration');
+            });
+            
+            socket.on('disconnect', function() {
+                isConnected = false;
+                updateConnectionStatus('disconnected');
+            });
+            
+            socket.on('connection_status', function(data) {
+                console.log('Connection status:', data);
+                if (data.features) {
+                    updateSystemStatus(data.features);
+                }
+            });
+            
+            socket.on('new_message', function(data) {
+                addMessageToChat(data);
+            });
+            
+            socket.on('mcp_tool_result', function(data) {
+                addMCPResultToChat(data);
+            });
+            
+            socket.on('room_history', function(data) {
+                if (data.room_id === currentRoom) {
+                    loadChatHistory(data.messages);
+                }
+            });
+        }
+
+        // Enhanced event listeners
+        function setupEventListeners() {
+            // Room tab switching
+            document.querySelectorAll('.room-tab').forEach(tab => {
+                tab.addEventListener('click', function() {
+                    switchRoom(this.dataset.room);
+                });
+            });
+            
+            // Message sending
+            const messageInput = document.getElementById('messageInput');
+            const sendBtn = document.getElementById('sendBtn');
+            
+            sendBtn.addEventListener('click', sendMessage);
+            messageInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    sendMessage();
+                }
+            });
+        }
+
+        // Load all initial data
+        function loadInitialData() {
+            Promise.all([
+                loadSystemStatus(),
+                loadMCPTools(),
+                loadUtilities()
+            ]).then(() => {
+                console.log('✅ All initial data loaded successfully');
+            }).catch(error => {
+                console.error('❌ Error loading initial data:', error);
+            });
+        }
+
+        // Load comprehensive system status
+        function loadSystemStatus() {
+            return fetch('/api/status/comprehensive')
+                .then(response => response.json())
+                .then(data => {
+                    systemData = data;
+                    updateSystemStatusDisplay(data);
+                })
+                .catch(error => console.error('Error loading system status:', error));
+        }
+
+        // Load MCP tools
+        function loadMCPTools() {
+            return fetch('/api/mcp/tools')
+                .then(response => response.json())
+                .then(data => {
+                    displayMCPTools(data.tools);
+                })
+                .catch(error => console.error('Error loading MCP tools:', error));
+        }
+
+        // Load XMRT utilities
+        function loadUtilities() {
+            return fetch('/api/utilities')
+                .then(response => response.json())
+                .then(data => {
+                    displayUtilities(data.utilities);
+                    document.getElementById('utilitiesCount').textContent = data.total_count + ' Available';
+                })
+                .catch(error => console.error('Error loading utilities:', error));
+        }
+
+        // Display functions
+        function updateSystemStatusDisplay(data) {
+            if (data.system) {
+                document.getElementById('systemState').textContent = 
+                    data.system.status.charAt(0).toUpperCase() + data.system.status.slice(1);
+            }
+            
+            if (data.mcp_server) {
+                document.getElementById('mcpStatus').textContent = 
+                    data.mcp_server.type.charAt(0).toUpperCase() + data.mcp_server.type.slice(1) + ' Server';
+            }
+            
+            if (data.chat_system) {
+                document.getElementById('agentCount').textContent = 
+                    data.chat_system.active_agents + ' Active';
+            }
+        }
+
+        function displayMCPTools(tools) {
+            const container = document.getElementById('mcpTools');
+            container.innerHTML = '';
+            
+            Object.entries(tools).forEach(([category, categoryTools]) => {
+                const categoryDiv = document.createElement('div');
+                categoryDiv.className = 'tool-category';
+                
+                categoryDiv.innerHTML = `
+                    <div class="category-header">${category.replace(/_/g, ' ').toUpperCase()}</div>
+                    ${categoryTools.map(tool => `
+                        <div class="tool-item" onclick="selectMCPTool('${tool.name}')">
+                            <div class="tool-name">${tool.name}</div>
+                            <div class="tool-description">${tool.description}</div>
+                            <div class="tool-parameters">Parameters: ${tool.parameters.join(', ')}</div>
+                        </div>
+                    `).join('')}
+                `;
+                
+                container.appendChild(categoryDiv);
+            });
+        }
+
+        function displayUtilities(utilities) {
+            const container = document.getElementById('utilitiesContainer');
+            container.innerHTML = '';
+            
+            Object.entries(utilities).forEach(([category, categoryUtilities]) => {
+                const categoryDiv = document.createElement('div');
+                categoryDiv.innerHTML = `
+                    <h4 style="margin: 15px 0 10px 0; color: var(--primary-color);">${category}</h4>
+                    ${categoryUtilities.map(utility => `
+                        <div class="utility-card" onclick="selectUtility('${utility.id}')">
+                            <div class="utility-header">
+                                <div class="utility-name">${utility.name}</div>
+                                <div class="utility-category">${utility.category}</div>
+                            </div>
+                            <div class="utility-description">${utility.description}</div>
+                            <div class="utility-features">
+                                ${utility.features.map(feature => `
+                                    <span class="feature-tag">${feature}</span>
+                                `).join('')}
+                            </div>
+                        </div>
+                    `).join('')}
+                `;
+                container.appendChild(categoryDiv);
+            });
+        }
+
+        // Chat functionality
+        function switchRoom(roomId) {
+            if (roomId === currentRoom) return;
+            
+            // Leave current room
+            socket.emit('leave_room', {
+                room_id: currentRoom,
+                user_id: userId
+            });
+            
+            // Update UI
+            document.querySelectorAll('.room-tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.querySelector(`[data-room="${roomId}"]`).classList.add('active');
+            
+            // Clear chat
+            document.getElementById('chatMessages').innerHTML = '';
+            
+            // Join new room
+            currentRoom = roomId;
+            joinRoom(roomId);
+        }
+
+        function joinRoom(roomId) {
+            socket.emit('join_room', {
+                room_id: roomId,
+                user_id: userId
+            });
+        }
+
+        function sendMessage() {
+            const messageInput = document.getElementById('messageInput');
+            const message = messageInput.value.trim();
+            
+            if (!message || !isConnected) return;
+            
+            socket.emit('send_message', {
+                room_id: currentRoom,
+                message: message,
+                user_id: userId
+            });
+            
+            messageInput.value = '';
+        }
+
+        function addMessageToChat(messageData) {
+            const chatMessages = document.getElementById('chatMessages');
+            const messageDiv = document.createElement('div');
+            
+            const isAgent = messageData.agent_info;
+            messageDiv.className = `message ${isAgent ? 'agent' : 'user'}`;
+            
+            const time = new Date(messageData.timestamp).toLocaleTimeString([], {
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+            
+            let senderName = messageData.sender;
+            let avatar = '👤';
+            
+            if (isAgent) {
+                senderName = messageData.agent_info.name;
+                avatar = messageData.agent_info.avatar;
+            } else if (messageData.sender.startsWith('User_')) {
+                senderName = 'You';
+                avatar = '👤';
+            }
+            
+            messageDiv.innerHTML = `
+                <div class="message-header">
+                    <span class="message-avatar">${avatar}</span>
+                    <span class="message-name">${senderName}</span>
+                    <span class="message-time">${time}</span>
+                </div>
+                <div class="message-content">${messageData.message}</div>
+            `;
+            
+            chatMessages.appendChild(messageDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        function addMCPResultToChat(data) {
+            const chatMessages = document.getElementById('chatMessages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message agent';
+            
+            const time = new Date().toLocaleTimeString([], {
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+            
+            messageDiv.innerHTML = `
+                <div class="message-header">
+                    <span class="message-avatar">🔗</span>
+                    <span class="message-name">MCP Result</span>
+                    <span class="message-time">${time}</span>
+                </div>
+                <div class="message-content">
+                    <strong>Tool:</strong> ${data.tool_name}<br>
+                    <strong>Result:</strong> <pre style="margin: 5px 0; font-size: 0.8em;">${JSON.stringify(data.result, null, 2)}</pre>
+                </div>
+            `;
+            
+            chatMessages.appendChild(messageDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        function loadChatHistory(messages) {
+            const chatMessages = document.getElementById('chatMessages');
+            chatMessages.innerHTML = '';
+            
+            messages.forEach(message => {
+                addMessageToChat(message);
+            });
+        }
+
+        // Tool and utility selection
+        function selectMCPTool(toolName) {
+            const message = `I'd like to use the "${toolName}" MCP tool. Can you help me with the parameters?`;
+            document.getElementById('messageInput').value = message;
+            sendMessage();
+        }
+
+        function selectUtility(utilityId) {
+            const message = `Tell me more about the "${utilityId}" utility and how I can use it.`;
+            document.getElementById('messageInput').value = message;
+            sendMessage();
+        }
+
+        // System controls
+        function kickstartSystem() {
+            fetch('/api/kickstart', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('✅ System kickstarted:', data);
+                loadInitialData(); // Refresh all data
+            })
+            .catch(error => console.error('❌ Error kickstarting system:', error));
+        }
+
+        function refreshStatus() {
+            loadInitialData();
+        }
+
+        function testEndpoints() {
+            const endpoints = [
+                '/api/status/comprehensive',
+                '/api/mcp/tools',
+                '/api/utilities'
+            ];
+            
+            Promise.all(endpoints.map(endpoint => 
+                fetch(endpoint).then(r => ({ endpoint, status: r.status, ok: r.ok }))
+            )).then(results => {
+                const message = `API Test Results:\n${results.map(r => 
+                    `${r.endpoint}: ${r.ok ? '✅ OK' : '❌ Error'} (${r.status})`
+                ).join('\n')}`;
+                alert(message);
+            });
+        }
+
+        function updateConnectionStatus(status) {
+            const statusElement = document.getElementById('connectionStatus');
+            statusElement.className = `connection-status ${status}`;
+            statusElement.textContent = status === 'connected' ? 
+                'Connected to Enhanced XMRT' : 'Disconnected';
+        }
+
+        function updateSystemStatus(features) {
+            if (features.mcp_enabled) {
+                document.getElementById('mcpStatus').textContent = 'MCP Enabled';
+            }
+            if (features.utilities_available) {
+                document.getElementById('utilitiesCount').textContent = 
+                    features.utilities_available + ' Available';
+            }
+        }
+
+        // Periodic data refresh
+        setInterval(() => {
+            if (isConnected) {
+                loadSystemStatus();
+            }
+        }, 30000); // Every 30 seconds
+    </script>
+</body>
+</html>
