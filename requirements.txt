@@ -31,3 +31,6 @@ apscheduler>=3.10.0
 
 # HTTP and API
 requests>=2.31.0
+
+# Configuration Management
+python-dotenv>=1.0.0
