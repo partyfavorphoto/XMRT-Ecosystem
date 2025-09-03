@@ -5,15 +5,15 @@ flask-socketio==5.3.7
 requests==2.32.5
 python-dotenv==1.1.1
 
-# WSGI server
+# WSGI server with Python 3.11 compatibility
 gunicorn==23.0.0
 eventlet==0.40.3
-gevent==24.2.1
+gevent==22.10.2
 gevent-websocket==0.10.1
 
-# AI and ML dependencies
+# AI and ML dependencies (Python 3.11 compatible)
 openai==1.102.0
-google-generativeai==0.3.2
+google-generativeai==0.7.2
 anthropic==0.64.0
 sentence-transformers==2.2.2
 scikit-learn==1.3.0
@@ -29,10 +29,15 @@ web3==7.13.0
 websockets==15.0.1
 
 # GitHub integration
-PyGithub==2.5.0
+PyGithub==2.1.1
 
 # Autonomous System Dependencies
 APScheduler==3.10.4
 python-socketio[asyncio_client]==5.9.0
 python-dateutil==2.8.2
 asyncio-mqtt==0.13.0
+
+# Additional dependencies for autonomous system
+Cython>=0.29.32
+setuptools>=65.0.0
+wheel>=0.37.0
