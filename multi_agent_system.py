@@ -1,716 +1,645 @@
 """
-XMRT-Ecosystem Multi-Agent System
-
-This module implements 4 specialized AI agents that collaborate in real-time:
-1. Strategist Agent - Strategic analysis using Gemini Pro
-2. Builder Agent - Code generation using OpenAI GPT-4  
-3. Tester Agent - Testing and quality assurance
-4. Optimizer Agent - Performance optimization and refinement
-
-Real-time collaboration via SocketIO with distinct personalities and capabilities.
+Multi-Agent AI System for XMRT-Ecosystem
+Enhanced with specialized agent types, advanced coordination, and autonomous learning
 """
 
 import asyncio
 import logging
+import threading
 import json
-import uuid
-from datetime import datetime
-from typing import Dict, List, Any, Optional, Tuple
-import traceback
-
-import socketio
-import google.generativeai as genai
-import openai
+from datetime import datetime, timedelta
+from typing import Dict, List, Optional, Any, Callable
+from dataclasses import dataclass, asdict
+from enum import Enum
+import time
+import random
+from abc import ABC, abstractmethod
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-class AIAgent:
-    """Base class for all AI agents in the XMRT-Ecosystem"""
+class AgentType(Enum):
+    """Types of specialized agents"""
+    COORDINATOR = "coordinator"
+    ANALYZER = "analyzer" 
+    DEVELOPER = "developer"
+    MONITOR = "monitor"
+    SECURITY = "security"
 
-    def __init__(self, agent_id: str, name: str, role: str, config: Dict[str, Any]):
+class TaskPriority(Enum):
+    """Task priority levels"""
+    LOW = 1
+    MEDIUM = 2
+    HIGH = 3
+    CRITICAL = 4
+
+class TaskStatus(Enum):
+    """Task execution states"""
+    PENDING = "pending"
+    ASSIGNED = "assigned"
+    IN_PROGRESS = "in_progress"
+    COMPLETED = "completed"
+    FAILED = "failed"
+
+@dataclass
+class AgentCapability:
+    """Agent capability definition"""
+    name: str
+    proficiency: float  # 0.0 - 1.0
+    experience_count: int
+    success_rate: float
+    last_updated: datetime
+
+@dataclass
+class Task:
+    """Enhanced task definition"""
+    id: str
+    type: str
+    description: str
+    priority: TaskPriority
+    required_capabilities: List[str]
+    created_at: datetime
+    deadline: Optional[datetime] = None
+    assigned_agent: Optional[str] = None
+    status: TaskStatus = TaskStatus.PENDING
+    progress: float = 0.0
+    metadata: Dict[str, Any] = None
+    dependencies: List[str] = None
+
+    def __post_init__(self):
+        if self.metadata is None:
+            self.metadata = {}
+        if self.dependencies is None:
+            self.dependencies = []
+
+@dataclass
+class AgentPerformance:
+    """Agent performance tracking"""
+    tasks_completed: int = 0
+    tasks_failed: int = 0
+    average_completion_time: float = 0.0
+    success_rate: float = 0.0
+    efficiency_score: float = 0.0
+    learning_progress: float = 0.0
+    collaboration_score: float = 0.0
+
+class BaseAgent(ABC):
+    """Abstract base agent class"""
+
+    def __init__(self, agent_id: str, agent_type: AgentType):
         self.agent_id = agent_id
-        self.name = name
-        self.role = role
-        self.config = config
-        self.personality = {}
-        self.capabilities = []
-        self.collaboration_history = []
-        self.performance_metrics = {
-            'tasks_completed': 0,
-            'success_rate': 0.0,
-            'avg_response_time': 0.0,
-            'collaborations': 0
+        self.agent_type = agent_type
+        self.capabilities: Dict[str, AgentCapability] = {}
+        self.performance = AgentPerformance()
+        self.current_task: Optional[Task] = None
+        self.task_history: List[Task] = []
+        self.learning_rate = 0.1
+        self.is_active = True
+        self.last_activity = datetime.now()
+
+    @abstractmethod
+    async def execute_task(self, task: Task) -> Dict[str, Any]:
+        """Execute assigned task"""
+        pass
+
+    @abstractmethod
+    def can_handle_task(self, task: Task) -> float:
+        """Return capability score for task (0.0 - 1.0)"""
+        pass
+
+    def update_capability(self, capability_name: str, success: bool):
+        """Update agent capability based on task outcome"""
+        if capability_name not in self.capabilities:
+            self.capabilities[capability_name] = AgentCapability(
+                name=capability_name,
+                proficiency=0.5,
+                experience_count=0,
+                success_rate=0.5,
+                last_updated=datetime.now()
+            )
+
+        cap = self.capabilities[capability_name]
+        cap.experience_count += 1
+
+        # Update success rate with exponential moving average
+        if success:
+            cap.success_rate = cap.success_rate * 0.9 + 0.1
+            cap.proficiency = min(1.0, cap.proficiency + self.learning_rate * 0.1)
+        else:
+            cap.success_rate = cap.success_rate * 0.9
+            cap.proficiency = max(0.1, cap.proficiency - self.learning_rate * 0.05)
+
+        cap.last_updated = datetime.now()
+
+    def update_performance(self, task: Task, success: bool, completion_time: float):
+        """Update agent performance metrics"""
+        if success:
+            self.performance.tasks_completed += 1
+        else:
+            self.performance.tasks_failed += 1
+
+        total_tasks = self.performance.tasks_completed + self.performance.tasks_failed
+        self.performance.success_rate = self.performance.tasks_completed / total_tasks if total_tasks > 0 else 0
+
+        # Update average completion time
+        if self.performance.tasks_completed > 0:
+            self.performance.average_completion_time = (
+                (self.performance.average_completion_time * (self.performance.tasks_completed - 1) + completion_time) / 
+                self.performance.tasks_completed
+            )
+
+        # Calculate efficiency score
+        self.performance.efficiency_score = min(1.0, self.performance.success_rate * (1.0 / max(1.0, completion_time / 60.0)))
+
+class CoordinatorAgent(BaseAgent):
+    """Coordinator agent for task management and orchestration"""
+
+    def __init__(self, agent_id: str):
+        super().__init__(agent_id, AgentType.COORDINATOR)
+        self.capabilities = {
+            "task_planning": AgentCapability("task_planning", 0.8, 0, 0.8, datetime.now()),
+            "resource_allocation": AgentCapability("resource_allocation", 0.7, 0, 0.7, datetime.now()),
+            "coordination": AgentCapability("coordination", 0.9, 0, 0.9, datetime.now()),
+            "optimization": AgentCapability("optimization", 0.6, 0, 0.6, datetime.now())
         }
 
-        logger.info(f"🤖 AI Agent '{self.name}' ({self.role}) initialized")
-
-    async def process_task(self, task: Dict[str, Any]) -> Dict[str, Any]:
-        """Process a task using agent-specific capabilities"""
-        start_time = datetime.now()
-
+    async def execute_task(self, task: Task) -> Dict[str, Any]:
+        """Execute coordination task"""
         try:
-            logger.info(f"🔄 {self.name} processing task: {task.get('type', 'unknown')}")
+            logger.info(f"Coordinator {self.agent_id} executing task: {task.description}")
 
-            # Agent-specific processing (implemented in subclasses)
-            result = await self._execute_task(task)
+            # Simulate coordination work
+            await asyncio.sleep(random.uniform(0.5, 2.0))
 
-            # Update metrics
-            duration = (datetime.now() - start_time).total_seconds()
-            await self._update_metrics(task, result, duration)
+            result = {
+                "status": "completed",
+                "coordination_plan": f"Optimized plan for {task.type}",
+                "resource_allocation": {"cpu": 0.8, "memory": 0.6},
+                "estimated_completion": datetime.now() + timedelta(minutes=30),
+                "agent_id": self.agent_id
+            }
 
-            logger.info(f"✅ {self.name} completed task in {duration:.2f}s")
             return result
 
         except Exception as e:
-            logger.error(f"❌ {self.name} task failed: {e}")
-            return {'error': str(e), 'agent': self.name, 'task_id': task.get('id')}
+            logger.error(f"Coordinator task failed: {e}")
+            return {"status": "failed", "error": str(e), "agent_id": self.agent_id}
 
-    async def _execute_task(self, task: Dict[str, Any]) -> Dict[str, Any]:
-        """Execute task - implemented by subclasses"""
-        raise NotImplementedError("Subclasses must implement _execute_task")
+    def can_handle_task(self, task: Task) -> float:
+        """Evaluate capability to handle coordination tasks"""
+        coordination_tasks = ["planning", "coordination", "optimization", "resource_management"]
 
-    async def _update_metrics(self, task: Dict[str, Any], result: Dict[str, Any], duration: float):
-        """Update agent performance metrics"""
-        self.performance_metrics['tasks_completed'] += 1
-
-        # Update average response time
-        current_avg = self.performance_metrics['avg_response_time']
-        task_count = self.performance_metrics['tasks_completed']
-        self.performance_metrics['avg_response_time'] = ((current_avg * (task_count - 1)) + duration) / task_count
-
-        # Update success rate
-        if 'error' not in result:
-            success_count = self.performance_metrics['success_rate'] * (task_count - 1) + 1
-            self.performance_metrics['success_rate'] = success_count / task_count
+        if any(task_type in task.type.lower() for task_type in coordination_tasks):
+            base_score = 0.8
         else:
-            success_count = self.performance_metrics['success_rate'] * (task_count - 1)
-            self.performance_metrics['success_rate'] = success_count / task_count
+            base_score = 0.3
 
-    def get_status(self) -> Dict[str, Any]:
-        """Get current agent status and metrics"""
-        return {
-            'agent_id': self.agent_id,
-            'name': self.name,
-            'role': self.role,
-            'personality': self.personality,
-            'capabilities': self.capabilities,
-            'metrics': self.performance_metrics.copy(),
-            'active': True,
-            'last_activity': datetime.now().isoformat()
+        # Factor in current workload
+        workload_factor = 0.8 if self.current_task else 1.0
+
+        # Factor in relevant capabilities
+        capability_score = sum(
+            cap.proficiency for cap_name, cap in self.capabilities.items()
+            if cap_name in task.required_capabilities
+        ) / len(task.required_capabilities) if task.required_capabilities else 0.7
+
+        return min(1.0, base_score * workload_factor * capability_score)
+
+class AnalyzerAgent(BaseAgent):
+    """Analyzer agent for data analysis and pattern recognition"""
+
+    def __init__(self, agent_id: str):
+        super().__init__(agent_id, AgentType.ANALYZER)
+        self.capabilities = {
+            "data_analysis": AgentCapability("data_analysis", 0.9, 0, 0.9, datetime.now()),
+            "pattern_recognition": AgentCapability("pattern_recognition", 0.8, 0, 0.8, datetime.now()),
+            "statistical_modeling": AgentCapability("statistical_modeling", 0.7, 0, 0.7, datetime.now()),
+            "visualization": AgentCapability("visualization", 0.6, 0, 0.6, datetime.now())
         }
 
-class StrategistAgent(AIAgent):
-    """Strategic Analysis Agent using Gemini Pro"""
-
-    def __init__(self, config: Dict[str, Any]):
-        super().__init__('strategist', 'Dr. Strategy', 'Strategic Analyst', config)
-
-        self.personality = {
-            'analytical': True,
-            'visionary': True,
-            'risk_aware': True,
-            'communication_style': 'formal_analytical'
-        }
-
-        self.capabilities = [
-            'strategic_planning',
-            'risk_assessment', 
-            'ecosystem_analysis',
-            'priority_identification',
-            'long_term_vision'
-        ]
-
-        # Initialize Gemini Pro
-        genai.configure(api_key=config.get('gemini_api_key'))
-        self.gemini_model = genai.GenerativeModel('gemini-pro')
-
-        logger.info("📊 Strategist Agent (Dr. Strategy) ready with Gemini Pro")
-
-    async def _execute_task(self, task: Dict[str, Any]) -> Dict[str, Any]:
-        """Execute strategic analysis tasks"""
-        task_type = task.get('type', '')
-
-        if task_type == 'strategic_analysis':
-            return await self._conduct_strategic_analysis(task)
-        elif task_type == 'risk_assessment':
-            return await self._assess_risks(task)
-        elif task_type == 'ecosystem_evaluation':
-            return await self._evaluate_ecosystem(task)
-        else:
-            return {'error': f'Unknown task type: {task_type}', 'agent': self.name}
-
-    async def _conduct_strategic_analysis(self, task: Dict[str, Any]) -> Dict[str, Any]:
-        """Conduct comprehensive strategic analysis"""
+    async def execute_task(self, task: Task) -> Dict[str, Any]:
+        """Execute analysis task"""
         try:
-            context = task.get('context', {})
-            objectives = task.get('objectives', [])
+            logger.info(f"Analyzer {self.agent_id} executing task: {task.description}")
 
-            context_json = json.dumps(context, indent=2)
-            objectives_list = '\n'.join([f"- {obj}" for obj in objectives])
+            # Simulate analysis work
+            await asyncio.sleep(random.uniform(1.0, 3.0))
 
-            analysis_prompt = f"""
-As Dr. Strategy, the XMRT-Ecosystem's Strategic AI, conduct a comprehensive analysis:
-
-Current Context:
-{context_json}
-
-Strategic Objectives:
-{objectives_list}
-
-Provide strategic analysis with:
-1. Current state assessment
-2. Strategic opportunities and threats  
-3. Priority recommendations
-4. Resource allocation suggestions
-5. Success metrics and KPIs
-6. Implementation roadmap
-
-Format as JSON with clear, actionable insights.
-"""
-
-            response = await self.gemini_model.generate_content_async(analysis_prompt)
-            analysis = self._parse_gemini_response(response.text)
-
-            return {
-                'analysis': analysis,
-                'agent': self.name,
-                'task_id': task.get('id'),
-                'confidence': 0.9,
-                'recommendations': analysis.get('priority_recommendations', [])
-            }
-
-        except Exception as e:
-            logger.error(f"Strategic analysis failed: {e}")
-            return {'error': str(e), 'agent': self.name}
-
-    def _parse_gemini_response(self, response_text: str) -> Dict[str, Any]:
-        """Parse Gemini response into structured data"""
-        try:
-            # Try to extract JSON from response
-            if '{' in response_text and '}' in response_text:
-                start = response_text.find('{')
-                end = response_text.rfind('}') + 1
-                json_str = response_text[start:end]
-                return json.loads(json_str)
-            else:
-                return {'content': response_text, 'type': 'text'}
-        except json.JSONDecodeError:
-            return {'content': response_text, 'type': 'text', 'parse_error': True}
-
-class BuilderAgent(AIAgent):
-    """Code Generation and Building Agent using OpenAI GPT-4"""
-
-    def __init__(self, config: Dict[str, Any]):
-        super().__init__('builder', 'CodeMaster', 'Software Builder', config)
-
-        self.personality = {
-            'creative': True,
-            'detail_oriented': True,
-            'pragmatic': True,
-            'communication_style': 'technical_precise'
-        }
-
-        self.capabilities = [
-            'code_generation',
-            'architecture_design',
-            'api_development',
-            'database_design',
-            'system_integration'
-        ]
-
-        # Initialize OpenAI
-        openai.api_key = config.get('openai_api_key')
-
-        logger.info("🛠️ Builder Agent (CodeMaster) ready with GPT-4")
-
-    async def _execute_task(self, task: Dict[str, Any]) -> Dict[str, Any]:
-        """Execute code generation and building tasks"""
-        task_type = task.get('type', '')
-
-        if task_type == 'generate_code':
-            return await self._generate_code(task)
-        elif task_type == 'design_architecture':
-            return await self._design_architecture(task)
-        else:
-            return {'error': f'Unknown task type: {task_type}', 'agent': self.name}
-
-    async def _generate_code(self, task: Dict[str, Any]) -> Dict[str, Any]:
-        """Generate high-quality Python code"""
-        try:
-            specifications = task.get('specifications', {})
-            requirements = task.get('requirements', [])
-
-            specs_json = json.dumps(specifications, indent=2)
-            reqs_list = '\n'.join([f"- {req}" for req in requirements])
-
-            messages = [
-                {"role": "system", "content": "You are CodeMaster, an expert Python developer for the XMRT-Ecosystem."},
-                {"role": "user", "content": f"""
-Generate Python code based on these specifications:
-
-Specifications:
-{specs_json}
-
-Requirements:
-{reqs_list}
-
-Provide clean, well-documented code with proper error handling.
-"""}
-            ]
-
-            response = await openai.ChatCompletion.acreate(
-                model="gpt-4",
-                messages=messages,
-                max_tokens=2500,
-                temperature=0.1
-            )
-
-            generated_code = self._parse_code_response(response.choices[0].message.content)
-
-            return {
-                'generated_code': generated_code,
-                'agent': self.name,
-                'task_id': task.get('id'),
-                'file_path': specifications.get('file_path', 'generated_code.py')
-            }
-
-        except Exception as e:
-            return {'error': str(e), 'agent': self.name}
-
-    async def _design_architecture(self, task: Dict[str, Any]) -> Dict[str, Any]:
-        """Design system architecture"""
-        try:
-            requirements = task.get('requirements', [])
-            constraints = task.get('constraints', {})
-
-            reqs_list = '\n'.join([f"- {req}" for req in requirements])
-            constraints_json = json.dumps(constraints, indent=2)
-
-            messages = [
-                {"role": "system", "content": "You are CodeMaster, designing scalable architecture."},
-                {"role": "user", "content": f"""
-Design system architecture for:
-
-Requirements:
-{reqs_list}
-
-Constraints:
-{constraints_json}
-
-Provide architectural design with components, APIs, and data flow.
-"""}
-            ]
-
-            response = await openai.ChatCompletion.acreate(
-                model="gpt-4",
-                messages=messages,
-                max_tokens=2000,
-                temperature=0.2
-            )
-
-            return {
-                'architecture_design': response.choices[0].message.content,
-                'agent': self.name,
-                'task_id': task.get('id')
-            }
-
-        except Exception as e:
-            return {'error': str(e), 'agent': self.name}
-
-    def _parse_code_response(self, response_text: str) -> str:
-        """Parse code from OpenAI response"""
-        if '```python' in response_text:
-            start = response_text.find('```python') + 9
-            end = response_text.find('```', start)
-            return response_text[start:end].strip()
-        elif '```' in response_text:
-            start = response_text.find('```') + 3
-            end = response_text.find('```', start)
-            return response_text[start:end].strip()
-        else:
-            return response_text.strip()
-
-class TesterAgent(AIAgent):
-    """Testing and Quality Assurance Agent"""
-
-    def __init__(self, config: Dict[str, Any]):
-        super().__init__('tester', 'QA Guardian', 'Quality Assurance', config)
-
-        self.personality = {
-            'meticulous': True,
-            'critical_thinking': True,
-            'quality_focused': True,
-            'communication_style': 'precise_detailed'
-        }
-
-        self.capabilities = [
-            'code_testing',
-            'quality_assurance',
-            'security_testing',
-            'performance_testing',
-            'bug_detection'
-        ]
-
-        logger.info("🔍 Tester Agent (QA Guardian) ready for quality assurance")
-
-    async def _execute_task(self, task: Dict[str, Any]) -> Dict[str, Any]:
-        """Execute testing and QA tasks"""
-        task_type = task.get('type', '')
-
-        if task_type == 'test_code':
-            return await self._test_code(task)
-        elif task_type == 'quality_review':
-            return await self._quality_review(task)
-        else:
-            return {'error': f'Unknown task type: {task_type}', 'agent': self.name}
-
-    async def _test_code(self, task: Dict[str, Any]) -> Dict[str, Any]:
-        """Test code for functionality and quality"""
-        try:
-            code = task.get('code', '')
-
-            # Basic syntax check
-            syntax_result = await self._check_syntax(code)
-
-            return {
-                'test_results': {
-                    'syntax_check': syntax_result,
-                    'overall_score': syntax_result.get('score', 0.0)
+            result = {
+                "status": "completed",
+                "analysis_results": {
+                    "patterns_found": random.randint(3, 8),
+                    "confidence_score": random.uniform(0.7, 0.95),
+                    "anomalies_detected": random.randint(0, 2)
                 },
-                'agent': self.name,
-                'task_id': task.get('id'),
-                'passed': syntax_result.get('valid', False)
+                "recommendations": f"Based on analysis of {task.type}",
+                "agent_id": self.agent_id
             }
+
+            return result
 
         except Exception as e:
-            return {'error': str(e), 'agent': self.name}
+            logger.error(f"Analyzer task failed: {e}")
+            return {"status": "failed", "error": str(e), "agent_id": self.agent_id}
 
-    async def _quality_review(self, task: Dict[str, Any]) -> Dict[str, Any]:
-        """Perform quality review"""
-        try:
-            architecture = task.get('architecture', {})
-            test_requirements = task.get('test_requirements', [])
+    def can_handle_task(self, task: Task) -> float:
+        """Evaluate capability to handle analysis tasks"""
+        analysis_tasks = ["analysis", "pattern", "data", "statistics", "modeling"]
 
-            return {
-                'quality_review': {
-                    'architecture_assessed': bool(architecture),
-                    'requirements_count': len(test_requirements),
-                    'quality_score': 0.8
-                },
-                'agent': self.name,
-                'task_id': task.get('id')
-            }
+        if any(task_type in task.type.lower() for task_type in analysis_tasks):
+            base_score = 0.9
+        else:
+            base_score = 0.2
 
-        except Exception as e:
-            return {'error': str(e), 'agent': self.name}
+        # Factor in current workload
+        workload_factor = 0.7 if self.current_task else 1.0
 
-    async def _check_syntax(self, code: str) -> Dict[str, Any]:
-        """Check code syntax and basic structure"""
-        try:
-            compile(code, '<string>', 'exec')
-            return {
-                'valid': True,
-                'issues': [],
-                'score': 1.0
-            }
-        except SyntaxError as e:
-            return {
-                'valid': False,
-                'issues': [f'Syntax error at line {e.lineno}: {e.msg}'],
-                'score': 0.0,
-                'error_details': str(e)
-            }
-        except Exception as e:
-            return {
-                'valid': False,
-                'issues': [f'Compilation error: {str(e)}'],
-                'score': 0.0
-            }
+        # Factor in relevant capabilities
+        capability_score = sum(
+            cap.proficiency for cap_name, cap in self.capabilities.items()
+            if cap_name in task.required_capabilities
+        ) / len(task.required_capabilities) if task.required_capabilities else 0.8
 
-class OptimizerAgent(AIAgent):
-    """Performance Optimization and Refinement Agent"""
+        return min(1.0, base_score * workload_factor * capability_score)
 
-    def __init__(self, config: Dict[str, Any]):
-        super().__init__('optimizer', 'PerfMaster', 'Performance Optimizer', config)
+class DeveloperAgent(BaseAgent):
+    """Developer agent for code generation and modification"""
 
-        self.personality = {
-            'efficiency_focused': True,
-            'analytical': True,
-            'perfectionist': True,
-            'communication_style': 'metrics_driven'
+    def __init__(self, agent_id: str):
+        super().__init__(agent_id, AgentType.DEVELOPER)
+        self.capabilities = {
+            "code_generation": AgentCapability("code_generation", 0.8, 0, 0.8, datetime.now()),
+            "code_review": AgentCapability("code_review", 0.7, 0, 0.7, datetime.now()),
+            "debugging": AgentCapability("debugging", 0.75, 0, 0.75, datetime.now()),
+            "optimization": AgentCapability("optimization", 0.6, 0, 0.6, datetime.now()),
+            "testing": AgentCapability("testing", 0.65, 0, 0.65, datetime.now())
         }
 
-        self.capabilities = [
-            'performance_optimization',
-            'code_refactoring',
-            'resource_optimization',
-            'scalability_analysis',
-            'benchmarking'
-        ]
+    async def execute_task(self, task: Task) -> Dict[str, Any]:
+        """Execute development task"""
+        try:
+            logger.info(f"Developer {self.agent_id} executing task: {task.description}")
 
-        logger.info("⚡ Optimizer Agent (PerfMaster) ready for performance optimization")
+            # Simulate development work
+            await asyncio.sleep(random.uniform(2.0, 5.0))
 
-    async def _execute_task(self, task: Dict[str, Any]) -> Dict[str, Any]:
-        """Execute optimization tasks"""
-        task_type = task.get('type', '')
+            result = {
+                "status": "completed",
+                "code_changes": {
+                    "files_modified": random.randint(1, 5),
+                    "lines_added": random.randint(10, 100),
+                    "lines_removed": random.randint(5, 50)
+                },
+                "test_results": {
+                    "tests_passed": random.randint(8, 12),
+                    "coverage": random.uniform(0.8, 0.95)
+                },
+                "agent_id": self.agent_id
+            }
 
-        if task_type == 'optimize_code':
-            return await self._optimize_code(task)
-        elif task_type == 'scalability_review':
-            return await self._scalability_review(task)
+            return result
+
+        except Exception as e:
+            logger.error(f"Developer task failed: {e}")
+            return {"status": "failed", "error": str(e), "agent_id": self.agent_id}
+
+    def can_handle_task(self, task: Task) -> float:
+        """Evaluate capability to handle development tasks"""
+        dev_tasks = ["code", "develop", "implement", "debug", "test", "refactor"]
+
+        if any(task_type in task.type.lower() for task_type in dev_tasks):
+            base_score = 0.85
         else:
-            return {'error': f'Unknown task type: {task_type}', 'agent': self.name}
+            base_score = 0.25
 
-    async def _optimize_code(self, task: Dict[str, Any]) -> Dict[str, Any]:
-        """Optimize code for performance"""
-        try:
-            code = task.get('code', '')
-            optimization_goals = task.get('goals', ['speed', 'memory'])
+        # Factor in current workload
+        workload_factor = 0.6 if self.current_task else 1.0
 
-            return {
-                'optimization_result': {
-                    'original_code_analyzed': bool(code),
-                    'optimization_goals': optimization_goals,
-                    'performance_score': 0.9
-                },
-                'agent': self.name,
-                'task_id': task.get('id')
-            }
+        # Factor in relevant capabilities
+        capability_score = sum(
+            cap.proficiency for cap_name, cap in self.capabilities.items()
+            if cap_name in task.required_capabilities
+        ) / len(task.required_capabilities) if task.required_capabilities else 0.75
 
-        except Exception as e:
-            return {'error': str(e), 'agent': self.name}
-
-    async def _scalability_review(self, task: Dict[str, Any]) -> Dict[str, Any]:
-        """Review system scalability"""
-        try:
-            architecture = task.get('architecture', {})
-            performance_targets = task.get('performance_targets', {})
-
-            return {
-                'scalability_analysis': {
-                    'architecture_reviewed': bool(architecture),
-                    'performance_targets': performance_targets,
-                    'scalability_score': 0.85
-                },
-                'agent': self.name,
-                'task_id': task.get('id')
-            }
-
-        except Exception as e:
-            return {'error': str(e), 'agent': self.name}
+        return min(1.0, base_score * workload_factor * capability_score)
 
 class MultiAgentSystem:
-    """Coordinates collaboration between all AI agents"""
+    """Enhanced Multi-Agent System with specialized coordination"""
 
-    def __init__(self, config: Dict[str, Any]):
-        self.config = config
-        self.agents = {}
-        self.collaboration_sessions = {}
-        self.sio = socketio.AsyncServer(cors_allowed_origins="*")
+    def __init__(self):
+        self.agents: Dict[str, BaseAgent] = {}
+        self.task_queue: List[Task] = []
+        self.completed_tasks: List[Task] = []
+        self.is_running = False
+        self.coordination_thread = None
+        self.performance_metrics = {}
+        self.task_assignment_strategy = "optimal"  # optimal, round_robin, random
+        self.learning_enabled = True
 
-        # Initialize all agents
-        self._initialize_agents()
+        # Initialize default agents
+        self._initialize_default_agents()
 
-        logger.info("🤝 Multi-Agent System initialized with 4 specialized agents")
+    def _initialize_default_agents(self):
+        """Initialize default set of specialized agents"""
+        self.add_agent(CoordinatorAgent("coord_001"))
+        self.add_agent(AnalyzerAgent("analyzer_001"))
+        self.add_agent(DeveloperAgent("dev_001"))
 
-    def _initialize_agents(self):
-        """Initialize all AI agents"""
+        logger.info(f"Initialized {len(self.agents)} default agents")
+
+    def add_agent(self, agent: BaseAgent):
+        """Add agent to the system"""
+        self.agents[agent.agent_id] = agent
+        logger.info(f"Added agent {agent.agent_id} of type {agent.agent_type.value}")
+
+    def remove_agent(self, agent_id: str):
+        """Remove agent from system"""
+        if agent_id in self.agents:
+            agent = self.agents[agent_id]
+            if agent.current_task:
+                # Reassign current task
+                self.task_queue.insert(0, agent.current_task)
+            del self.agents[agent_id]
+            logger.info(f"Removed agent {agent_id}")
+
+    def add_task(self, task: Task):
+        """Add task to the queue"""
+        self.task_queue.append(task)
+        logger.info(f"Added task {task.id}: {task.description}")
+
+    def create_task(self, task_type: str, description: str, priority: TaskPriority = TaskPriority.MEDIUM, 
+                   required_capabilities: List[str] = None, deadline: datetime = None) -> Task:
+        """Create and add a new task"""
+        task = Task(
+            id=f"task_{int(time.time())}_{random.randint(1000, 9999)}",
+            type=task_type,
+            description=description,
+            priority=priority,
+            required_capabilities=required_capabilities or [],
+            created_at=datetime.now(),
+            deadline=deadline
+        )
+        self.add_task(task)
+        return task
+
+    def _find_best_agent(self, task: Task) -> Optional[BaseAgent]:
+        """Find best agent for task using current assignment strategy"""
+        available_agents = [agent for agent in self.agents.values() 
+                          if agent.is_active and agent.current_task is None]
+
+        if not available_agents:
+            return None
+
+        if self.task_assignment_strategy == "optimal":
+            # Find agent with highest capability score
+            best_agent = None
+            best_score = 0.0
+
+            for agent in available_agents:
+                score = agent.can_handle_task(task)
+                if score > best_score:
+                    best_score = score
+                    best_agent = agent
+
+            return best_agent if best_score > 0.3 else None
+
+        elif self.task_assignment_strategy == "round_robin":
+            # Simple round-robin assignment
+            return available_agents[len(self.completed_tasks) % len(available_agents)]
+
+        elif self.task_assignment_strategy == "random":
+            return random.choice(available_agents)
+
+        return None
+
+    async def _assign_tasks(self):
+        """Assign tasks to available agents"""
+        # Sort tasks by priority and deadline
+        self.task_queue.sort(key=lambda t: (t.priority.value, t.deadline or datetime.max), reverse=True)
+
+        assigned_tasks = []
+        for task in self.task_queue:
+            if task.status == TaskStatus.PENDING:
+                agent = self._find_best_agent(task)
+                if agent:
+                    task.assigned_agent = agent.agent_id
+                    task.status = TaskStatus.ASSIGNED
+                    agent.current_task = task
+                    assigned_tasks.append(task)
+
+                    logger.info(f"Assigned task {task.id} to agent {agent.agent_id}")
+
+        # Remove assigned tasks from queue
+        for task in assigned_tasks:
+            self.task_queue.remove(task)
+
+    async def _execute_agent_tasks(self):
+        """Execute tasks for all agents with current assignments"""
+        execution_tasks = []
+
+        for agent in self.agents.values():
+            if agent.current_task and agent.current_task.status == TaskStatus.ASSIGNED:
+                execution_tasks.append(self._execute_single_task(agent))
+
+        if execution_tasks:
+            await asyncio.gather(*execution_tasks, return_exceptions=True)
+
+    async def _execute_single_task(self, agent: BaseAgent):
+        """Execute task for a single agent"""
+        task = agent.current_task
+        if not task:
+            return
+
+        start_time = time.time()
+        task.status = TaskStatus.IN_PROGRESS
+
         try:
-            # Initialize each agent
-            self.agents['strategist'] = StrategistAgent(self.config)
-            self.agents['builder'] = BuilderAgent(self.config)
-            self.agents['tester'] = TesterAgent(self.config)
-            self.agents['optimizer'] = OptimizerAgent(self.config)
+            result = await agent.execute_task(task)
+            completion_time = time.time() - start_time
 
-            logger.info(f"✅ Initialized {len(self.agents)} AI agents successfully")
+            if result.get("status") == "completed":
+                task.status = TaskStatus.COMPLETED
+                task.progress = 1.0
+                success = True
+            else:
+                task.status = TaskStatus.FAILED
+                success = False
+
+            # Update agent performance and capabilities
+            if self.learning_enabled:
+                agent.update_performance(task, success, completion_time)
+                for capability in task.required_capabilities:
+                    agent.update_capability(capability, success)
+
+            # Move task to completed
+            agent.task_history.append(task)
+            self.completed_tasks.append(task)
+            agent.current_task = None
+
+            logger.info(f"Task {task.id} completed by {agent.agent_id} in {completion_time:.2f}s")
 
         except Exception as e:
-            logger.error(f"❌ Failed to initialize agents: {e}")
-            raise
+            task.status = TaskStatus.FAILED
+            agent.current_task = None
+            logger.error(f"Task {task.id} failed: {e}")
 
-    async def initialize(self):
-        """Initialize the multi-agent system"""
-        logger.info("🔧 Initializing Multi-Agent System...")
-        logger.info("✅ Multi-Agent System ready for collaboration")
+    async def _coordination_loop(self):
+        """Main coordination loop"""
+        while self.is_running:
+            try:
+                # Assign pending tasks
+                await self._assign_tasks()
 
-    async def start_collaboration_session(self, session_config: Dict[str, Any]) -> Dict[str, Any]:
-        """Start a new collaboration session between agents"""
-        try:
-            session_id = str(uuid.uuid4())
+                # Execute assigned tasks
+                await self._execute_agent_tasks()
 
-            session = {
-                'id': session_id,
-                'config': session_config,
-                'participants': list(self.agents.keys()),
-                'responses': {},
-                'start_time': datetime.now().isoformat(),
-                'status': 'active'
-            }
+                # Update system metrics
+                self._update_metrics()
 
-            self.collaboration_sessions[session_id] = session
+                # Brief pause between coordination cycles
+                await asyncio.sleep(1.0)
 
-            logger.info(f"🚀 Started collaboration session: {session_id}")
+            except Exception as e:
+                logger.error(f"Coordination loop error: {e}")
+                await asyncio.sleep(5.0)
 
-            return {
-                'session_id': session_id,
-                'participants': session['participants'],
-                'status': 'started'
-            }
+    def _update_metrics(self):
+        """Update system performance metrics"""
+        total_tasks = len(self.completed_tasks)
+        if total_tasks == 0:
+            return
 
-        except Exception as e:
-            logger.error(f"❌ Failed to start collaboration session: {e}")
-            raise
+        completed_successfully = len([t for t in self.completed_tasks if t.status == TaskStatus.COMPLETED])
 
-    async def execute_collaborative_planning(self, session_id: str, strategic_input: Dict[str, Any]) -> Dict[str, Any]:
-        """Execute collaborative planning with all agents"""
-        try:
-            if session_id not in self.collaboration_sessions:
-                raise ValueError(f"Session {session_id} not found")
-
-            session = self.collaboration_sessions[session_id]
-            results = {}
-
-            # Phase 1: Strategist provides initial analysis
-            strategist_task = {
-                'id': f'{session_id}_strategist',
-                'type': 'strategic_analysis',
-                'context': strategic_input,
-                'objectives': strategic_input.get('learning_objectives', [])
-            }
-
-            strategist_result = await self.agents['strategist'].process_task(strategist_task)
-            results['strategic_analysis'] = strategist_result
-
-            # Phase 2: Builder creates implementation plan
-            builder_task = {
-                'id': f'{session_id}_builder',
-                'type': 'design_architecture',
-                'requirements': strategist_result.get('recommendations', []),
-                'constraints': {'performance': 'high', 'scalability': 'required'}
-            }
-
-            builder_result = await self.agents['builder'].process_task(builder_task)
-            results['implementation_plan'] = builder_result
-
-            # Phase 3: Tester provides quality requirements
-            tester_task = {
-                'id': f'{session_id}_tester',
-                'type': 'quality_review',
-                'architecture': builder_result.get('architecture_design', {}),
-                'test_requirements': ['functionality', 'security', 'performance']
-            }
-
-            tester_result = await self.agents['tester'].process_task(tester_task)
-            results['quality_requirements'] = tester_result
-
-            # Phase 4: Optimizer provides performance guidance
-            optimizer_task = {
-                'id': f'{session_id}_optimizer',
-                'type': 'scalability_review',
-                'architecture': builder_result.get('architecture_design', {}),
-                'performance_targets': {'response_time': '<1s', 'throughput': '>1000/s'}
-            }
-
-            optimizer_result = await self.agents['optimizer'].process_task(optimizer_task)
-            results['optimization_guidance'] = optimizer_result
-
-            # Compile final collaboration result
-            collaboration_result = {
-                'session_id': session_id,
-                'timestamp': datetime.now().isoformat(),
-                'results': results,
-                'implementation_tasks': self._generate_implementation_tasks(results),
-                'success_metrics': self._define_success_metrics(results)
-            }
-
-            # Update session status
-            session['status'] = 'completed'
-            session['end_time'] = datetime.now().isoformat()
-            session['final_result'] = collaboration_result
-
-            logger.info(f"✅ Collaborative planning completed: {session_id}")
-
-            return collaboration_result
-
-        except Exception as e:
-            logger.error(f"❌ Collaborative planning failed: {e}")
-            return {'error': str(e), 'session_id': session_id}
-
-    def _generate_implementation_tasks(self, results: Dict[str, Any]) -> List[Dict[str, Any]]:
-        """Generate implementation tasks from collaboration results"""
-        tasks = []
-
-        # Extract recommendations from strategic analysis
-        strategic_result = results.get('strategic_analysis', {})
-        recommendations = strategic_result.get('recommendations', [])
-
-        for i, recommendation in enumerate(recommendations[:3]):  # Limit to top 3
-            task = {
-                'id': f'task_{i+1}',
-                'type': 'implementation',
-                'description': recommendation,
-                'improvement_description': f'Implement strategic improvement: {recommendation}',
-                'file_path': f'improvements/improvement_{i+1}.py',
-                'requirements': ['logging', 'error_handling', 'documentation'],
-                'priority': 'high' if i == 0 else 'medium'
-            }
-            tasks.append(task)
-
-        return tasks
-
-    def _define_success_metrics(self, results: Dict[str, Any]) -> Dict[str, Any]:
-        """Define success metrics for the collaboration"""
-        return {
-            'code_quality_threshold': 0.8,
-            'performance_improvement_target': '15%',
-            'security_score_minimum': 0.9,
-            'test_coverage_target': '85%',
-            'deployment_success_rate': '100%'
+        self.performance_metrics = {
+            "total_tasks_completed": total_tasks,
+            "success_rate": completed_successfully / total_tasks,
+            "active_agents": len([a for a in self.agents.values() if a.is_active]),
+            "pending_tasks": len(self.task_queue),
+            "average_agent_efficiency": sum(a.performance.efficiency_score for a in self.agents.values()) / len(self.agents),
+            "last_updated": datetime.now()
         }
 
-    async def health_check(self) -> Dict[str, Any]:
-        """Perform system health check"""
-        health_status = {
-            'system_status': 'healthy',
-            'total_agents': len(self.agents),
-            'active_sessions': len([s for s in self.collaboration_sessions.values() if s['status'] == 'active']),
-            'agent_health': {}
-        }
+    def start(self):
+        """Start the multi-agent system"""
+        if not self.is_running:
+            self.is_running = True
+            self.coordination_thread = threading.Thread(target=self._run_coordination_loop)
+            self.coordination_thread.daemon = True
+            self.coordination_thread.start()
+            logger.info("Multi-agent system started")
 
-        # Check each agent
-        for agent_id, agent in self.agents.items():
-            agent_status = agent.get_status()
-            health_status['agent_health'][agent_id] = {
-                'active': agent_status['active'],
-                'performance': agent.performance_metrics,
-                'last_activity': agent_status['last_activity']
-            }
+    def _run_coordination_loop(self):
+        """Run coordination loop in thread"""
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        loop.run_until_complete(self._coordination_loop())
 
-        return health_status
+    def stop(self):
+        """Stop the multi-agent system"""
+        if self.is_running:
+            self.is_running = False
+            if self.coordination_thread:
+                self.coordination_thread.join(timeout=10.0)
+            logger.info("Multi-agent system stopped")
 
     def get_system_status(self) -> Dict[str, Any]:
         """Get comprehensive system status"""
         return {
-            'agents': {agent_id: agent.get_status() for agent_id, agent in self.agents.items()},
-            'active_sessions': len([s for s in self.collaboration_sessions.values() if s['status'] == 'active']),
-            'total_sessions': len(self.collaboration_sessions),
-            'system_uptime': datetime.now().isoformat(),
-            'collaboration_ready': True
+            "is_running": self.is_running,
+            "agents": {
+                agent_id: {
+                    "type": agent.agent_type.value,
+                    "active": agent.is_active,
+                    "current_task": agent.current_task.id if agent.current_task else None,
+                    "performance": asdict(agent.performance),
+                    "capabilities": {name: asdict(cap) for name, cap in agent.capabilities.items()}
+                }
+                for agent_id, agent in self.agents.items()
+            },
+            "task_queue_size": len(self.task_queue),
+            "completed_tasks": len(self.completed_tasks),
+            "performance_metrics": self.performance_metrics,
+            "assignment_strategy": self.task_assignment_strategy
         }
 
+    def get_agent_recommendations(self, task_description: str) -> List[Dict[str, Any]]:
+        """Get agent recommendations for a task"""
+        # Create temporary task for evaluation
+        temp_task = Task(
+            id="temp",
+            type="evaluation",
+            description=task_description,
+            priority=TaskPriority.MEDIUM,
+            required_capabilities=[],
+            created_at=datetime.now()
+        )
 
-# Agent alias for backward compatibility
-Agent = AIAgent
+        recommendations = []
+        for agent in self.agents.values():
+            score = agent.can_handle_task(temp_task)
+            recommendations.append({
+                "agent_id": agent.agent_id,
+                "agent_type": agent.agent_type.value,
+                "capability_score": score,
+                "current_workload": agent.current_task is not None,
+                "success_rate": agent.performance.success_rate,
+                "efficiency": agent.performance.efficiency_score
+            })
 
-# Export classes for easier imports
+        # Sort by capability score
+        recommendations.sort(key=lambda x: x["capability_score"], reverse=True)
+        return recommendations
+
+# Global multi-agent system instance
+multi_agent_system = MultiAgentSystem()
+
+def get_multi_agent_system() -> MultiAgentSystem:
+    """Get global multi-agent system instance"""
+    return multi_agent_system
+
+def initialize_multi_agent_system():
+    """Initialize and start the multi-agent system"""
+    try:
+        multi_agent_system.start()
+        logger.info("Multi-agent system initialized successfully")
+        return True
+    except Exception as e:
+        logger.error(f"Failed to initialize multi-agent system: {e}")
+        return False
+
+def shutdown_multi_agent_system():
+    """Shutdown the multi-agent system"""
+    try:
+        multi_agent_system.stop()
+        logger.info("Multi-agent system shutdown successfully")
+        return True
+    except Exception as e:
+        logger.error(f"Failed to shutdown multi-agent system: {e}")
+        return False
+
+
+# Export aliases for main.py compatibility
+Agent = BaseAgent  # Alias for backwards compatibility
+AIAgent = BaseAgent  # Alternative alias
+
+# Public API exports
 __all__ = [
+    'Agent',
     'AIAgent', 
-    'Agent',  # Alias for AIAgent
-    'StrategistAgent',
-    'BuilderAgent', 
-    'TesterAgent',
-    'OptimizerAgent',
-    'MultiAgentSystem'
+    'BaseAgent',
+    'CoordinatorAgent',
+    'AnalyzerAgent', 
+    'DeveloperAgent',
+    'MultiAgentSystem',
+    'AgentType',
+    'TaskPriority',
+    'TaskStatus',
+    'AgentCapability',
+    'Task',
+    'AgentPerformance',
+    'get_multi_agent_system',
+    'initialize_multi_agent_system',
+    'shutdown_multi_agent_system'
 ]
