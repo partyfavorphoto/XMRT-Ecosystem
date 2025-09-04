@@ -1,3 +1,7 @@
+# CRITICAL: Gevent monkey patching MUST be first import before anything else
+import gevent.monkey
+gevent.monkey.patch_all()
+
 """
 XMRT-Ecosystem Main Application - FULLY ACTIVATED
 Enhanced Flask application with complete autonomous AI ecosystem
@@ -21,6 +25,24 @@ from datetime import datetime, timedelta
 from flask import Flask, render_template, request, jsonify, send_from_directory
 from flask_cors import CORS
 from flask_socketio import SocketIO, emit, join_room, leave_room
+
+def safe_emit(event, data=None, **kwargs):
+    """Safely emit data via SocketIO with proper JSON serialization"""
+    if data is not None:
+        # Clean the data to ensure it's JSON serializable
+        clean_data = clean_data_for_json(data)
+        return emit(event, clean_data, **kwargs)
+    else:
+        return emit(event, **kwargs)
+
+def safe_socketio_emit(event, data=None, **kwargs):
+    """Safely emit data via global socketio with proper JSON serialization"""  
+    if data is not None:
+        clean_data = clean_data_for_json(data)
+        return socketio.emit(event, clean_data, **kwargs)
+    else:
+        return socketio.emit(event, **kwargs)
+
 import logging
 from dotenv import load_dotenv
 import traceback
@@ -91,6 +113,11 @@ class DateTimeJSONEncoder(json.JSONEncoder):
         if isinstance(obj, datetime):
             return obj.isoformat()
         return super().default(obj)
+
+
+def safe_json_serialize(data):
+    """Safely serialize data to JSON, handling datetime objects"""
+    return json.dumps(data, cls=DateTimeJSONEncoder)
 
 def clean_data_for_json(data):
     """Clean data structure to make it JSON serializable"""
