@@ -18,6 +18,40 @@ import numpy as np
 import pandas as pd
 from dataclasses import dataclass, asdict
 
+
+import json
+from datetime import datetime
+
+class DateTimeJSONEncoder(json.JSONEncoder):
+    """Custom JSON encoder that handles datetime objects"""
+    def default(self, obj):
+        if isinstance(obj, datetime):
+            return obj.isoformat()
+        return super().default(obj)
+
+def safe_json_serialize(data):
+    """Safely serialize data to JSON, handling datetime objects"""
+    return json.dumps(data, cls=DateTimeJSONEncoder)
+
+def clean_data_for_json(data):
+    """Clean data structure to make it JSON serializable"""
+    if isinstance(data, dict):
+        return {k: clean_data_for_json(v) for k, v in data.items()}
+    elif isinstance(data, list):
+        return [clean_data_for_json(item) for item in data]
+    elif isinstance(data, datetime):
+        return data.isoformat()
+    elif hasattr(data, '__dict__'):
+        # Convert dataclass or object to dict
+        if hasattr(data, '__dataclass_fields__'):
+            from dataclasses import asdict
+            return clean_data_for_json(asdict(data))
+        else:
+            return clean_data_for_json(data.__dict__)
+    else:
+        return data
+
+
 @dataclass
 class PerformanceMetrics:
     """Performance metrics data structure"""
@@ -420,7 +454,7 @@ class AnalyticsEngine:
         """Advanced anomaly detection"""
         anomalies = self.detect_performance_anomalies()
         if anomalies and self.socketio:
-            self.socketio.emit('anomaly_detected', anomalies)
+            self.socketio.emit('anomaly_detected', clean_data_for_json(anomalies))
 
     def _update_predictions(self):
         """Update system predictions"""
@@ -440,7 +474,7 @@ class AnalyticsEngine:
             'system_health': self.health_check()
         }
 
-        self.socketio.emit('analytics_update', update_data, room='monitoring')
+        self.socketio.emit('analytics_update', clean_data_for_json(update_data), room='monitoring')
 
     def _calculate_uptime(self) -> float:
         """Calculate system uptime in hours"""

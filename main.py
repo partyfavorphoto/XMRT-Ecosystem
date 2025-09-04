@@ -81,6 +81,30 @@ def setup_enhanced_logging():
     return loggers
 
 loggers = setup_enhanced_logging()
+
+import json
+from datetime import datetime
+
+class DateTimeJSONEncoder(json.JSONEncoder):
+    """Custom JSON encoder that handles datetime objects"""
+    def default(self, obj):
+        if isinstance(obj, datetime):
+            return obj.isoformat()
+        return super().default(obj)
+
+def clean_data_for_json(data):
+    """Clean data structure to make it JSON serializable"""
+    if isinstance(data, dict):
+        return {k: clean_data_for_json(v) for k, v in data.items()}
+    elif isinstance(data, list):
+        return [clean_data_for_json(item) for item in data]
+    elif isinstance(data, datetime):
+        return data.isoformat()
+    elif hasattr(data, '__dict__'):
+        return clean_data_for_json(data.__dict__)
+    else:
+        return data
+
 logger = logging.getLogger(__name__)
 
 # Initialize Flask app with enhanced configuration
@@ -414,12 +438,12 @@ def initialize_complete_system():
     logger.info(f"✅ System initialization complete: {successful_components}/{total_components} components active")
 
     # Emit system status to connected clients
-    socketio.emit('system_status', {
+    socketio.emit('system_status', clean_data_for_json({
         'status': 'initialized',
         'components': initialization_results,
         'timestamp': datetime.now().isoformat(),
         'success_rate': successful_components / total_components
-    })
+    }))
 
     return successful_components > total_components * 0.5  # At least 50% success rate
 
@@ -743,7 +767,7 @@ def system_health_check():
         }
 
         # Emit health status to monitoring clients
-        socketio.emit('system_health', health_status, room='monitoring')
+        socketio.emit('system_health', clean_data_for_json(health_status), room='monitoring')
 
     except Exception as e:
         logger.error(f"Error in system health check: {e}")
