@@ -62,6 +62,9 @@ socketio = SocketIO(
     ping_interval=25
 )
 
+# Expose socketio for WSGI server (gunicorn)
+application = socketio
+
 # Global autonomous system instance
 autonomous_controller = None
 autonomous_system_config = {}
