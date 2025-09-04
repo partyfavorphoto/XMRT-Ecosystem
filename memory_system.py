@@ -437,3 +437,33 @@ class MemorySystem:
             logger.info(f"📊 Loaded {count} existing memories")
         except Exception as e:
             logger.error(f"❌ Failed to load existing data: {e}")
+
+class PersistentMemory(MemorySystem):
+    """Alias for MemorySystem to maintain compatibility"""
+
+    def __init__(self, config: Dict[str, Any] = None):
+        """Initialize PersistentMemory with default config if none provided"""
+        if config is None:
+            config = {
+                'local_db_path': 'xmrt_memory.db',
+                'memory_retention_days': 30,
+                'max_memory_entries': 10000,
+                'auto_cleanup_enabled': True,
+                'pattern_recognition_enabled': True,
+                'similarity_threshold': 0.7,
+                'learning_rate': 0.1
+            }
+        super().__init__(config)
+        logger.info("🧠 PersistentMemory initialized successfully")
+
+    def save_memory(self, content: str, memory_type: str = "general", **kwargs) -> str:
+        """Save a memory entry and return its ID"""
+        return self.store_memory(content, memory_type, **kwargs)
+
+    def get_memory(self, memory_id: str) -> Optional[MemoryEntry]:
+        """Get a specific memory by ID"""
+        return self.retrieve_memory(memory_id)
+
+    def search_memories(self, query: str, limit: int = 10) -> List[MemoryEntry]:
+        """Search memories by content"""
+        return self.search_similar_memories(query, limit)
