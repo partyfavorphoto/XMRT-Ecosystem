@@ -62,8 +62,9 @@ socketio = SocketIO(
     ping_interval=25
 )
 
-# Expose socketio for WSGI server (gunicorn)
-application = socketio
+# Expose Flask app for WSGI server (gunicorn)
+# For Flask-SocketIO applications, the Flask app instance is the WSGI callable
+application = app
 
 # Global autonomous system instance
 autonomous_controller = None
