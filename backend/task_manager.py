@@ -102,7 +102,8 @@ class TaskManager:
                 capabilities=[
                     "proposal_analysis", "voting_coordination", "treasury_management",
                     "governance_monitoring", "community_coordination", "decision_making"
-                ]
+                ],
+                current_tasks=[]
             ),
             Agent(
                 id="xmrt_defi_specialist",
@@ -111,7 +112,8 @@ class TaskManager:
                 capabilities=[
                     "yield_optimization", "liquidity_management", "risk_analysis",
                     "market_monitoring", "protocol_integration", "financial_planning"
-                ]
+                ],
+                current_tasks=[]
             ),
             Agent(
                 id="xmrt_security_guardian",
@@ -120,7 +122,8 @@ class TaskManager:
                 capabilities=[
                     "threat_detection", "vulnerability_scanning", "incident_response",
                     "security_monitoring", "risk_assessment", "emergency_protocols"
-                ]
+                ],
+                current_tasks=[]
             ),
             Agent(
                 id="xmrt_community_manager",
@@ -129,7 +132,8 @@ class TaskManager:
                 capabilities=[
                     "engagement_tracking", "event_coordination", "sentiment_analysis",
                     "social_monitoring", "content_creation", "relationship_building"
-                ]
+                ],
+                current_tasks=[]
             )
         ]
         
