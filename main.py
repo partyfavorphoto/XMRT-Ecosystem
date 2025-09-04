@@ -29,7 +29,7 @@ from functools import wraps
 # Import autonomous learning system components
 try:
     from autonomous_controller import RealAutonomousController
-    from multi_agent_system import MultiAgentSystem, Agent
+    from multi_agent_system import MultiAgentSystem, AIAgent as Agent
     from github_manager import GitHubManager
     from memory_system import MemorySystem, PersistentMemory
     from analytics_system import AnalyticsEngine
