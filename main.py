@@ -22,11 +22,11 @@ app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'xmrt-ecosystem-2024-sec
 # Enable CORS
 CORS(app, origins="*")
 
-# Initialize SocketIO with eventlet for Render compatibility
+# Initialize SocketIO with gevent to match gunicorn worker
 socketio = SocketIO(
     app,
     cors_allowed_origins="*",
-    async_mode='eventlet',  # Use eventlet instead of gevent
+    async_mode='gevent',  # Use gevent to match gunicorn worker
     logger=logger,
     engineio_logger=logger,
     transports=['websocket', 'polling']  # Allow both transports
