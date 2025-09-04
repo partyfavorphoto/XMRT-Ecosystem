@@ -699,3 +699,18 @@ class MultiAgentSystem:
             'system_uptime': datetime.now().isoformat(),
             'collaboration_ready': True
         }
+
+
+# Agent alias for backward compatibility
+Agent = AIAgent
+
+# Export classes for easier imports
+__all__ = [
+    'AIAgent', 
+    'Agent',  # Alias for AIAgent
+    'StrategistAgent',
+    'BuilderAgent', 
+    'TesterAgent',
+    'OptimizerAgent',
+    'MultiAgentSystem'
+]
