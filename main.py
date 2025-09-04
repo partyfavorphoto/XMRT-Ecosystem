@@ -466,6 +466,189 @@ def initialize_application() -> bool:
         return False
 
 # Enhanced startup sequence
+
+# === ENHANCED AUTONOMOUS SYSTEM INITIALIZATION ===
+
+def initialize_enhanced_autonomous_system():
+    """Initialize all enhanced autonomous features with safety checks"""
+    global autonomous_controller, system_status
+
+    try:
+        logger.info("🚀 Starting Enhanced Autonomous System Initialization")
+
+        # Enhanced feature activation with graceful degradation
+        enhanced_features = {
+            'continuous_learning': os.getenv('ENABLE_CONTINUOUS_DEPLOYMENT', 'false').lower() == 'true',
+            'adaptive_learning': os.getenv('ENABLE_ADAPTIVE_LEARNING', 'false').lower() == 'true',
+            'collaborative_agents': os.getenv('ENABLE_COLLABORATIVE_AGENTS', 'false').lower() == 'true',
+            'code_generation': os.getenv('ENABLE_CODE_GENERATION', 'false').lower() == 'true',
+            'automated_testing': os.getenv('ENABLE_AUTOMATED_TESTING', 'false').lower() == 'true',
+            'smart_refactoring': os.getenv('ENABLE_SMART_REFACTORING', 'false').lower() == 'true',
+            'performance_optimization': os.getenv('ENABLE_PERFORMANCE_OPTIMIZATION', 'false').lower() == 'true',
+        }
+
+        # Update system status with enhanced features
+        system_status['enhanced_features'] = enhanced_features
+        active_enhanced_features = [k for k, v in enhanced_features.items() if v]
+
+        if active_enhanced_features:
+            logger.info(f"✅ Enhanced features activated: {', '.join(active_enhanced_features)}")
+        else:
+            logger.info("📝 Running in standard mode - no enhanced features enabled")
+
+        # Initialize autonomous learning cycles with safety checks
+        if autonomous_controller and enhanced_features['continuous_learning']:
+            try:
+                # Start continuous learning in background thread with error handling
+                threading.Thread(
+                    target=start_enhanced_learning_cycle,
+                    daemon=True,
+                    name="EnhancedLearningCycle"
+                ).start()
+                logger.info("🔄 Enhanced continuous learning cycle started")
+            except Exception as e:
+                logger.error(f"❌ Failed to start enhanced learning cycle: {e}")
+
+        return True
+
+    except Exception as e:
+        logger.error(f"❌ Enhanced system initialization failed: {e}")
+        return False
+
+def start_enhanced_learning_cycle():
+    """Enhanced learning cycle with improved error handling and safety"""
+    import time
+
+    cycle_interval = int(os.getenv('LEARNING_CYCLE_INTERVAL', '1800'))  # 30 minutes default
+    error_count = 0
+    max_errors = 5
+
+    logger.info(f"🎯 Enhanced learning cycle starting (interval: {cycle_interval}s)")
+
+    while error_count < max_errors:
+        try:
+            time.sleep(cycle_interval)
+
+            if autonomous_controller and system_status.get('autonomous_active', False):
+                # Enhanced learning operations
+                learning_tasks = [
+                    'analyze_system_performance',
+                    'optimize_code_structure', 
+                    'update_documentation',
+                    'generate_tests',
+                    'analyze_security'
+                ]
+
+                for task in learning_tasks:
+                    try:
+                        if hasattr(autonomous_controller, task):
+                            getattr(autonomous_controller, task)()
+                            logger.debug(f"✅ Enhanced learning task completed: {task}")
+                    except Exception as task_error:
+                        logger.warning(f"⚠️ Enhanced learning task failed: {task} - {task_error}")
+
+                # Emit learning progress via SocketIO
+                socketio.emit('enhanced_learning_update', {
+                    'timestamp': datetime.now().isoformat(),
+                    'tasks_completed': learning_tasks,
+                    'system_status': system_status,
+                    'error_count': error_count
+                })
+
+            error_count = 0  # Reset error count on successful cycle
+
+        except Exception as e:
+            error_count += 1
+            logger.error(f"❌ Enhanced learning cycle error ({error_count}/{max_errors}): {e}")
+
+            if error_count >= max_errors:
+                logger.error("🛑 Enhanced learning cycle stopped due to repeated errors")
+                break
+
+            # Exponential backoff on errors
+            time.sleep(min(60 * error_count, 300))
+
+@socketio.on('activate_enhanced_feature')
+def handle_enhanced_feature_activation(data):
+    """Handle real-time activation of enhanced features"""
+    try:
+        feature_name = data.get('feature_name')
+        activate = data.get('activate', True)
+
+        if feature_name in system_status.get('enhanced_features', {}):
+            system_status['enhanced_features'][feature_name] = activate
+
+            emit('enhanced_feature_status', {
+                'feature': feature_name,
+                'active': activate,
+                'timestamp': datetime.now().isoformat()
+            })
+
+            logger.info(f"🔧 Enhanced feature {'activated' if activate else 'deactivated'}: {feature_name}")
+        else:
+            emit('error', {'message': f'Unknown enhanced feature: {feature_name}'})
+
+    except Exception as e:
+        emit('error', {'message': f'Failed to toggle enhanced feature: {str(e)}'})
+
+@socketio.on('get_enhanced_status')
+def handle_enhanced_status_request():
+    """Provide enhanced system status"""
+    try:
+        enhanced_status = {
+            'enhanced_features': system_status.get('enhanced_features', {}),
+            'autonomous_active': system_status.get('autonomous_active', False),
+            'learning_cycles_completed': system_status.get('learning_cycles_completed', 0),
+            'last_learning_cycle': system_status.get('last_learning_cycle'),
+            'performance_metrics': system_status.get('performance_metrics', {}),
+            'agent_status': system_status.get('agent_status', {}),
+            'github_integration_active': system_status.get('github_integration_active', False)
+        }
+
+        emit('enhanced_status_response', enhanced_status)
+
+    except Exception as e:
+        emit('error', {'message': f'Failed to get enhanced status: {str(e)}'})
+
+# === ENHANCED ERROR HANDLING AND SAFETY ===
+
+class EnhancedSafetyManager:
+    """Manages safety and error handling for enhanced features"""
+
+    def __init__(self):
+        self.error_counts = {}
+        self.max_errors_per_feature = 3
+        self.cooldown_periods = {}
+
+    def check_feature_safety(self, feature_name: str) -> bool:
+        """Check if a feature is safe to execute"""
+        error_count = self.error_counts.get(feature_name, 0)
+
+        if error_count >= self.max_errors_per_feature:
+            cooldown_end = self.cooldown_periods.get(feature_name, 0)
+            if time.time() < cooldown_end:
+                return False
+            else:
+                # Reset after cooldown
+                self.error_counts[feature_name] = 0
+
+        return True
+
+    def record_error(self, feature_name: str):
+        """Record an error for a feature"""
+        self.error_counts[feature_name] = self.error_counts.get(feature_name, 0) + 1
+
+        if self.error_counts[feature_name] >= self.max_errors_per_feature:
+            # Set cooldown period (exponential backoff)
+            cooldown_seconds = 300 * (2 ** (self.error_counts[feature_name] - self.max_errors_per_feature))
+            self.cooldown_periods[feature_name] = time.time() + min(cooldown_seconds, 3600)
+
+            logger.warning(f"🚨 Feature {feature_name} disabled for {cooldown_seconds}s due to errors")
+
+# Initialize enhanced safety manager
+enhanced_safety = EnhancedSafetyManager()
+
+
 if __name__ == "__main__":
     try:
         # Initialize application
