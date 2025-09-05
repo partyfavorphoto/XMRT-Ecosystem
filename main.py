@@ -88,7 +88,7 @@ except ImportError as e:
 
 try:
     # Enhanced chat system
-    from chat_system import ChatSystem
+    from chat_system import EnhancedChatSystem
     CHAT_SYSTEM_AVAILABLE = True
     print("💬 Enhanced Chat System: ✅ ACTIVATED")
 except ImportError as e:
@@ -314,7 +314,7 @@ def initialize_chat_system():
     global chat_system
     if CHAT_SYSTEM_AVAILABLE:
         try:
-            chat_system = ChatSystem()
+            chat_system = EnhancedChatSystem(socketio)
             loggers['analytics'].info("✅ Enhanced chat system initialized")
             return True
         except Exception as e:
@@ -718,6 +718,127 @@ def kickstart_system():
         }
     except Exception as e:
         return {'error': f'Kickstart failed: {str(e)}'}, 500
+
+# ==========================================
+# FRONTEND BUTTON API ENDPOINTS (MISSING ROUTES FIXED)
+# ==========================================
+
+@app.route('/api/learning/start', methods=['POST'])
+@safe_execution
+def start_learning_system():
+    """Start the autonomous learning system (Frontend Button API)"""
+    try:
+        if not AUTONOMOUS_SYSTEM_AVAILABLE:
+            return {
+                'success': False,
+                'error': 'Autonomous learning system not available',
+                'timestamp': datetime.now()
+            }
+        
+        # Initialize or restart learning system
+        if autonomous_controller:
+            result = autonomous_controller.start_learning()
+            return {
+                'success': True,
+                'message': 'Learning system activated successfully',
+                'status': 'active',
+                'timestamp': datetime.now()
+            }
+        else:
+            return {
+                'success': False,
+                'error': 'Learning controller not initialized',
+                'timestamp': datetime.now()
+            }
+    except Exception as e:
+        return {
+            'success': False,
+            'error': f'Failed to start learning system: {str(e)}',
+            'timestamp': datetime.now()
+        }
+
+@app.route('/api/agents/activate', methods=['POST'])
+@safe_execution
+def activate_agents_system():
+    """Activate the multi-agent system (Frontend Button API)"""
+    try:
+        if not AUTONOMOUS_SYSTEM_AVAILABLE:
+            return {
+                'success': False,
+                'error': 'Multi-agent system not available',
+                'timestamp': datetime.now()
+            }
+        
+        # Activate multi-agent system
+        if multi_agent_system:
+            # Spawn default agents
+            agents_spawned = []
+            default_agents = ['coordinator', 'analyzer', 'optimizer']
+            
+            for agent_type in default_agents:
+                try:
+                    agent = multi_agent_system.spawn_agent(agent_type)
+                    if agent:
+                        agents_spawned.append(agent_type)
+                except Exception as e:
+                    print(f"Failed to spawn {agent_type}: {e}")
+            
+            return {
+                'success': True,
+                'message': 'Multi-agent system activated successfully',
+                'agents_spawned': agents_spawned,
+                'active_agents': len(agents_spawned),
+                'timestamp': datetime.now()
+            }
+        else:
+            return {
+                'success': False,
+                'error': 'Multi-agent system not initialized',
+                'timestamp': datetime.now()
+            }
+    except Exception as e:
+        return {
+            'success': False,
+            'error': f'Failed to activate agents: {str(e)}',
+            'timestamp': datetime.now()
+        }
+
+@app.route('/api/github/activate', methods=['POST'])
+@safe_execution
+def activate_github_integration():
+    """Activate GitHub integration system (Frontend Button API)"""
+    try:
+        if not github_manager:
+            return {
+                'success': False,
+                'error': 'GitHub integration not available',
+                'timestamp': datetime.now()
+            }
+        
+        # Test GitHub connection and activate
+        try:
+            # Test connection by getting user info or repository list
+            status = github_manager.get_connection_status()
+            
+            return {
+                'success': True,
+                'message': 'GitHub integration activated successfully',
+                'status': 'connected',
+                'connection_details': status,
+                'timestamp': datetime.now()
+            }
+        except Exception as e:
+            return {
+                'success': False,
+                'error': f'GitHub connection failed: {str(e)}',
+                'timestamp': datetime.now()
+            }
+    except Exception as e:
+        return {
+            'success': False,
+            'error': f'Failed to activate GitHub integration: {str(e)}',
+            'timestamp': datetime.now()
+        }
 
 @app.route('/api/health')
 @safe_execution
