@@ -5,7 +5,7 @@ import os
 import multiprocessing
 
 # Server socket
-bind = f"0.0.0.0:{os.environ.get('PORT', '5000')}"
+bind = f"0.0.0.0:{os.environ.get('PORT', '8000')}"
 backlog = 2048
 
 # Worker processes
@@ -31,7 +31,7 @@ proc_name = "xmrt-ecosystem"
 
 # Server mechanics
 preload_app = True
-daemon = False
+daemon = True
 pidfile = None
 user = None
 group = None
