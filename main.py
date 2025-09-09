@@ -27,6 +27,7 @@ from datetime import datetime, timedelta
 from flask import Flask, render_template, request, jsonify, send_from_directory
 from flask_cors import CORS
 from flask_socketio import SocketIO, emit, join_room, leave_room
+from fixed_api_routes import apply_api_fixes
 import logging
 from dotenv import load_dotenv
 import traceback
@@ -201,6 +202,10 @@ CORS(app, resources={r"/*": {"origins": "*"}})
 
 # Initialize SocketIO
 socketio = SocketIO(app, cors_allowed_origins="*", logger=True, engineio_logger=True)
+
+# Apply API fixes
+api_fixer = apply_api_fixes(app, socketio)
+
 
 # Global system components
 autonomous_controller = None
@@ -1245,6 +1250,18 @@ if __name__ == '__main__':
     print(f"\n📈 TOTAL CAPACITY: {active_count + additional_count}/{total_features} features active")
     print(f"🔧 JSON DateTime Serialization: FIXED")
     print(f"🌐 API Endpoints: {len([r for r in enhanced_main_content.split('@app.route') if r.strip()])} total")
+
+# Enhanced static file serving for frontend integration
+@app.route('/enhanced_frontend_integration.js')
+def serve_enhanced_frontend():
+    """Serve enhanced frontend integration script"""
+    try:
+        with open('enhanced_frontend_integration.js', 'r') as f:
+            content = f.read()
+        return content, 200, {'Content-Type': 'application/javascript'}
+    except FileNotFoundError:
+        return "console.error('Enhanced frontend integration not found');", 404, {'Content-Type': 'application/javascript'}
+
 
     print("\n" + "=" * 60)
     print("🎯 XMRT-Ecosystem Maximum Capacity System Ready!")
