@@ -1,1 +1,1 @@
-web: python -m gevent.monkey --patch-all && gunicorn --worker-class gevent --workers 2 --worker-connections 1000 --timeout 120 --bind 0.0.0.0:$PORT --preload --max-requests 1000 --max-requests-jitter 100 main:app
+web: python -m gevent.monkey --patch-all && gunicorn --worker-class gevent --workers 2 --worker-connections 1000 --timeout 120 --bind 0.0.0.0:$PORT --preload --max-requests 1000 --max-requests-jitter 100 main_enhanced:app
