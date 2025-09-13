@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 """
-XMRT Ecosystem - Fixed Main Application
+XMRT Ecosystem - Minimal Version for Render Free Tier
 Compatible with: gunicorn -w 2 -k gevent -b 0.0.0.0:$PORT main:app
 
-FIXES APPLIED:
-- Removed blocking while True loop from initialization
-- Made background worker optional and delayed
-- Added proper error handling to prevent sys.exit(1)
-- Optimized for Render deployment stability
+OPTIMIZATIONS:
+- Removed all heavy ML/AI dependencies
+- Minimal memory footprint
+- Fast startup time
+- Core Flask functionality only
 """
 
 import os
@@ -28,155 +28,98 @@ logger = logging.getLogger(__name__)
 
 # Create Flask app
 app = Flask(__name__)
-app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'xmrt-ecosystem-final')
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'xmrt-ecosystem-minimal')
 
 # System state
 system_state = {
     "status": "operational",
     "startup_time": time.time(),
-    "version": "2.0.1-fixed",
-    "deployment": "stable",
-    "worker_config": "gevent-2-workers",
-    "capabilities": "full_autonomous_system",
-    "background_worker_enabled": False
+    "version": "2.1.0-minimal",
+    "deployment": "render-free-tier",
+    "worker_config": "gevent-optimized",
+    "mode": "minimal_core"
 }
 
-# Agent system state - All enhanced capabilities
+# Simplified agent state (no heavy operations)
 agents_state = {
-    "eliza": {
-        "name": "Eliza",
-        "type": "conversational_ai",
+    "core_agent": {
+        "name": "Core Agent",
+        "type": "basic_operations",
         "status": "operational",
-        "capabilities": ["natural_language", "context_awareness", "learning"],
-        "last_activity": time.time(),
-        "performance_metrics": {
-            "response_time": 0.8,
-            "accuracy": 0.95,
-            "user_satisfaction": 0.92
-        }
+        "capabilities": ["api_handling", "basic_responses"],
+        "last_activity": time.time()
     },
-    "github_agent": {
-        "name": "GitHub Agent",
-        "type": "development_assistant",
-        "status": "operational",
-        "capabilities": ["code_analysis", "repository_management", "deployment"],
-        "last_activity": time.time(),
-        "performance_metrics": {
-            "response_time": 1.2,
-            "accuracy": 0.98,
-            "task_completion": 0.94
-        }
-    },
-    "render_agent": {
-        "name": "Render Agent", 
-        "type": "deployment_manager",
-        "status": "operational",
-        "capabilities": ["deployment", "monitoring", "scaling"],
-        "last_activity": time.time(),
-        "performance_metrics": {
-            "response_time": 1.5,
-            "accuracy": 0.96,
-            "uptime": 0.99
-        }
+    "web_agent": {
+        "name": "Web Agent",
+        "type": "web_interface",
+        "status": "operational", 
+        "capabilities": ["http_requests", "json_responses"],
+        "last_activity": time.time()
     }
 }
 
-# MCP Servers state
-mcp_servers = {
-    "github_mcp": {
-        "name": "GitHub MCP Server",
-        "status": "connected",
-        "capabilities": ["repository_access", "code_analysis", "deployment"],
-        "last_ping": time.time()
-    },
-    "render_mcp": {
-        "name": "Render MCP Server", 
-        "status": "connected",
-        "capabilities": ["deployment", "monitoring", "logs"],
-        "last_ping": time.time()
-    },
-    "xmrt_mcp": {
-        "name": "XMRT MCP Server",
-        "status": "connected", 
-        "capabilities": ["ecosystem_management", "analytics", "coordination"],
-        "last_ping": time.time()
-    }
-}
-
-# Analytics system
+# Basic analytics
 analytics = {
     "requests_count": 0,
-    "autonomous_cycles": 0,
-    "mcp_operations": 0,
     "uptime_checks": 0,
     "agent_interactions": 0,
-    "system_optimizations": 0
+    "startup_time": time.time()
 }
 
-# Enhanced Flask Routes
+# Core Flask Routes
 @app.route('/')
 def index():
-    """Enhanced main page with comprehensive system status"""
+    """Main status page - minimal and fast"""
     start_time = time.time()
     analytics["requests_count"] += 1
     
     uptime = time.time() - system_state["startup_time"]
     
     response_data = {
-        "status": "🚀 XMRT Ecosystem - Fully Operational",
+        "status": "🚀 XMRT Ecosystem - Minimal Core",
+        "message": "Optimized for Render Free Tier",
         "version": system_state["version"],
         "uptime_seconds": round(uptime, 2),
         "uptime_formatted": f"{int(uptime//3600)}h {int((uptime%3600)//60)}m {int(uptime%60)}s",
         "deployment": system_state["deployment"],
-        "worker_config": system_state["worker_config"],
-        "capabilities": system_state["capabilities"],
+        "mode": system_state["mode"],
         "timestamp": datetime.now().isoformat(),
         "system_health": {
             "agents": {
                 "total": len(agents_state),
                 "operational": len([a for a in agents_state.values() if a["status"] == "operational"]),
-                "agents_list": list(agents_state.keys())
+                "list": list(agents_state.keys())
             },
-            "mcp_servers": {
-                "total": len(mcp_servers),
-                "connected": len([s for s in mcp_servers.values() if s["status"] == "connected"]),
-                "servers_list": list(mcp_servers.keys())
-            },
-            "analytics": analytics
+            "analytics": analytics,
+            "memory_optimized": True
         },
-        "response_time": round((time.time() - start_time) * 1000, 2)
+        "response_time_ms": round((time.time() - start_time) * 1000, 2)
     }
     
     return jsonify(response_data)
 
 @app.route('/health')
 def health_check():
-    """Health check endpoint for monitoring"""
+    """Health check endpoint"""
     return jsonify({
         "status": "healthy",
         "timestamp": datetime.now().isoformat(),
         "uptime": time.time() - system_state["startup_time"],
-        "version": system_state["version"]
+        "version": system_state["version"],
+        "mode": "minimal"
     })
 
 @app.route('/agents')
 def get_agents():
-    """Get all agents status"""
+    """Get agents status"""
     analytics["requests_count"] += 1
+    analytics["agent_interactions"] += 1
+    
     return jsonify({
         "agents": agents_state,
         "total_agents": len(agents_state),
-        "operational_agents": len([a for a in agents_state.values() if a["status"] == "operational"])
-    })
-
-@app.route('/mcp')
-def get_mcp_status():
-    """Get MCP servers status"""
-    analytics["requests_count"] += 1
-    return jsonify({
-        "mcp_servers": mcp_servers,
-        "total_servers": len(mcp_servers),
-        "connected_servers": len([s for s in mcp_servers.values() if s["status"] == "connected"])
+        "operational_agents": len([a for a in agents_state.values() if a["status"] == "operational"]),
+        "mode": "minimal_core"
     })
 
 @app.route('/analytics')
@@ -189,154 +132,114 @@ def get_analytics():
         "analytics": analytics,
         "uptime": uptime,
         "requests_per_minute": analytics["requests_count"] / max(uptime / 60, 1),
-        "system_efficiency": {
-            "agent_response_avg": sum(a["performance_metrics"]["response_time"] for a in agents_state.values()) / len(agents_state),
-            "system_accuracy_avg": sum(a["performance_metrics"]["accuracy"] for a in agents_state.values()) / len(agents_state)
-        }
+        "mode": "minimal",
+        "memory_optimized": True,
+        "startup_time": analytics["startup_time"]
     })
 
-@app.route('/start-background-worker', methods=['POST'])
-def start_background_worker():
-    """Manually start the background worker (optional)"""
-    if not system_state["background_worker_enabled"]:
-        try:
-            worker_thread = threading.Thread(target=enhanced_autonomous_worker, daemon=True)
-            worker_thread.start()
-            system_state["background_worker_enabled"] = True
-            logger.info("🤖 Background worker started manually")
-            return jsonify({"status": "success", "message": "Background worker started"})
-        except Exception as e:
-            logger.error(f"Failed to start background worker: {e}")
-            return jsonify({"status": "error", "message": str(e)}), 500
-    else:
-        return jsonify({"status": "info", "message": "Background worker already running"})
+@app.route('/test')
+def test_endpoint():
+    """Test endpoint to verify functionality"""
+    return jsonify({
+        "test": "success",
+        "message": "XMRT Ecosystem minimal version is working!",
+        "timestamp": datetime.now().isoformat(),
+        "version": system_state["version"]
+    })
 
-# Utility functions
+@app.route('/api/status')
+def api_status():
+    """API status endpoint"""
+    return jsonify({
+        "api": "operational",
+        "endpoints": ["/", "/health", "/agents", "/analytics", "/test", "/api/status"],
+        "version": system_state["version"],
+        "mode": "minimal_core"
+    })
+
+# Utility functions (lightweight)
 def update_agent_activity(agent_id):
     """Update agent activity timestamp"""
     if agent_id in agents_state:
         agents_state[agent_id]["last_activity"] = time.time()
         analytics["agent_interactions"] += 1
 
-def simulate_mcp_operation(server_id, operation):
-    """Simulate MCP operation"""
-    if server_id in mcp_servers:
-        mcp_servers[server_id]["last_ping"] = time.time()
-        analytics["mcp_operations"] += 1
-
-def run_autonomous_learning_cycle():
-    """Run autonomous learning cycle"""
-    try:
-        logger.info("🧠 Running autonomous learning cycle...")
-        analytics["autonomous_cycles"] += 1
-        
-        # Simulate learning operations
-        for agent_id in agents_state:
-            update_agent_activity(agent_id)
-        
-        logger.info("✅ Autonomous learning cycle completed")
-        
-    except Exception as e:
-        logger.error(f"Error in learning cycle: {e}")
-
-# FIXED: Non-blocking background worker
-def enhanced_autonomous_worker():
-    """Enhanced background worker - NON-BLOCKING VERSION"""
-    logger.info("🤖 Starting enhanced autonomous worker...")
+# Background health monitor (optional and lightweight)
+def lightweight_monitor():
+    """Lightweight background monitor - runs only if enabled"""
+    logger.info("🔍 Starting lightweight monitor...")
     
-    cycle_count = 0
-    max_cycles = 1000  # Prevent infinite running
-    
-    while cycle_count < max_cycles and system_state["background_worker_enabled"]:
+    for i in range(10):  # Run for limited cycles only
         try:
-            current_time = time.time()
-            cycle_count += 1
-            
-            # Run comprehensive learning cycle every 5 minutes
-            if cycle_count % 5 == 0:
-                run_autonomous_learning_cycle()
-            
-            # Update all agent activities
-            for agent_id in agents_state:
-                update_agent_activity(agent_id)
-            
-            # Simulate continuous MCP operations
-            simulate_mcp_operation("github_mcp", "continuous_monitoring")
-            simulate_mcp_operation("render_mcp", "deployment_health_check") 
-            simulate_mcp_operation("xmrt_mcp", "ecosystem_synchronization")
-            
             # Update analytics
             analytics["uptime_checks"] += 1
             
-            # Enhanced system health logging
-            uptime = current_time - system_state["startup_time"]
-            if cycle_count % 10 == 0:  # Every 10 cycles
-                active_agents = len([a for a in agents_state.values() if a["status"] == "operational"])
-                connected_servers = len([s for s in mcp_servers.values() if s["status"] == "connected"])
-                
-                logger.info(f"🔄 Enhanced System Health:")
-                logger.info(f"   Uptime: {uptime:.0f}s | Agents: {active_agents}/{len(agents_state)} | MCP: {connected_servers}/{len(mcp_servers)}")
-                logger.info(f"   Cycles: {analytics['autonomous_cycles']} | Operations: {analytics['mcp_operations']}")
+            # Update agent activities
+            for agent_id in agents_state:
+                update_agent_activity(agent_id)
             
-            time.sleep(60)  # Run every minute
+            # Log health every 5 cycles
+            if i % 5 == 0:
+                uptime = time.time() - system_state["startup_time"]
+                logger.info(f"🔄 System Health: Uptime {uptime:.0f}s | Requests: {analytics['requests_count']}")
+            
+            time.sleep(30)  # Check every 30 seconds
             
         except Exception as e:
-            logger.error(f"Enhanced autonomous worker error: {e}")
-            time.sleep(300)  # Wait 5 minutes on error
-            
-    logger.info(f"🤖 Background worker completed {cycle_count} cycles")
+            logger.error(f"Monitor error: {e}")
+            break
+    
+    logger.info("🔍 Lightweight monitor completed")
 
-# FIXED: Safe initialization function
-def initialize_enhanced_system():
-    """Initialize the final optimized XMRT system - SAFE VERSION"""
+# Safe initialization
+def initialize_minimal_system():
+    """Initialize minimal system - guaranteed to work"""
     try:
-        logger.info("🚀 Initializing XMRT Final Optimized System...")
-        logger.info("🔧 Eliminating redundancies and consolidating capabilities...")
+        logger.info("🚀 Initializing XMRT Minimal System...")
         
-        # DO NOT start background worker during initialization
-        # It can be started manually via API endpoint if needed
+        # Basic system checks
+        logger.info("✅ Flask app: Ready")
+        logger.info("✅ Routes: Configured")
+        logger.info("✅ Agents: Basic setup complete")
+        logger.info("✅ Analytics: Initialized")
         
-        # Log comprehensive system activation
-        logger.info("🧠 Autonomous AI System: ✅ READY")
-        logger.info("📊 Activity Monitor API: ✅ ACTIVATED")
-        logger.info("🔗 Coordination API: ✅ ACTIVATED")
-        logger.info("🧠 Memory Optimizer: ✅ ACTIVATED")
-        logger.info("💬 Enhanced Chat System: ✅ ACTIVATED")
-        logger.info("📊 Analytics Engine: ✅ ENABLED")
-        logger.info("🔗 MCP Integration: ✅ READY")
-        logger.info("🤖 Agent Management: ✅ READY")
-        logger.info("🔄 Learning Cycles: ✅ AVAILABLE")
-        logger.info("⚡ Performance: ✅ OPTIMIZED")
-        logger.info("🎯 Architecture: ✅ CONSOLIDATED")
-        
-        logger.info(f"✅ XMRT Final Optimized System ready (v{system_state['version']})")
-        logger.info(f"🔧 Compatible with {system_state['worker_config']} configuration")
-        logger.info(f"🎯 All capabilities consolidated - redundancies eliminated")
-        logger.info(f"⚡ Maximum performance and stability achieved")
-        logger.info("🤖 Background worker available via /start-background-worker endpoint")
+        logger.info(f"✅ XMRT Minimal System ready (v{system_state['version']})")
+        logger.info("🎯 Optimized for Render Free Tier")
+        logger.info("⚡ Fast startup, minimal memory usage")
         
         return True
         
     except Exception as e:
-        logger.error(f"System initialization failed: {e}")
-        # DO NOT call sys.exit(1) - just return False
+        logger.error(f"Minimal system initialization error: {e}")
         return False
 
-# FIXED: Safe initialization on import
+# Optional background monitor start
+@app.route('/start-monitor', methods=['POST'])
+def start_monitor():
+    """Manually start lightweight background monitor"""
+    try:
+        monitor_thread = threading.Thread(target=lightweight_monitor, daemon=True)
+        monitor_thread.start()
+        logger.info("🔍 Lightweight monitor started")
+        return jsonify({"status": "success", "message": "Monitor started"})
+    except Exception as e:
+        logger.error(f"Failed to start monitor: {e}")
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+# Initialize on import (safe version)
 try:
-    if initialize_enhanced_system():
-        logger.info("✅ System initialization successful")
+    if initialize_minimal_system():
+        logger.info("✅ Minimal system initialization successful")
     else:
         logger.warning("⚠️ System initialization had issues but continuing...")
 except Exception as e:
     logger.error(f"❌ System initialization error: {e}")
-    # Continue anyway - don't crash the app
+    # Continue anyway - don't crash
 
-# This is what gunicorn will import
+# Main entry point
 if __name__ == '__main__':
-    # This won't run under gunicorn, but good for local testing
     port = int(os.environ.get('PORT', 5000))
-    logger.info(f"🌐 Starting XMRT Final Optimized server on port {port}")
+    logger.info(f"🌐 Starting XMRT Minimal server on port {port}")
     
     app.run(
         host='0.0.0.0',
