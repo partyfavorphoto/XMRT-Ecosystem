@@ -1,35 +1,6 @@
-# Minimal Web Framework Dependencies - Optimized for Render Free Tier
-flask>=3.0.0
-flask-socketio>=5.3.0
-python-socketio>=5.8.0
-eventlet>=0.33.0
-gevent>=22.10.0
-gevent-websocket>=0.10.1
-flask-cors>=4.0.0
-
-# WSGI Server
-gunicorn>=21.2.0
-
-# Essential Utilities Only
-psutil>=5.9.0
-requests>=2.31.0
-python-dotenv>=1.0.0
-
-# Basic async support
-anyio>=4.0.0
-httpx>=0.24.1
-
-# Basic data handling (lightweight)
-python-dateutil>=2.8.2
-typing-extensions>=4.7.1
-
-# Security
-cryptography>=41.0.4
-bcrypt>=4.0.1
-
-# Logging
-structlog>=23.1.0
-
-# Testing (optional)
-pytest>=7.4.2
-pytest-asyncio>=0.21.1
+Flask==2.3.3
+gunicorn==21.2.0
+gevent==23.7.0
+PyGithub==1.59.1
+requests==2.31.0
+python-dotenv==1.0.0
