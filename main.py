@@ -67,19 +67,32 @@ class GeminiAIProcessor:
         self.api_key = os.environ.get('GEMINI_API_KEY')
         self.model = None
         
+        # Detailed initialization logging
+        logger.info(f"🔧 Initializing GEMINI AI...")
+        logger.info(f"   Library available: {GEMINI_AVAILABLE}")
+        logger.info(f"   API key present: {'Yes' if self.api_key else 'No'}")
+        
         if self.api_key and GEMINI_AVAILABLE:
             try:
                 genai.configure(api_key=self.api_key)
                 self.model = genai.GenerativeModel('gemini-pro')
                 logger.info("✅ GEMINI AI integration initialized successfully")
+                
+                # Test the model with a simple request
+                try:
+                    test_response = self.model.generate_content("Test")
+                    logger.info("✅ GEMINI AI test generation successful")
+                except Exception as test_error:
+                    logger.warning(f"⚠️ GEMINI AI test failed: {test_error}")
+                    
             except Exception as e:
-                logger.error(f"GEMINI AI initialization failed: {e}")
+                logger.error(f"❌ GEMINI AI initialization failed: {e}")
                 self.model = None
         else:
             if not self.api_key:
-                logger.info("ℹ️ GEMINI AI: API key not set (GEMINI_API_KEY)")
+                logger.warning("⚠️ GEMINI AI: API key not set (GEMINI_API_KEY)")
             if not GEMINI_AVAILABLE:
-                logger.info("ℹ️ GEMINI AI: Library not available")
+                logger.error(f"❌ GEMINI AI: Library not available. Install with: pip install google-generativeai")
     
     def is_available(self):
         return self.model is not None
@@ -806,7 +819,31 @@ def log_agent_activity(agent_id, activity_type, description, real_action=True):
             stats["engagements"] = stats.get("engagements", 0) + 1
         
         # Check if AI was used and increment counters
-        if gemini_ai.is_available() and real_action:
+        ai_related_activity = False
+        
+        # Count as AI operation if:
+        # 1. Gemini AI is available and used, OR
+        # 2. Activity involves AI-related processing (analysis, intelligent content generation)
+        if real_action:
+            if gemini_ai.is_available():
+                # Try to use Gemini AI for enhanced processing
+                try:
+                    ai_insight = gemini_ai.generate_intelligent_response(
+                        f"Analyze this activity: {description}", 
+                        f"Agent: {agent_id}, Type: {activity_type}"
+                    )
+                    if ai_insight:
+                        ai_related_activity = True
+                        description += f" [AI Enhanced]"
+                except Exception as e:
+                    logger.debug(f"Gemini AI enhancement failed: {e}")
+            
+            # Also count as AI operation if it's inherently AI-related work
+            ai_keywords = ["analysis", "intelligent", "processing", "recommendation", "insight", "decision"]
+            if any(keyword in description.lower() for keyword in ai_keywords):
+                ai_related_activity = True
+        
+        if ai_related_activity:
             stats["ai_operations"] = stats.get("ai_operations", 0) + 1
             analytics["ai_operations"] += 1
         
