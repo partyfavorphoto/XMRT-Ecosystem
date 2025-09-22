@@ -406,7 +406,7 @@ class ComprehensiveGitHubIntegration:
                     for comment in comments[-3:]:
                         if f"Agent {agent_name}" in comment.body:
                             try:
-                        comment_time = comment.created_at
+                            comment_time = comment.created_at
                         if comment_time.tzinfo is None:
                             comment_time = comment_time.replace(tzinfo=timezone.utc)
                         if (datetime.now(timezone.utc) - comment_time).total_seconds() < 14400:
