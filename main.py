@@ -11,7 +11,7 @@ import time
 import logging
 import threading
 import requests
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from flask import Flask, jsonify, request, render_template_string
 
 # GitHub integration
@@ -75,7 +75,7 @@ class GeminiAIProcessor:
         if self.api_key and GEMINI_AVAILABLE:
             try:
                 genai.configure(api_key=self.api_key)
-                self.model = genai.GenerativeModel('gemini-pro')
+                self.model = genai.GenerativeModel('gemini-1.5-flash')
                 logger.info("✅ GEMINI AI integration initialized successfully")
                 
                 # Test the model with a simple request
@@ -195,7 +195,7 @@ class ComprehensiveGitHubIntegration:
             repo = self.github.get_repo(f"DevGruGold/{repo_name}")
             
             # Get recent commits (last 7 days)
-            since_date = datetime.now() - timedelta(days=7)
+            since_date = datetime.now(timezone.utc) - timedelta(days=7)
             commits = list(repo.get_commits(since=since_date))
             
             # Get issues and PRs
@@ -222,7 +222,7 @@ class ComprehensiveGitHubIntegration:
                 "languages": languages,
                 "last_commit": commits[0].commit.message if commits else "No recent commits",
                 "last_commit_date": commits[0].commit.author.date.isoformat() if commits else None,
-                "analysis_time": datetime.now().isoformat(),
+                "analysis_time": datetime.now(timezone.utc).isoformat(),
                 "health_score": self._calculate_repo_health(repo, commits, issues, prs)
             }
             
@@ -285,7 +285,7 @@ class ComprehensiveGitHubIntegration:
         try:
             repo = self.github.get_repo(f"DevGruGold/{repo_name}")
             
-            title = f"🤖 {agent_name} Autonomous Report - {datetime.now().strftime('%Y-%m-%d %H:%M')}"
+            title = f"🤖 {agent_name} Autonomous Report - {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M')}"
             
             # Get comprehensive analysis
             analysis = self.analyze_repository(repo_name)
@@ -298,7 +298,7 @@ class ComprehensiveGitHubIntegration:
             
             body = f"""# 🤖 Comprehensive Autonomous Agent Report - {agent_name}
 
-**Generated**: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} UTC
+**Generated**: {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S')} UTC
 **Agent**: {agent_name}
 **Status**: Fully Autonomous Operation with AI Processing
 **System Version**: {system_state['version']}
@@ -405,9 +405,16 @@ class ComprehensiveGitHubIntegration:
                     
                     for comment in comments[-3:]:
                         if f"Agent {agent_name}" in comment.body:
-                            if (datetime.now() - comment.created_at).total_seconds() < 14400:
-                                recent_bot_comment = True
-                                break
+                            try:
+                        comment_time = comment.created_at
+                        if comment_time.tzinfo is None:
+                            comment_time = comment_time.replace(tzinfo=timezone.utc)
+                        if (datetime.now(timezone.utc) - comment_time).total_seconds() < 14400:
+                            recent_bot_comment = True
+                            break
+                    except (AttributeError, TypeError) as e:
+                        logger.debug(f"Error comparing comment timestamps: {e}")
+                        continue
                     
                     if not recent_bot_comment:
                         # AI-powered analysis
@@ -423,7 +430,7 @@ class ComprehensiveGitHubIntegration:
                         
                         comment_body = f"""🤖 **Agent {agent_name} - AI-Powered Comprehensive Analysis**
 
-**Analysis Time**: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} UTC
+**Analysis Time**: {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S')} UTC
 **Agent**: {agent_name}
 **System**: XMRT Ecosystem v{system_state['version']}
 **AI Processing**: {'GEMINI AI Active' if gemini_ai.is_available() else 'Standard Analysis'}
@@ -433,7 +440,7 @@ class ComprehensiveGitHubIntegration:
 - **Category**: {category}
 - **Sentiment**: {sentiment}
 - **Labels**: {', '.join([label.name for label in issue.labels]) if issue.labels else 'None'}
-- **Age**: {(datetime.now() - issue.created_at).days} days
+- **Age**: {(datetime.now(timezone.utc) - issue.created_at.replace(tzinfo=timezone.utc)).days} days
 
 ### AI-Powered Insights
 {ai_analysis if ai_analysis else "Standard autonomous analysis completed."}
@@ -469,6 +476,12 @@ This issue has been comprehensively analyzed by the AI-powered autonomous agent 
             
         except Exception as e:
             logger.error(f"Error processing issues: {e}")
+            # Add specific handling for common GitHub API errors
+            if "rate limit" in str(e).lower():
+                logger.warning("GitHub rate limit exceeded, waiting before retry")
+                time.sleep(60)
+            elif "timeout" in str(e).lower():
+                logger.warning("GitHub API timeout, retrying with shorter timeout")
             return 0
     
     def _assess_issue_priority(self, issue):
@@ -772,7 +785,7 @@ def log_agent_activity(agent_id, activity_type, description, real_action=True):
             "type": activity_type,
             "description": description,
             "real_action": real_action,
-            "formatted_time": datetime.now().strftime("%H:%M:%S"),
+            "formatted_time": datetime.now(timezone.utc).strftime("%H:%M:%S"),
             "success": True,
             "response_time": 0.0
         }
