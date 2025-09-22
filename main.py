@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-XMRT Ecosystem - Fixed Operations with GEMINI AI Integration
-Full-featured autonomous agent system with fixed operation errors and AI processing
+XMRT Ecosystem - FINAL FIX for GitHub Operations Tracking
+Fixed GitHub operations counting and API status endpoint
 """
 
 import os
@@ -43,7 +43,7 @@ app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'xmrt-ecosystem-comprehe
 system_state = {
     "status": "operational",
     "startup_time": time.time(),
-    "version": "3.1.0-fixed-operations-gemini",
+    "version": "3.2.0-final-fix-tracking",
     "deployment": "render-free-tier",
     "mode": "real_autonomous_operations",
     "github_integration": GITHUB_AVAILABLE,
@@ -75,6 +75,11 @@ class GeminiAIProcessor:
             except Exception as e:
                 logger.error(f"GEMINI AI initialization failed: {e}")
                 self.model = None
+        else:
+            if not self.api_key:
+                logger.info("ℹ️ GEMINI AI: API key not set (GEMINI_API_KEY)")
+            if not GEMINI_AVAILABLE:
+                logger.info("ℹ️ GEMINI AI: Library not available")
     
     def is_available(self):
         return self.model is not None
@@ -126,9 +131,9 @@ Provide a brief, intelligent analysis with actionable insights for improvement.
 # Initialize GEMINI AI
 gemini_ai = GeminiAIProcessor()
 
-# Real GitHub Integration Class (Fixed)
+# Real GitHub Integration Class (FIXED TRACKING)
 class ComprehensiveGitHubIntegration:
-    """Comprehensive GitHub integration for full autonomous operations - FIXED"""
+    """Comprehensive GitHub integration for full autonomous operations - FIXED TRACKING"""
     
     def __init__(self):
         self.token = os.environ.get('GITHUB_TOKEN')
@@ -143,6 +148,11 @@ class ComprehensiveGitHubIntegration:
             except Exception as e:
                 logger.error(f"GitHub initialization failed: {e}")
                 self.github = None
+        else:
+            if not self.token:
+                logger.info("ℹ️ GitHub: Token not set (GITHUB_TOKEN)")
+            if not GITHUB_AVAILABLE:
+                logger.info("ℹ️ GitHub: Library not available")
     
     def is_available(self):
         return self.github is not None
@@ -255,7 +265,7 @@ class ComprehensiveGitHubIntegration:
             return 50
     
     def create_autonomous_issue(self, repo_name="XMRT-Ecosystem", agent_name="Eliza"):
-        """Create comprehensive autonomous agent issue with AI insights"""
+        """Create comprehensive autonomous agent issue with AI insights - FIXED TRACKING"""
         if not self.is_available():
             return None
             
@@ -346,6 +356,11 @@ class ComprehensiveGitHubIntegration:
             )
             
             logger.info(f"✅ COMPREHENSIVE ISSUE CREATED by {agent_name}: #{issue.number}")
+            
+            # FIXED: Properly increment GitHub operations counter
+            global analytics
+            analytics["github_operations"] += 1
+            
             return {
                 "id": issue.id,
                 "title": issue.title,
@@ -360,7 +375,7 @@ class ComprehensiveGitHubIntegration:
             return None
     
     def process_and_comment_on_issues(self, repo_name="XMRT-Ecosystem", agent_name="Security Guardian"):
-        """Comprehensive issue processing with AI-powered comments"""
+        """Comprehensive issue processing with AI-powered comments - FIXED TRACKING"""
         if not self.is_available():
             return 0
             
@@ -429,6 +444,11 @@ This issue has been comprehensively analyzed by the AI-powered autonomous agent 
 """
                         issue.create_comment(comment_body)
                         logger.info(f"✅ COMPREHENSIVE COMMENT by {agent_name} on issue: {issue.title}")
+                        
+                        # FIXED: Properly increment GitHub operations counter
+                        global analytics
+                        analytics["github_operations"] += 1
+                        
                         processed += 1
                         time.sleep(3)
             
@@ -726,7 +746,7 @@ analytics = {
 }
 
 def log_agent_activity(agent_id, activity_type, description, real_action=True):
-    """FIXED: Comprehensive agent activity logging with proper error handling"""
+    """FIXED: Comprehensive agent activity logging with proper error handling and tracking"""
     if agent_id not in agents_state:
         logger.error(f"Agent {agent_id} not found in agents_state")
         return
@@ -760,12 +780,10 @@ def log_agent_activity(agent_id, activity_type, description, real_action=True):
         performance = agents_state[agent_id].get("performance", {})
         
         # Initialize missing stats keys
-        if "operations" not in stats:
-            stats["operations"] = 0
-        if "github_actions" not in stats:
-            stats["github_actions"] = 0
-        if "ai_operations" not in stats:
-            stats["ai_operations"] = 0
+        required_stats = ["operations", "github_actions", "ai_operations", "issues_created", "analyses_performed", "health_checks"]
+        for stat_key in required_stats:
+            if stat_key not in stats:
+                stats[stat_key] = 0
         
         # Update stats based on activity type
         if activity_type == "github_action":
@@ -774,8 +792,12 @@ def log_agent_activity(agent_id, activity_type, description, real_action=True):
                 analytics["github_operations"] += 1
         elif activity_type == "issue_created":
             stats["issues_created"] = stats.get("issues_created", 0) + 1
+            if real_action:
+                analytics["github_operations"] += 1  # FIXED: Count issue creation as GitHub operation
         elif activity_type == "issue_processed":
             stats["issues_processed"] = stats.get("issues_processed", 0) + 1
+            if real_action:
+                analytics["github_operations"] += 1  # FIXED: Count issue processing as GitHub operation
         elif activity_type == "analysis":
             stats["analyses_performed"] = stats.get("analyses_performed", 0) + 1
         elif activity_type == "security_scan":
@@ -783,7 +805,7 @@ def log_agent_activity(agent_id, activity_type, description, real_action=True):
         elif activity_type == "engagement":
             stats["engagements"] = stats.get("engagements", 0) + 1
         
-        # Check if AI was used
+        # Check if AI was used and increment counters
         if gemini_ai.is_available() and real_action:
             stats["ai_operations"] = stats.get("ai_operations", 0) + 1
             analytics["ai_operations"] += 1
@@ -827,7 +849,7 @@ def log_agent_activity(agent_id, activity_type, description, real_action=True):
         analytics["performance"]["error_count"] += 1
 
 def perform_comprehensive_autonomous_actions():
-    """FIXED: Perform comprehensive autonomous actions with proper error handling"""
+    """FIXED: Perform comprehensive autonomous actions with proper GitHub operations tracking"""
     if not github_integration.is_available():
         logger.warning("GitHub integration not available - limited functionality")
         simulate_local_agent_activities()
@@ -1229,8 +1251,8 @@ COMPREHENSIVE_FRONTEND_TEMPLATE = """
                 <div class="info-label">Total Requests</div>
             </div>
             <div class="info-item">
-                <div class="info-value">{{ system_data.system_health.analytics.real_actions_performed }}</div>
-                <div class="info-label">Real Actions</div>
+                <div class="info-value">{{ system_data.system_health.analytics.github_operations }}</div>
+                <div class="info-label">GitHub Operations</div>
             </div>
             {% if system_data.gemini_integration %}
             <div class="info-item">
@@ -1555,6 +1577,7 @@ def comprehensive_health_check():
         "github_integration": github_integration.is_available(),
         "gemini_integration": gemini_ai.is_available(),
         "real_actions": analytics["real_actions_performed"],
+        "github_operations": analytics["github_operations"],
         "ai_operations": analytics["ai_operations"],
         "mode": "COMPREHENSIVE_AUTONOMOUS_OPERATIONS_WITH_AI",
         "agents": {
@@ -1577,6 +1600,7 @@ def get_comprehensive_agents():
         "github_integration": github_integration.is_available(),
         "gemini_integration": gemini_ai.is_available(),
         "real_actions_performed": analytics["real_actions_performed"],
+        "github_operations": analytics["github_operations"],
         "ai_operations": analytics["ai_operations"],
         "mode": "COMPREHENSIVE_AUTONOMOUS_OPERATIONS_WITH_AI",
         "simulation": False,
@@ -1630,7 +1654,8 @@ def force_comprehensive_action():
             "status": "success",
             "message": f"Comprehensive autonomous action triggered successfully{ai_suffix}",
             "mode": "REAL_COMPREHENSIVE_OPERATION_WITH_AI",
-            "ai_powered": gemini_ai.is_available()
+            "ai_powered": gemini_ai.is_available(),
+            "github_operations": analytics["github_operations"]
         })
     except Exception as e:
         return jsonify({
@@ -1640,24 +1665,37 @@ def force_comprehensive_action():
 
 @app.route('/api/github/status')
 def github_status():
-    """Get GitHub integration status"""
-    if github_integration.is_available():
-        user_info = github_integration.get_user_info()
+    """FIXED: Get GitHub integration status"""
+    try:
+        if github_integration.is_available():
+            user_info = github_integration.get_user_info()
+            return jsonify({
+                "status": "active",
+                "integration": "available",
+                "user": user_info,
+                "operations_performed": analytics["github_operations"],
+                "ai_powered": gemini_ai.is_available(),
+                "github_token_set": bool(os.environ.get('GITHUB_TOKEN')),
+                "gemini_api_key_set": bool(os.environ.get('GEMINI_API_KEY'))
+            })
+        else:
+            return jsonify({
+                "status": "inactive",
+                "integration": "unavailable",
+                "message": "GitHub token not configured or invalid",
+                "operations_performed": analytics["github_operations"],
+                "ai_powered": gemini_ai.is_available(),
+                "github_token_set": bool(os.environ.get('GITHUB_TOKEN')),
+                "gemini_api_key_set": bool(os.environ.get('GEMINI_API_KEY'))
+            })
+    except Exception as e:
+        logger.error(f"Error in github_status endpoint: {e}")
         return jsonify({
-            "status": "active",
-            "integration": "available",
-            "user": user_info,
+            "status": "error",
+            "message": f"GitHub status check failed: {str(e)}",
             "operations_performed": analytics["github_operations"],
             "ai_powered": gemini_ai.is_available()
-        })
-    else:
-        return jsonify({
-            "status": "inactive",
-            "integration": "unavailable",
-            "message": "GitHub token not configured or invalid",
-            "operations_performed": 0,
-            "ai_powered": gemini_ai.is_available()
-        })
+        }), 500
 
 @app.route('/webhook/test', methods=['POST'])
 def test_webhook():
