@@ -1,3 +1,4 @@
+```python
 #!/usr/bin/env python3
 """
 XMRT Ecosystem - FINAL FIX for GitHub Operations Tracking
@@ -406,15 +407,15 @@ class ComprehensiveGitHubIntegration:
                     for comment in comments[-3:]:
                         if f"Agent {agent_name}" in comment.body:
                             try:
-                            comment_time = comment.created_at
-                        if comment_time.tzinfo is None:
-                            comment_time = comment_time.replace(tzinfo=timezone.utc)
-                        if (datetime.now(timezone.utc) - comment_time).total_seconds() < 14400:
-                            recent_bot_comment = True
-                            break
-                    except (AttributeError, TypeError) as e:
-                        logger.debug(f"Error comparing comment timestamps: {e}")
-                        continue
+                                comment_time = comment.created_at
+                                if comment_time.tzinfo is None:
+                                    comment_time = comment_time.replace(tzinfo=timezone.utc)
+                                if (datetime.now(timezone.utc) - comment_time).total_seconds() < 14400:
+                                    recent_bot_comment = True
+                                    break
+                            except (AttributeError, TypeError) as e:
+                                logger.debug(f"Error comparing comment timestamps: {e}")
+                                continue
                     
                     if not recent_bot_comment:
                         # AI-powered analysis
@@ -1867,3 +1868,4 @@ if __name__ == '__main__':
         debug=False,
         threaded=True
     )
+```
