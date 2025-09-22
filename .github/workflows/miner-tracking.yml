@@ -50,6 +50,7 @@ jobs:
   track-contributions:
     name: ⛏️ Track Miner Contributions
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     
     steps:
     - name: 📥 Checkout Repository
@@ -563,6 +564,7 @@ jobs:
   update-readme-leaderboard:
     name: 📝 Update README with Leaderboard
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     needs: track-contributions
     if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     
