@@ -1,4 +1,3 @@
-```python
 #!/usr/bin/env python3
 """
 XMRT Ecosystem - FINAL FIX for GitHub Operations Tracking
@@ -1868,4 +1867,3 @@ if __name__ == '__main__':
         debug=False,
         threaded=True
     )
-```
