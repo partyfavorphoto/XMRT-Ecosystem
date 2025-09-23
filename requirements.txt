@@ -1,9 +1,8 @@
-# XMRT-Ecosystem Enhanced Requirements
+# XMRT-Ecosystem Core Requirements - Deployment Safe
 # Core Flask and Web Framework
 Flask
 gunicorn
 psutil
-apscheduler
 
 # WebSocket and Real-time Communication
 flask-socketio
@@ -16,86 +15,43 @@ flask-cors
 # AI and ML Dependencies
 openai
 google-generativeai
-sentence-transformers
 numpy
 scikit-learn
 
-# Enhanced Web3 and Blockchain
+# Web3 and Blockchain (Python 3.13 Compatible)
 web3
 eth-account
-py-solc-x
-brownie-eth
-
-# BrightData and MCP Integration
-brightdata-sdk
-mcp-python
-playwright
-selenium
 
 # GitHub Integration
 PyGithub
 
 # Database and Storage  
 supabase
-redis
-
-# Task Scheduling and Async
-apscheduler
-asyncio-mqtt
-celery
 
 # HTTP and API
 requests
-aiohttp
-httpx
 
 # Configuration Management
 python-dotenv
 
-# Data Processing and Analysis
+# Data Processing
 pandas
-polars
-pyarrow
 
 # Enhanced Security
 cryptography
-pycryptodome
-python-jose
 
-# Monitoring and Logging
-prometheus-client
-structlog
-sentry-sdk
-
-# ===== SLACK INTEGRATION DEPENDENCIES =====
-# Slack SDK and Bolt Framework
+# Slack Integration
 slack-sdk
 slack-bolt
-
-# Additional async support for Slack
 websockets
 
-# JSON handling for Slack payloads
-python-json-logger
-# ===== END SLACK DEPENDENCIES =====
-
-# Enhanced AI Agent Dependencies
+# AI Agent Dependencies
 langchain
-llama-index
-chromadb
-faiss-cpu
 
 # DeFi and Financial Analysis
 ccxt
 yfinance
-defillama-py
 
 # Testing and Development
 pytest
-pytest-asyncio
 black
-isort
-
-# Documentation
-sphinx
-mkdocs
