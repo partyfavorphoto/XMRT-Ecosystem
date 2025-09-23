@@ -1,57 +1,8 @@
-# XMRT-Ecosystem Core Requirements - Deployment Safe
-# Core Flask and Web Framework
-Flask
-gunicorn
-psutil
-
-# WebSocket and Real-time Communication
-flask-socketio
-python-socketio
-eventlet
-gevent
-gevent-websocket
-flask-cors
-
-# AI and ML Dependencies
-openai
-google-generativeai
-numpy
-scikit-learn
-
-# Web3 and Blockchain (Python 3.13 Compatible)
-web3
-eth-account
-
-# GitHub Integration
-PyGithub
-
-# Database and Storage  
-supabase
-
-# HTTP and API
-requests
-
-# Configuration Management
-python-dotenv
-
-# Data Processing
-pandas
-
-# Enhanced Security
-cryptography
-
-# Slack Integration
-slack-sdk
-slack-bolt
-websockets
-
-# AI Agent Dependencies
-langchain
-
-# DeFi and Financial Analysis
-ccxt
-yfinance
-
-# Testing and Development
-pytest
-black
+flask==2.3.3
+requests==2.31.0
+PyGithub==1.59.1
+google-generativeai==0.3.2
+pillow==10.0.1
+psutil==5.9.6
+python-dotenv==1.0.0
+gunicorn==21.2.0
