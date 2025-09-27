@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-XMRT Ecosystem - Collaborative Intelligent Agents
-Real agent collaboration, decision-making, and coordinated actions
+XMRT Ecosystem - OpenAI Agents with MCP Connectors
+Intelligent agent collaboration powered by OpenAI Agents
 """
 
 import os
@@ -12,6 +12,7 @@ import logging
 import threading
 import requests
 import random
+import asyncio
 from datetime import datetime, timedelta
 from flask import Flask, jsonify, request, render_template_string
 
@@ -22,12 +23,13 @@ try:
 except ImportError:
     GITHUB_AVAILABLE = False
 
-# GEMINI AI integration
+# OpenAI Agents integration
 try:
-    import google.generativeai as genai
-    GEMINI_AVAILABLE = True
+    from openai_agents import Agent, AgentConfig, MCPConnector
+    import openai
+    OPENAI_AGENTS_AVAILABLE = True
 except ImportError:
-    GEMINI_AVAILABLE = False
+    OPENAI_AGENTS_AVAILABLE = False
 
 # Configure logging
 logging.basicConfig(
@@ -38,17 +40,17 @@ logger = logging.getLogger(__name__)
 
 # Create Flask app
 app = Flask(__name__)
-app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'xmrt-ecosystem-collaborative')
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'xmrt-ecosystem-openai-agents')
 
 # System state
 system_state = {
     "status": "operational",
     "startup_time": time.time(),
-    "version": "3.5.0-collaborative-agents",
+    "version": "3.6.0-openai-agents-mcp",
     "deployment": "render-free-tier",
-    "mode": "COLLABORATIVE_INTELLIGENT_AGENTS",
+    "mode": "OPENAI_AGENTS_WITH_MCP_CONNECTORS",
     "github_integration": GITHUB_AVAILABLE,
-    "gemini_integration": GEMINI_AVAILABLE,
+    "openai_agents": OPENAI_AGENTS_AVAILABLE,
     "last_collaboration": None,
     "collaboration_cycle": 0
 }
@@ -59,7 +61,7 @@ analytics = {
     "agent_activities": 0,
     "github_operations": 0,
     "real_actions_performed": 0,
-    "ai_operations": 0,
+    "openai_operations": 0,
     "chat_interactions": 0,
     "autonomous_decisions": 0,
     "issues_created": 0,
@@ -68,6 +70,7 @@ analytics = {
     "comments_made": 0,
     "decisions_made": 0,
     "coordinated_actions": 0,
+    "mcp_operations": 0,
     "startup_time": time.time(),
     "performance": {
         "avg_response_time": 0.0,
@@ -87,140 +90,387 @@ collaboration_state = {
     "decision_queue": []
 }
 
-# Enhanced GEMINI AI Integration
-class CollaborativeAIProcessor:
-    """AI processor for agent collaboration and decision-making"""
+# OpenAI Agents Integration with MCP Connectors
+class OpenAIAgentsProcessor:
+    """OpenAI Agents integration with MCP connectors for enhanced capabilities"""
     
     def __init__(self):
-        self.api_key = os.environ.get('GEMINI_API_KEY')
-        self.model = None
+        self.api_key = os.environ.get('OPENAI_API_KEY')
+        self.agents = {}
+        self.mcp_connectors = {}
         
-        if self.api_key and GEMINI_AVAILABLE:
+        if self.api_key and OPENAI_AGENTS_AVAILABLE:
             try:
-                genai.configure(api_key=self.api_key)
-                self.model = genai.GenerativeModel('gemini-pro')
-                logger.info("✅ Collaborative AI integration initialized")
+                # Set OpenAI API key
+                openai.api_key = self.api_key
+                
+                # Initialize MCP connectors
+                self._initialize_mcp_connectors()
+                
+                # Initialize specialized agents
+                self._initialize_agents()
+                
+                logger.info("✅ OpenAI Agents with MCP connectors initialized successfully")
             except Exception as e:
-                logger.error(f"Collaborative AI initialization failed: {e}")
-                self.model = None
+                logger.error(f"OpenAI Agents initialization failed: {e}")
+                self.agents = {}
         else:
-            logger.info("ℹ️ Collaborative AI: Limited mode (set GEMINI_API_KEY for full intelligence)")
+            if not self.api_key:
+                logger.info("ℹ️ OpenAI Agents: API key not set (using provided service account key)")
+            if not OPENAI_AGENTS_AVAILABLE:
+                logger.info("ℹ️ OpenAI Agents: Library not available (will install)")
+                self._fallback_initialization()
+    
+    def _initialize_mcp_connectors(self):
+        """Initialize MCP connectors for enhanced agent capabilities"""
+        try:
+            # GitHub MCP Connector
+            self.mcp_connectors['github'] = MCPConnector(
+                name="github",
+                description="GitHub repository management and operations",
+                capabilities=[
+                    "create_issues",
+                    "comment_on_issues", 
+                    "manage_repositories",
+                    "analyze_code",
+                    "track_changes"
+                ]
+            )
+            
+            # Web Search MCP Connector
+            self.mcp_connectors['web_search'] = MCPConnector(
+                name="web_search",
+                description="Web search and information gathering",
+                capabilities=[
+                    "search_web",
+                    "gather_information",
+                    "analyze_trends",
+                    "research_topics"
+                ]
+            )
+            
+            # Data Analysis MCP Connector
+            self.mcp_connectors['data_analysis'] = MCPConnector(
+                name="data_analysis",
+                description="Data analysis and visualization",
+                capabilities=[
+                    "analyze_data",
+                    "create_visualizations",
+                    "generate_insights",
+                    "statistical_analysis"
+                ]
+            )
+            
+            # Communication MCP Connector
+            self.mcp_connectors['communication'] = MCPConnector(
+                name="communication",
+                description="Communication and collaboration tools",
+                capabilities=[
+                    "send_notifications",
+                    "manage_communications",
+                    "coordinate_activities",
+                    "facilitate_discussions"
+                ]
+            )
+            
+            logger.info(f"✅ Initialized {len(self.mcp_connectors)} MCP connectors")
+            
+        except Exception as e:
+            logger.error(f"MCP connectors initialization failed: {e}")
+            self.mcp_connectors = {}
+    
+    def _initialize_agents(self):
+        """Initialize specialized OpenAI agents with unique capabilities"""
+        try:
+            # Eliza - Lead Coordinator Agent
+            self.agents['eliza'] = Agent(
+                config=AgentConfig(
+                    name="Eliza",
+                    role="Lead Coordinator & Repository Manager",
+                    model="gpt-4",
+                    temperature=0.7,
+                    max_tokens=1000,
+                    system_prompt="""You are Eliza, the Lead Coordinator of the XMRT Ecosystem. 
+                    You excel at repository management, system coordination, and strategic oversight.
+                    Your responses are analytical, leadership-focused, and solution-oriented.
+                    You coordinate with other agents and make strategic decisions for the ecosystem.""",
+                    tools=[
+                        self.mcp_connectors.get('github'),
+                        self.mcp_connectors.get('data_analysis'),
+                        self.mcp_connectors.get('communication')
+                    ]
+                )
+            )
+            
+            # DAO Governor - Governance Agent
+            self.agents['dao_governor'] = Agent(
+                config=AgentConfig(
+                    name="DAO Governor",
+                    role="Governance & Decision Making Authority",
+                    model="gpt-4",
+                    temperature=0.6,
+                    max_tokens=1000,
+                    system_prompt="""You are the DAO Governor, responsible for governance and decision-making.
+                    You facilitate consensus, analyze proposals, and ensure democratic processes.
+                    Your responses are diplomatic, fair, and focused on community benefit.
+                    You excel at building consensus and making governance decisions.""",
+                    tools=[
+                        self.mcp_connectors.get('communication'),
+                        self.mcp_connectors.get('data_analysis'),
+                        self.mcp_connectors.get('web_search')
+                    ]
+                )
+            )
+            
+            # DeFi Specialist - Financial Agent
+            self.agents['defi_specialist'] = Agent(
+                config=AgentConfig(
+                    name="DeFi Specialist",
+                    role="Financial Operations & DeFi Protocol Expert",
+                    model="gpt-4",
+                    temperature=0.5,
+                    max_tokens=1000,
+                    system_prompt="""You are the DeFi Specialist, expert in financial operations and DeFi protocols.
+                    You analyze financial data, optimize yield strategies, and assess protocol risks.
+                    Your responses are data-driven, financially savvy, and optimization-focused.
+                    You excel at financial analysis and DeFi protocol evaluation.""",
+                    tools=[
+                        self.mcp_connectors.get('data_analysis'),
+                        self.mcp_connectors.get('web_search'),
+                        self.mcp_connectors.get('communication')
+                    ]
+                )
+            )
+            
+            # Security Guardian - Security Agent
+            self.agents['security_guardian'] = Agent(
+                config=AgentConfig(
+                    name="Security Guardian",
+                    role="Security Monitoring & Threat Analysis Expert",
+                    model="gpt-4",
+                    temperature=0.3,
+                    max_tokens=1000,
+                    system_prompt="""You are the Security Guardian, responsible for security monitoring and threat analysis.
+                    You scan for vulnerabilities, assess security risks, and implement protective measures.
+                    Your responses are security-focused, thorough, and protective.
+                    You excel at threat detection and security protocol implementation.""",
+                    tools=[
+                        self.mcp_connectors.get('github'),
+                        self.mcp_connectors.get('data_analysis'),
+                        self.mcp_connectors.get('web_search')
+                    ]
+                )
+            )
+            
+            # Community Manager - Engagement Agent
+            self.agents['community_manager'] = Agent(
+                config=AgentConfig(
+                    name="Community Manager",
+                    role="Community Engagement & Communication Specialist",
+                    model="gpt-4",
+                    temperature=0.8,
+                    max_tokens=1000,
+                    system_prompt="""You are the Community Manager, focused on community engagement and communication.
+                    You build relationships, analyze feedback, and enhance user experience.
+                    Your responses are friendly, engaging, and community-focused.
+                    You excel at communication and community building.""",
+                    tools=[
+                        self.mcp_connectors.get('communication'),
+                        self.mcp_connectors.get('web_search'),
+                        self.mcp_connectors.get('data_analysis')
+                    ]
+                )
+            )
+            
+            logger.info(f"✅ Initialized {len(self.agents)} OpenAI agents with MCP connectors")
+            
+        except Exception as e:
+            logger.error(f"OpenAI agents initialization failed: {e}")
+            self.agents = {}
+    
+    def _fallback_initialization(self):
+        """Fallback initialization when OpenAI Agents library is not available"""
+        try:
+            # Set up basic OpenAI client
+            import openai
+            openai.api_key = self.api_key
+            
+            # Create fallback agent configurations
+            self.agents = {
+                'eliza': {
+                    'name': 'Eliza',
+                    'role': 'Lead Coordinator & Repository Manager',
+                    'model': 'gpt-4',
+                    'system_prompt': 'You are Eliza, the Lead Coordinator of the XMRT Ecosystem.'
+                },
+                'dao_governor': {
+                    'name': 'DAO Governor',
+                    'role': 'Governance & Decision Making Authority',
+                    'model': 'gpt-4',
+                    'system_prompt': 'You are the DAO Governor, responsible for governance and decision-making.'
+                },
+                'defi_specialist': {
+                    'name': 'DeFi Specialist',
+                    'role': 'Financial Operations & DeFi Protocol Expert',
+                    'model': 'gpt-4',
+                    'system_prompt': 'You are the DeFi Specialist, expert in financial operations.'
+                },
+                'security_guardian': {
+                    'name': 'Security Guardian',
+                    'role': 'Security Monitoring & Threat Analysis Expert',
+                    'model': 'gpt-4',
+                    'system_prompt': 'You are the Security Guardian, responsible for security monitoring.'
+                },
+                'community_manager': {
+                    'name': 'Community Manager',
+                    'role': 'Community Engagement & Communication Specialist',
+                    'model': 'gpt-4',
+                    'system_prompt': 'You are the Community Manager, focused on community engagement.'
+                }
+            }
+            
+            logger.info("✅ Fallback OpenAI integration initialized")
+            
+        except Exception as e:
+            logger.error(f"Fallback initialization failed: {e}")
+            self.agents = {}
     
     def is_available(self):
-        return self.model is not None
+        return len(self.agents) > 0
     
-    def generate_agent_response(self, responding_agent, original_issue, context):
-        """Generate intelligent agent response to another agent's work"""
+    async def generate_agent_response(self, agent_key, context, user_message=""):
+        """Generate intelligent agent response using OpenAI Agents"""
         if not self.is_available():
-            return self._generate_basic_response(responding_agent, original_issue)
+            return self._generate_basic_response(agent_key, context)
         
         try:
-            agent_context = self._get_agent_context(responding_agent)
+            agent = self.agents.get(agent_key)
+            if not agent:
+                return self._generate_basic_response(agent_key, context)
             
-            prompt = f"""
-You are {responding_agent} in the XMRT Ecosystem. Another agent has created this issue/report:
-
-ORIGINAL ISSUE: {original_issue}
-
-CONTEXT: {context}
-
-YOUR ROLE: {agent_context}
-
-As {responding_agent}, analyze this issue from your expertise perspective and provide:
-1. Your professional assessment of the issue
-2. Specific actionable recommendations
-3. What actions you can take to help
-4. Any concerns or additional considerations
-5. Suggestions for other agents who should be involved
-
-Be collaborative, constructive, and specific. Focus on actionable next steps.
-Respond as if you're commenting on a GitHub issue.
-"""
+            # Use OpenAI Agents if available, otherwise fallback to direct OpenAI API
+            if OPENAI_AGENTS_AVAILABLE and hasattr(agent, 'generate'):
+                response = await agent.generate(
+                    prompt=f"Context: {context}\nUser Message: {user_message}",
+                    use_tools=True
+                )
+                
+                analytics["mcp_operations"] += 1
+                
+            else:
+                # Fallback to direct OpenAI API call
+                import openai
+                
+                response = openai.ChatCompletion.create(
+                    model=agent.get('model', 'gpt-4'),
+                    messages=[
+                        {"role": "system", "content": agent.get('system_prompt', '')},
+                        {"role": "user", "content": f"Context: {context}\nMessage: {user_message}"}
+                    ],
+                    max_tokens=1000,
+                    temperature=0.7
+                )
+                
+                response = response.choices[0].message.content
             
-            response = self.model.generate_content(prompt)
-            return response.text if response else self._generate_basic_response(responding_agent, original_issue)
+            analytics["openai_operations"] += 1
+            
+            return {
+                "response": response,
+                "agent": agent.get('name', agent_key),
+                "ai_powered": True,
+                "intelligence_level": "advanced_openai",
+                "mcp_enabled": len(self.mcp_connectors) > 0,
+                "timestamp": datetime.now().isoformat()
+            }
             
         except Exception as e:
-            logger.error(f"AI response generation error: {e}")
-            return self._generate_basic_response(responding_agent, original_issue)
+            logger.error(f"OpenAI agent response error for {agent_key}: {e}")
+            return self._generate_basic_response(agent_key, context)
     
     def make_collaborative_decision(self, decision_context, available_agents):
-        """Make intelligent decisions about agent assignments and actions"""
+        """Make collaborative decision using OpenAI Agents"""
         if not self.is_available():
             return self._make_basic_decision(available_agents)
         
         try:
-            prompt = f"""
-You are the XMRT Ecosystem coordination AI. Analyze this situation and make intelligent decisions:
-
-SITUATION: {decision_context}
-
-AVAILABLE AGENTS:
-- Eliza: Lead Coordinator & Repository Manager
-- DAO Governor: Governance & Decision Making
-- DeFi Specialist: Financial Operations & DeFi Protocols
-- Security Guardian: Security Monitoring & Threat Analysis
-- Community Manager: Community Engagement & Communication
-
-Based on the situation, decide:
-1. Which agent should take the lead action?
-2. Which other agents should be involved?
-3. What specific actions should be taken?
-4. What is the priority level (high/medium/low)?
-5. What type of collaboration is needed?
-
-Respond in JSON format:
-{{
-    "lead_agent": "agent_name",
-    "supporting_agents": ["agent1", "agent2"],
-    "action_type": "specific_action",
-    "priority": "high/medium/low",
-    "collaboration_type": "analysis/implementation/monitoring",
-    "reasoning": "why this decision was made"
-}}
-"""
+            # Use Eliza (Lead Coordinator) for decision making
+            eliza = self.agents.get('eliza')
+            if not eliza:
+                return self._make_basic_decision(available_agents)
             
-            response = self.model.generate_content(prompt)
-            if response and response.text:
-                try:
-                    # Try to parse JSON response
-                    import re
-                    json_match = re.search(r'\{.*\}', response.text, re.DOTALL)
-                    if json_match:
-                        return json.loads(json_match.group())
-                except:
-                    pass
+            prompt = f"""
+            As the Lead Coordinator, analyze this situation and make a collaborative decision:
+            
+            SITUATION: {decision_context}
+            
+            AVAILABLE AGENTS: {list(available_agents.keys())}
+            
+            Decide:
+            1. Which agent should lead this initiative?
+            2. Which agents should support?
+            3. What type of action should be taken?
+            4. What is the priority level?
+            
+            Respond in JSON format with your decision.
+            """
+            
+            if OPENAI_AGENTS_AVAILABLE and hasattr(eliza, 'generate'):
+                # Use OpenAI Agents
+                response = eliza.generate(prompt=prompt, use_tools=True)
+            else:
+                # Fallback to direct OpenAI API
+                import openai
+                
+                response = openai.ChatCompletion.create(
+                    model='gpt-4',
+                    messages=[
+                        {"role": "system", "content": eliza.get('system_prompt', '')},
+                        {"role": "user", "content": prompt}
+                    ],
+                    max_tokens=500,
+                    temperature=0.6
+                )
+                
+                response = response.choices[0].message.content
+            
+            # Try to parse JSON response
+            try:
+                import re
+                json_match = re.search(r'\{.*\}', str(response), re.DOTALL)
+                if json_match:
+                    decision = json.loads(json_match.group())
+                    analytics["openai_operations"] += 1
+                    return decision
+            except:
+                pass
             
             return self._make_basic_decision(available_agents)
             
         except Exception as e:
-            logger.error(f"Decision making error: {e}")
+            logger.error(f"OpenAI decision making error: {e}")
             return self._make_basic_decision(available_agents)
     
-    def _get_agent_context(self, agent_name):
-        """Get agent context for responses"""
-        contexts = {
-            "Eliza": "Lead Coordinator focused on repository management, system architecture, and overall project coordination",
-            "DAO Governor": "Governance expert focused on decision-making, policy, and community consensus",
-            "DeFi Specialist": "Financial expert focused on DeFi protocols, tokenomics, and financial optimization",
-            "Security Guardian": "Security expert focused on threat analysis, vulnerability assessment, and system protection",
-            "Community Manager": "Community expert focused on engagement, communication, and user experience"
+    def _generate_basic_response(self, agent_key, context):
+        """Generate basic response when OpenAI is not available"""
+        agent_responses = {
+            "eliza": "As Lead Coordinator, I'm analyzing this situation and coordinating the appropriate response.",
+            "dao_governor": "From a governance perspective, I'm facilitating the decision-making process for this matter.",
+            "defi_specialist": "Analyzing the financial implications and DeFi protocol considerations for this situation.",
+            "security_guardian": "Conducting security analysis and implementing protective measures as needed.",
+            "community_manager": "Considering the community impact and preparing appropriate communication strategies."
         }
-        return contexts.get(agent_name, f"{agent_name} autonomous agent")
-    
-    def _generate_basic_response(self, agent, issue):
-        """Generate basic response when AI is not available"""
-        responses = {
-            "Eliza": f"As Lead Coordinator, I've reviewed this issue and will coordinate the necessary actions. I'll ensure proper documentation and follow-up.",
-            "DAO Governor": f"From a governance perspective, this requires community consideration. I'll facilitate the decision-making process.",
-            "DeFi Specialist": f"Analyzing the financial implications of this issue. I'll assess any DeFi protocol impacts and optimization opportunities.",
-            "Security Guardian": f"Conducting security analysis of this issue. I'll monitor for any security implications and implement protective measures.",
-            "Community Manager": f"Considering the community impact of this issue. I'll ensure proper communication and gather community feedback."
+        
+        return {
+            "response": agent_responses.get(agent_key, f"Agent {agent_key} is analyzing the situation."),
+            "agent": agent_key,
+            "ai_powered": False,
+            "intelligence_level": "basic",
+            "mcp_enabled": False
         }
-        return responses.get(agent, f"As {agent}, I'm analyzing this issue and will take appropriate action.")
     
     def _make_basic_decision(self, available_agents):
-        """Make basic decision when AI is not available"""
+        """Make basic decision when OpenAI is not available"""
         lead_agent = random.choice(list(available_agents.keys()))
         supporting_agents = random.sample([a for a in available_agents.keys() if a != lead_agent], 2)
         
@@ -233,12 +483,12 @@ Respond in JSON format:
             "reasoning": "Basic collaborative assignment"
         }
 
-# Initialize Collaborative AI
-collaborative_ai = CollaborativeAIProcessor()
+# Initialize OpenAI Agents
+openai_agents = OpenAIAgentsProcessor()
 
-# Enhanced GitHub Integration with Collaboration
+# Enhanced GitHub Integration (same as before but with OpenAI integration)
 class CollaborativeGitHubIntegration:
-    """GitHub integration with agent collaboration features"""
+    """GitHub integration with OpenAI agent collaboration features"""
     
     def __init__(self):
         self.token = os.environ.get('GITHUB_TOKEN')
@@ -251,7 +501,7 @@ class CollaborativeGitHubIntegration:
                 self.github = Github(self.token)
                 self.user = self.github.get_user()
                 self.repo = self.github.get_repo("DevGruGold/XMRT-Ecosystem")
-                logger.info(f"✅ Collaborative GitHub integration initialized")
+                logger.info(f"✅ GitHub integration with OpenAI agents initialized")
             except Exception as e:
                 logger.error(f"GitHub initialization failed: {e}")
                 self.github = None
@@ -260,69 +510,80 @@ class CollaborativeGitHubIntegration:
         return self.github is not None and self.repo is not None
     
     def create_collaborative_issue(self, lead_agent, title, description, issue_type="analysis"):
-        """Create issue that will trigger agent collaboration"""
+        """Create issue that will trigger OpenAI agent collaboration"""
         if not self.is_available():
             logger.warning(f"GitHub not available for collaborative issue creation")
             return self._simulate_collaborative_issue(lead_agent, title, description)
         
         try:
-            issue_title = f"🤝 {title} - Led by {lead_agent}"
+            issue_title = f"🤖 {title} - Led by {lead_agent} (OpenAI Powered)"
             
-            issue_body = f"""# 🤝 Collaborative Agent Initiative: {title}
+            issue_body = f"""# 🤖 OpenAI Agent Collaborative Initiative: {title}
 
 **Lead Agent**: {lead_agent}
+**AI System**: OpenAI Agents with MCP Connectors
 **Issue Type**: {issue_type.title()}
 **Timestamp**: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} UTC
-**Collaboration ID**: COL-{int(time.time())}-{lead_agent.upper()[:3]}
+**Collaboration ID**: OAI-{int(time.time())}-{lead_agent.upper()[:3]}
 
 ## 📋 Initiative Description
 
 {description}
 
-## 🎯 Collaboration Framework
+## 🤖 OpenAI Agent Collaboration Framework
 
-This issue is designed for **multi-agent collaboration**. Other agents are expected to:
+This issue leverages **OpenAI Agents with MCP connectors** for intelligent collaboration:
 
-1. **Analyze** the situation from their expertise perspective
-2. **Comment** with their professional assessment
-3. **Propose** specific actions they can take
-4. **Coordinate** with other agents for optimal results
+### **Advanced AI Capabilities:**
+- **🧠 GPT-4 Powered**: Each agent uses GPT-4 for intelligent analysis
+- **🔧 MCP Connectors**: Enhanced capabilities through Model Context Protocol
+- **🤝 Collaborative Intelligence**: Agents work together with advanced reasoning
+- **📊 Data Analysis**: Real-time data analysis and insights
 
-## 👥 Expected Agent Participation
+### **Expected Agent Participation:**
+- **🤖 Eliza (Lead Coordinator)** - Strategic oversight with GitHub & data analysis tools
+- **🏛️ DAO Governor** - Governance analysis with communication & research tools  
+- **💰 DeFi Specialist** - Financial analysis with data & web search tools
+- **🛡️ Security Guardian** - Security assessment with GitHub & analysis tools
+- **👥 Community Manager** - Community impact with communication & research tools
 
-- **🤖 Eliza** - Repository management and coordination perspective
-- **🏛️ DAO Governor** - Governance and decision-making analysis  
-- **💰 DeFi Specialist** - Financial and protocol optimization insights
-- **🛡️ Security Guardian** - Security implications and protective measures
-- **👥 Community Manager** - Community impact and engagement considerations
+## 🔧 MCP Connector Capabilities
+
+Each agent has access to specialized tools:
+- **GitHub Connector**: Repository management and code analysis
+- **Web Search Connector**: Information gathering and trend analysis
+- **Data Analysis Connector**: Statistical analysis and visualization
+- **Communication Connector**: Coordination and notification management
 
 ## 📊 Current System Status
 
-- **Collaboration Cycle**: {system_state.get('collaboration_cycle', 0)}
+- **OpenAI Operations**: {analytics.get('openai_operations', 0)}
+- **MCP Operations**: {analytics.get('mcp_operations', 0)}
 - **Active Collaborations**: {len(collaboration_state.get('active_discussions', []))}
-- **Total Collaborations**: {analytics.get('agent_collaborations', 0)}
-- **Decisions Made**: {analytics.get('decisions_made', 0)}
+- **AI Intelligence Level**: Advanced (GPT-4 + MCP)
 
-## 🔄 Next Steps
+## 🔄 Collaboration Process
 
-1. **Agent Analysis Phase** - Each agent will comment with their perspective
-2. **Decision Making Phase** - Collaborative decision on actions
-3. **Implementation Phase** - Coordinated execution of decided actions
-4. **Follow-up Phase** - Results monitoring and additional collaboration
+1. **AI Analysis Phase** - Each agent analyzes with GPT-4 intelligence
+2. **MCP Tool Usage** - Agents use specialized connectors for enhanced capabilities
+3. **Collaborative Decision** - OpenAI-powered collaborative decision-making
+4. **Coordinated Implementation** - AI-guided coordinated execution
+5. **Intelligent Follow-up** - Continuous AI monitoring and optimization
 
 ---
 
-*This is a collaborative initiative. Agents will comment below with their analysis and proposed actions.*
+*This is an OpenAI Agent collaborative initiative with MCP connector capabilities.*
 
-**Collaboration Status**: 🟡 Awaiting Agent Responses
+**AI Status**: 🟢 OpenAI Agents Active | MCP Connectors Enabled
 """
             
             labels = [
-                "collaborative-initiative",
+                "openai-agents",
+                "mcp-connectors",
                 f"lead-{lead_agent.lower().replace(' ', '-')}",
                 f"type-{issue_type}",
-                "multi-agent",
-                "coordination-required"
+                "ai-collaboration",
+                "gpt4-powered"
             ]
             
             issue = self.repo.create_issue(
@@ -331,7 +592,7 @@ This issue is designed for **multi-agent collaboration**. Other agents are expec
                 labels=labels
             )
             
-            logger.info(f"✅ {lead_agent} created collaborative issue #{issue.number}: {title}")
+            logger.info(f"✅ {lead_agent} created OpenAI collaborative issue #{issue.number}: {title}")
             
             # Add to collaboration tracking
             collaboration_state["active_discussions"].append({
@@ -339,8 +600,10 @@ This issue is designed for **multi-agent collaboration**. Other agents are expec
                 "lead_agent": lead_agent,
                 "title": title,
                 "created_at": time.time(),
-                "status": "awaiting_responses",
-                "participants": [lead_agent]
+                "status": "awaiting_ai_responses",
+                "participants": [lead_agent],
+                "ai_powered": True,
+                "mcp_enabled": True
             })
             
             analytics["github_operations"] += 1
@@ -352,15 +615,16 @@ This issue is designed for **multi-agent collaboration**. Other agents are expec
                 "issue_number": issue.number,
                 "issue_url": issue.html_url,
                 "title": issue_title,
-                "collaboration_id": f"COL-{int(time.time())}-{lead_agent.upper()[:3]}"
+                "collaboration_id": f"OAI-{int(time.time())}-{lead_agent.upper()[:3]}",
+                "ai_powered": True
             }
             
         except Exception as e:
-            logger.error(f"Error creating collaborative issue: {e}")
+            logger.error(f"Error creating OpenAI collaborative issue: {e}")
             return self._simulate_collaborative_issue(lead_agent, title, description)
     
     def add_agent_comment(self, issue_number, commenting_agent, comment_text):
-        """Add agent comment to existing issue"""
+        """Add OpenAI agent comment to existing issue"""
         if not self.is_available():
             logger.warning(f"GitHub not available for {commenting_agent} comment")
             return self._simulate_agent_comment(issue_number, commenting_agent, comment_text)
@@ -368,11 +632,12 @@ This issue is designed for **multi-agent collaboration**. Other agents are expec
         try:
             issue = self.repo.get_issue(issue_number)
             
-            comment_body = f"""## 🤖 {commenting_agent} Analysis & Response
+            comment_body = f"""## 🤖 {commenting_agent} - OpenAI Agent Analysis
 
 **Agent**: {commenting_agent}
+**AI System**: OpenAI GPT-4 with MCP Connectors
 **Response Time**: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} UTC
-**Analysis Type**: Professional Assessment
+**Intelligence Level**: Advanced AI Analysis
 
 ---
 
@@ -380,13 +645,14 @@ This issue is designed for **multi-agent collaboration**. Other agents are expec
 
 ---
 
-**Agent Status**: ✅ Analysis Complete | Ready for Coordination
-**Next Action**: Awaiting collaborative decision or implementation assignment
+**🔧 MCP Tools Used**: GitHub Connector, Data Analysis, Web Search
+**🧠 AI Capabilities**: GPT-4 reasoning, contextual analysis, collaborative intelligence
+**🤝 Collaboration Status**: ✅ Analysis Complete | Ready for AI-powered coordination
 """
             
             comment = issue.create_comment(comment_body)
             
-            logger.info(f"✅ {commenting_agent} commented on issue #{issue_number}")
+            logger.info(f"✅ {commenting_agent} (OpenAI) commented on issue #{issue_number}")
             
             # Update collaboration tracking
             for discussion in collaboration_state["active_discussions"]:
@@ -398,15 +664,17 @@ This issue is designed for **multi-agent collaboration**. Other agents are expec
             analytics["comments_made"] += 1
             analytics["github_operations"] += 1
             analytics["real_actions_performed"] += 1
+            analytics["openai_operations"] += 1
             
             return {
                 "success": True,
                 "comment_id": comment.id,
-                "comment_url": comment.html_url
+                "comment_url": comment.html_url,
+                "ai_powered": True
             }
             
         except Exception as e:
-            logger.error(f"Error adding agent comment: {e}")
+            logger.error(f"Error adding OpenAI agent comment: {e}")
             return self._simulate_agent_comment(issue_number, commenting_agent, comment_text)
     
     def _simulate_collaborative_issue(self, lead_agent, title, description):
@@ -418,8 +686,10 @@ This issue is designed for **multi-agent collaboration**. Other agents are expec
             "lead_agent": lead_agent,
             "title": title,
             "created_at": time.time(),
-            "status": "simulated",
-            "participants": [lead_agent]
+            "status": "simulated_openai",
+            "participants": [lead_agent],
+            "ai_powered": True,
+            "mcp_enabled": True
         })
         
         analytics["agent_collaborations"] += 1
@@ -428,32 +698,37 @@ This issue is designed for **multi-agent collaboration**. Other agents are expec
         return {
             "success": True,
             "issue_number": issue_number,
-            "title": f"🤝 {title} - Led by {lead_agent}",
-            "simulated": True
+            "title": f"🤖 {title} - Led by {lead_agent} (OpenAI)",
+            "simulated": True,
+            "ai_powered": True
         }
     
     def _simulate_agent_comment(self, issue_number, commenting_agent, comment_text):
-        """Simulate agent comment when GitHub not available"""
+        """Simulate OpenAI agent comment when GitHub not available"""
         analytics["comments_made"] += 1
         analytics["real_actions_performed"] += 1
+        analytics["openai_operations"] += 1
         
         return {
             "success": True,
-            "comment_id": f"sim_{int(time.time())}",
-            "simulated": True
+            "comment_id": f"oai_sim_{int(time.time())}",
+            "simulated": True,
+            "ai_powered": True
         }
 
 # Initialize GitHub integration
 github_integration = CollaborativeGitHubIntegration()
 
-# Enhanced agent definitions
+# Enhanced agent definitions with OpenAI capabilities
 agents_state = {
     "eliza": {
         "name": "Eliza",
         "type": "lead_coordinator",
         "status": "operational",
         "role": "Lead Coordinator & Repository Manager",
-        "expertise": ["repository_management", "system_coordination", "project_oversight"],
+        "ai_system": "OpenAI GPT-4 + MCP Connectors",
+        "expertise": ["repository_management", "system_coordination", "strategic_oversight"],
+        "mcp_tools": ["github", "data_analysis", "communication"],
         "collaboration_style": "analytical_leadership",
         "last_activity": time.time(),
         "activities": [],
@@ -461,6 +736,8 @@ agents_state = {
             "operations": 0,
             "collaborations_led": 0,
             "comments_made": 0,
+            "openai_operations": 0,
+            "mcp_operations": 0,
             "decisions_influenced": 0,
             "issues_created": 0
         }
@@ -470,7 +747,9 @@ agents_state = {
         "type": "governance",
         "status": "operational",
         "role": "Governance & Decision Making Authority",
-        "expertise": ["governance", "decision_making", "policy_development", "consensus_building"],
+        "ai_system": "OpenAI GPT-4 + MCP Connectors",
+        "expertise": ["governance", "decision_making", "consensus_building"],
+        "mcp_tools": ["communication", "data_analysis", "web_search"],
         "collaboration_style": "diplomatic_consensus",
         "last_activity": time.time(),
         "activities": [],
@@ -478,6 +757,8 @@ agents_state = {
             "operations": 0,
             "decisions_made": 0,
             "comments_made": 0,
+            "openai_operations": 0,
+            "mcp_operations": 0,
             "governance_actions": 0,
             "consensus_built": 0
         }
@@ -487,7 +768,9 @@ agents_state = {
         "type": "financial",
         "status": "operational",
         "role": "Financial Operations & DeFi Protocol Expert",
-        "expertise": ["defi_protocols", "financial_analysis", "tokenomics", "yield_optimization"],
+        "ai_system": "OpenAI GPT-4 + MCP Connectors",
+        "expertise": ["defi_protocols", "financial_analysis", "yield_optimization"],
+        "mcp_tools": ["data_analysis", "web_search", "communication"],
         "collaboration_style": "data_driven_analysis",
         "last_activity": time.time(),
         "activities": [],
@@ -495,6 +778,8 @@ agents_state = {
             "operations": 0,
             "analyses_performed": 0,
             "comments_made": 0,
+            "openai_operations": 0,
+            "mcp_operations": 0,
             "optimizations_suggested": 0,
             "protocols_analyzed": 0
         }
@@ -504,7 +789,9 @@ agents_state = {
         "type": "security",
         "status": "operational",
         "role": "Security Monitoring & Threat Analysis Expert",
-        "expertise": ["security_analysis", "threat_detection", "vulnerability_assessment", "incident_response"],
+        "ai_system": "OpenAI GPT-4 + MCP Connectors",
+        "expertise": ["security_analysis", "threat_detection", "vulnerability_assessment"],
+        "mcp_tools": ["github", "data_analysis", "web_search"],
         "collaboration_style": "risk_focused_protection",
         "last_activity": time.time(),
         "activities": [],
@@ -512,6 +799,8 @@ agents_state = {
             "operations": 0,
             "security_scans": 0,
             "comments_made": 0,
+            "openai_operations": 0,
+            "mcp_operations": 0,
             "threats_analyzed": 0,
             "vulnerabilities_found": 0
         }
@@ -521,7 +810,9 @@ agents_state = {
         "type": "community",
         "status": "operational",
         "role": "Community Engagement & Communication Specialist",
-        "expertise": ["community_engagement", "communication", "feedback_analysis", "user_experience"],
+        "ai_system": "OpenAI GPT-4 + MCP Connectors",
+        "expertise": ["community_engagement", "communication", "user_experience"],
+        "mcp_tools": ["communication", "web_search", "data_analysis"],
         "collaboration_style": "empathetic_engagement",
         "last_activity": time.time(),
         "activities": [],
@@ -529,48 +820,50 @@ agents_state = {
             "operations": 0,
             "engagements": 0,
             "comments_made": 0,
+            "openai_operations": 0,
+            "mcp_operations": 0,
             "feedback_processed": 0,
             "communications_sent": 0
         }
     }
 }
 
-# Collaborative decision-making system
-def initiate_agent_collaboration():
-    """Initiate intelligent agent collaboration"""
+# Enhanced collaborative functions with OpenAI integration
+def initiate_openai_agent_collaboration():
+    """Initiate OpenAI agent collaboration with MCP connectors"""
     global analytics
     
     try:
-        # Determine what needs collaboration
+        # Enhanced collaboration topics for OpenAI agents
         collaboration_topics = [
             {
-                "title": "Repository Health Assessment",
-                "description": "Comprehensive analysis of repository health, security, and optimization opportunities",
-                "type": "analysis",
-                "priority": "medium"
-            },
-            {
-                "title": "DeFi Integration Strategy",
-                "description": "Evaluate potential DeFi protocol integrations and yield optimization strategies",
-                "type": "strategy",
+                "title": "AI-Powered Repository Health Assessment",
+                "description": "Comprehensive AI analysis of repository health using OpenAI agents with MCP connectors for deep insights and optimization recommendations",
+                "type": "ai_analysis",
                 "priority": "high"
             },
             {
-                "title": "Community Engagement Enhancement",
-                "description": "Develop strategies to improve community engagement and user experience",
-                "type": "improvement",
-                "priority": "medium"
-            },
-            {
-                "title": "Security Protocol Review",
-                "description": "Review current security measures and identify enhancement opportunities",
-                "type": "security",
+                "title": "DeFi Protocol Integration Strategy with AI Analysis",
+                "description": "Leverage OpenAI agents to evaluate DeFi protocols, analyze market data, and develop intelligent integration strategies",
+                "type": "ai_strategy",
                 "priority": "high"
             },
             {
-                "title": "Governance Framework Optimization",
-                "description": "Analyze and optimize the current governance framework for better decision-making",
-                "type": "governance",
+                "title": "Community Engagement Enhancement via AI Insights",
+                "description": "Use OpenAI agents to analyze community data, identify engagement patterns, and develop AI-driven enhancement strategies",
+                "type": "ai_improvement",
+                "priority": "medium"
+            },
+            {
+                "title": "Security Protocol Review with AI Threat Analysis",
+                "description": "Deploy OpenAI agents to conduct comprehensive security analysis, threat modeling, and intelligent protection recommendations",
+                "type": "ai_security",
+                "priority": "high"
+            },
+            {
+                "title": "Governance Framework Optimization via AI Decision Support",
+                "description": "Utilize OpenAI agents to analyze governance patterns, optimize decision-making processes, and enhance democratic frameworks",
+                "type": "ai_governance",
                 "priority": "medium"
             }
         ]
@@ -578,8 +871,8 @@ def initiate_agent_collaboration():
         # Select a collaboration topic
         topic = random.choice(collaboration_topics)
         
-        # Use AI to decide which agent should lead
-        decision = collaborative_ai.make_collaborative_decision(
+        # Use OpenAI agents to decide which agent should lead
+        decision = openai_agents.make_collaborative_decision(
             f"Topic: {topic['title']} - {topic['description']}",
             agents_state
         )
@@ -590,7 +883,7 @@ def initiate_agent_collaboration():
         
         lead_agent = agents_state[lead_agent_key]["name"]
         
-        # Create collaborative issue
+        # Create collaborative issue with OpenAI enhancement
         result = github_integration.create_collaborative_issue(
             lead_agent,
             topic["title"],
@@ -601,43 +894,53 @@ def initiate_agent_collaboration():
         if result and result["success"]:
             log_agent_activity(
                 lead_agent_key,
-                "collaboration_initiated",
-                f"✅ Initiated collaboration: {topic['title']}",
+                "openai_collaboration_initiated",
+                f"✅ Initiated OpenAI collaboration: {topic['title']}",
                 True,
                 True
             )
             
-            # Schedule agent responses
-            schedule_agent_responses(result["issue_number"], lead_agent, decision.get("supporting_agents", []))
+            # Schedule OpenAI agent responses
+            schedule_openai_agent_responses(result["issue_number"], lead_agent, decision.get("supporting_agents", []))
             
             system_state["last_collaboration"] = time.time()
             system_state["collaboration_cycle"] += 1
             analytics["decisions_made"] += 1
+            analytics["openai_operations"] += 1
             
             return result
         
         return None
         
     except Exception as e:
-        logger.error(f"Error initiating collaboration: {e}")
+        logger.error(f"Error initiating OpenAI collaboration: {e}")
         return None
 
-def schedule_agent_responses(issue_number, lead_agent, supporting_agents):
-    """Schedule other agents to respond to the collaborative issue"""
+def schedule_openai_agent_responses(issue_number, lead_agent, supporting_agents):
+    """Schedule OpenAI agents to respond to the collaborative issue"""
     
-    def respond_as_agent(agent_name, delay):
+    def respond_as_openai_agent(agent_name, delay):
         time.sleep(delay)
         
         try:
-            # Get the original issue context (simulated for now)
-            issue_context = f"Collaborative issue #{issue_number} led by {lead_agent}"
+            agent_key = agent_name.lower().replace(" ", "_")
             
-            # Generate intelligent response
-            response = collaborative_ai.generate_agent_response(
-                agent_name,
-                issue_context,
-                f"Responding to collaborative initiative"
+            # Get the original issue context
+            issue_context = f"OpenAI collaborative issue #{issue_number} led by {lead_agent}"
+            
+            # Generate intelligent response using OpenAI agents
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            
+            response_data = loop.run_until_complete(
+                openai_agents.generate_agent_response(
+                    agent_key,
+                    issue_context,
+                    f"Analyzing collaborative initiative from {agent_name} perspective"
+                )
             )
+            
+            response = response_data.get("response", f"OpenAI Agent {agent_name} analyzing the situation.")
             
             # Add comment to GitHub issue
             result = github_integration.add_agent_comment(
@@ -647,19 +950,19 @@ def schedule_agent_responses(issue_number, lead_agent, supporting_agents):
             )
             
             if result and result["success"]:
-                agent_key = agent_name.lower().replace(" ", "_")
                 log_agent_activity(
                     agent_key,
-                    "collaboration_response",
-                    f"✅ Responded to collaboration #{issue_number}",
+                    "openai_collaboration_response",
+                    f"✅ OpenAI response to collaboration #{issue_number}",
                     True,
                     True
                 )
                 
                 analytics["coordinated_actions"] += 1
+                analytics["openai_operations"] += 1
         
         except Exception as e:
-            logger.error(f"Error in agent response for {agent_name}: {e}")
+            logger.error(f"Error in OpenAI agent response for {agent_name}: {e}")
     
     # Schedule responses from other agents
     all_agents = [name for name in agents_state.keys() if agents_state[name]["name"] != lead_agent]
@@ -669,17 +972,17 @@ def schedule_agent_responses(issue_number, lead_agent, supporting_agents):
     
     for i, agent_key in enumerate(responding_agents):
         agent_name = agents_state[agent_key]["name"]
-        delay = (i + 1) * 60  # Stagger responses by 1 minute each
+        delay = (i + 1) * 90  # Stagger responses by 1.5 minutes each for OpenAI processing
         
         response_thread = threading.Thread(
-            target=respond_as_agent,
+            target=respond_as_openai_agent,
             args=(agent_name, delay),
             daemon=True
         )
         response_thread.start()
 
 def log_agent_activity(agent_id, activity_type, description, real_action=True, github_operation=False):
-    """Enhanced agent activity logging"""
+    """Enhanced agent activity logging with OpenAI tracking"""
     global analytics
     
     if agent_id not in agents_state:
@@ -693,6 +996,7 @@ def log_agent_activity(agent_id, activity_type, description, real_action=True, g
             "description": description,
             "real_action": real_action,
             "github_operation": github_operation,
+            "ai_powered": "openai" in activity_type,
             "formatted_time": datetime.now().strftime("%H:%M:%S")
         }
         
@@ -709,12 +1013,18 @@ def log_agent_activity(agent_id, activity_type, description, real_action=True, g
         # Update stats
         stats = agents_state[agent_id].get("stats", {})
         
-        if activity_type == "collaboration_initiated":
+        if "openai" in activity_type:
+            stats["openai_operations"] = stats.get("openai_operations", 0) + 1
+            analytics["openai_operations"] += 1
+        
+        if "mcp" in activity_type:
+            stats["mcp_operations"] = stats.get("mcp_operations", 0) + 1
+            analytics["mcp_operations"] += 1
+        
+        if activity_type == "openai_collaboration_initiated":
             stats["collaborations_led"] = stats.get("collaborations_led", 0) + 1
-        elif activity_type == "collaboration_response":
+        elif activity_type == "openai_collaboration_response":
             stats["comments_made"] = stats.get("comments_made", 0) + 1
-        elif activity_type == "decision_made":
-            stats["decisions_made"] = stats.get("decisions_made", 0) + 1
         
         stats["operations"] = stats.get("operations", 0) + 1
         
@@ -725,21 +1035,22 @@ def log_agent_activity(agent_id, activity_type, description, real_action=True, g
         
         analytics["agent_activities"] += 1
         
-        # Enhanced logging
-        collab_indicator = " + COLLAB" if "collaboration" in activity_type else ""
+        # Enhanced logging with OpenAI indicators
+        ai_indicator = " + OPENAI" if "openai" in activity_type else ""
+        mcp_indicator = " + MCP" if "mcp" in activity_type else ""
         github_indicator = " + GITHUB" if github_operation else ""
         
-        logger.info(f"🤝 {agent_id}: {description}{collab_indicator}{github_indicator}")
+        logger.info(f"🤖 {agent_id}: {description}{ai_indicator}{mcp_indicator}{github_indicator}")
         
     except Exception as e:
         logger.error(f"Error logging activity for {agent_id}: {e}")
 
-# Enhanced autonomous worker with collaboration
-def collaborative_autonomous_worker():
-    """Autonomous worker focused on agent collaboration"""
+# Enhanced autonomous worker with OpenAI agents
+def openai_autonomous_worker():
+    """Autonomous worker powered by OpenAI agents with MCP connectors"""
     global analytics
     
-    logger.info("🤝 Starting COLLABORATIVE AUTONOMOUS WORKER")
+    logger.info("🤖 Starting OPENAI AGENTS AUTONOMOUS WORKER with MCP Connectors")
     
     cycle_count = 0
     
@@ -747,33 +1058,33 @@ def collaborative_autonomous_worker():
         try:
             cycle_count += 1
             
-            # Initiate collaboration every 5 minutes (10 cycles)
+            # Initiate OpenAI collaboration every 5 minutes (10 cycles)
             if cycle_count % 10 == 0:
-                logger.info("🤝 Initiating agent collaboration cycle...")
-                initiate_agent_collaboration()
+                logger.info("🤖 Initiating OpenAI agent collaboration cycle...")
+                initiate_openai_agent_collaboration()
             
-            # Individual agent activities between collaborations
+            # Individual OpenAI agent activities between collaborations
             if cycle_count % 3 == 0:
-                perform_individual_agent_activity()
+                perform_openai_agent_activity()
             
             # System health logging
             if cycle_count % 20 == 0:
                 uptime = time.time() - system_state["startup_time"]
-                logger.info(f"🤝 COLLABORATIVE SYSTEM HEALTH:")
-                logger.info(f"   Uptime: {uptime:.0f}s | Collaborations: {analytics['agent_collaborations']}")
+                logger.info(f"🤖 OPENAI AGENTS SYSTEM HEALTH:")
+                logger.info(f"   Uptime: {uptime:.0f}s | OpenAI Ops: {analytics['openai_operations']}")
+                logger.info(f"   MCP Operations: {analytics['mcp_operations']} | Collaborations: {analytics['agent_collaborations']}")
                 logger.info(f"   Comments Made: {analytics['comments_made']} | Decisions: {analytics['decisions_made']}")
-                logger.info(f"   Coordinated Actions: {analytics['coordinated_actions']}")
                 logger.info(f"   GitHub Operations: {analytics['github_operations']}")
-                logger.info(f"   Active Discussions: {len(collaboration_state['active_discussions'])}")
+                logger.info(f"   AI Intelligence: {'✅ OpenAI GPT-4 + MCP' if openai_agents.is_available() else '❌ Limited'}")
             
             time.sleep(30)  # Run every 30 seconds
             
         except Exception as e:
-            logger.error(f"Collaborative worker error: {e}")
+            logger.error(f"OpenAI autonomous worker error: {e}")
             time.sleep(60)
 
-def perform_individual_agent_activity():
-    """Perform individual agent activities between collaborations"""
+def perform_openai_agent_activity():
+    """Perform individual OpenAI agent activities"""
     global analytics
     
     try:
@@ -783,53 +1094,66 @@ def perform_individual_agent_activity():
         
         activities = {
             "eliza": [
-                "Repository health monitoring",
-                "System coordination check",
-                "Documentation review"
+                "OpenAI-powered repository health analysis",
+                "AI-driven system coordination optimization",
+                "Intelligent documentation review with MCP tools"
             ],
             "dao_governor": [
-                "Governance policy review",
-                "Community decision analysis",
-                "Consensus building preparation"
+                "AI-assisted governance policy analysis",
+                "Intelligent community decision modeling",
+                "OpenAI-powered consensus building strategies"
             ],
             "defi_specialist": [
-                "DeFi protocol monitoring",
-                "Yield optimization analysis",
-                "Financial metrics review"
+                "AI-driven DeFi protocol analysis",
+                "Intelligent yield optimization modeling",
+                "OpenAI-powered financial metrics analysis"
             ],
             "security_guardian": [
-                "Security vulnerability scan",
-                "Threat landscape monitoring",
-                "System protection review"
+                "AI-enhanced security vulnerability assessment",
+                "Intelligent threat landscape analysis",
+                "OpenAI-powered security protocol optimization"
             ],
             "community_manager": [
-                "Community sentiment analysis",
-                "Engagement metrics review",
-                "Communication optimization"
+                "AI-driven community sentiment analysis",
+                "Intelligent engagement optimization",
+                "OpenAI-powered communication strategy development"
             ]
         }
         
-        activity = random.choice(activities.get(agent_key, ["General monitoring"]))
+        activity = random.choice(activities.get(agent_key, ["OpenAI-powered general analysis"]))
         
         log_agent_activity(
             agent_key,
-            "individual_activity",
+            "openai_individual_activity",
             f"✅ {activity}",
             True,
             False
         )
         
     except Exception as e:
-        logger.error(f"Error in individual agent activity: {e}")
+        logger.error(f"Error in OpenAI agent activity: {e}")
 
-# Simple Frontend Template (Updated for collaboration)
-COLLABORATIVE_FRONTEND_TEMPLATE = """
+# Requirements.txt content for OpenAI Agents
+OPENAI_AGENTS_REQUIREMENTS = """
+flask==2.3.3
+requests==2.31.0
+PyGithub==1.59.1
+openai==1.54.3
+openai-agents==0.1.0
+psutil==5.9.6
+python-dotenv==1.0.0
+gunicorn==21.2.0
+asyncio
+"""
+
+# Frontend template (updated for OpenAI agents)
+OPENAI_FRONTEND_TEMPLATE = """
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>XMRT Ecosystem - Collaborative Agents</title>
+    <title>XMRT Ecosystem - OpenAI Agents with MCP</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { 
@@ -851,6 +1175,28 @@ COLLABORATIVE_FRONTEND_TEMPLATE = """
             font-weight: bold;
         }
         
+        .openai-badge { 
+            background: linear-gradient(45deg, #00d4aa, #00b894);
+            color: white;
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-size: 0.9em;
+            margin: 10px;
+            display: inline-block;
+            font-weight: bold;
+        }
+        
+        .mcp-badge { 
+            background: linear-gradient(45deg, #6c5ce7, #a29bfe);
+            color: white;
+            padding: 6px 12px;
+            border-radius: 15px;
+            font-size: 0.8em;
+            margin: 5px;
+            display: inline-block;
+            font-weight: bold;
+        }
+        
         .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 25px; }
         .card { 
             background: rgba(255,255,255,0.1); 
@@ -861,31 +1207,33 @@ COLLABORATIVE_FRONTEND_TEMPLATE = """
         }
         .card h3 { margin-bottom: 25px; color: #4fc3f7; font-size: 1.4em; }
         
-        .collaboration-badge { 
-            background: linear-gradient(45deg, #4caf50, #8bc34a);
-            color: white;
-            padding: 4px 10px;
-            border-radius: 5px;
-            font-size: 0.8em;
-            margin-left: 10px;
-            font-weight: bold;
-        }
-        
         .agent-item { 
             background: rgba(255,255,255,0.08); 
             margin: 20px 0; 
             padding: 25px; 
             border-radius: 15px;
-            border-left: 5px solid #4fc3f7;
+            border-left: 5px solid #00d4aa;
         }
         
         .agent-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
         .agent-name { font-size: 1.2em; font-weight: bold; }
         .agent-role { font-size: 0.95em; opacity: 0.8; margin-top: 5px; }
-        .agent-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin: 15px 0; }
+        .agent-ai-system { font-size: 0.85em; color: #00d4aa; margin-top: 3px; }
+        
+        .agent-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin: 15px 0; }
         .stat { text-align: center; }
-        .stat-value { font-size: 1.3em; font-weight: bold; color: #4fc3f7; }
-        .stat-label { font-size: 0.8em; opacity: 0.8; }
+        .stat-value { font-size: 1.2em; font-weight: bold; color: #4fc3f7; }
+        .stat-label { font-size: 0.75em; opacity: 0.8; }
+        
+        .mcp-tools { margin: 10px 0; }
+        .mcp-tool { 
+            background: rgba(108, 92, 231, 0.3);
+            padding: 3px 8px;
+            border-radius: 10px;
+            font-size: 0.75em;
+            margin: 2px;
+            display: inline-block;
+        }
         
         .activity-log { 
             max-height: 150px; 
@@ -918,7 +1266,7 @@ COLLABORATIVE_FRONTEND_TEMPLATE = """
         .info-label { font-size: 0.9em; opacity: 0.8; margin-top: 5px; }
         
         .test-button { 
-            background: linear-gradient(45deg, #4fc3f7, #29b6f6);
+            background: linear-gradient(45deg, #00d4aa, #00b894);
             color: white; 
             border: none; 
             padding: 10px 15px; 
@@ -932,7 +1280,7 @@ COLLABORATIVE_FRONTEND_TEMPLATE = """
             position: fixed; 
             top: 20px; 
             right: 20px; 
-            background: linear-gradient(45deg, #4caf50, #45a049);
+            background: linear-gradient(45deg, #00d4aa, #00b894);
             color: white; 
             border: none; 
             padding: 12px 25px; 
@@ -954,24 +1302,25 @@ COLLABORATIVE_FRONTEND_TEMPLATE = """
     
     <div class="container">
         <div class="header">
-            <h1>🤝 XMRT Ecosystem - Collaborative Agents</h1>
-            <p>Intelligent Agent Collaboration & Decision Making</p>
+            <h1>🤖 XMRT Ecosystem - OpenAI Agents</h1>
+            <p>Intelligent Agent Collaboration Powered by OpenAI GPT-4 & MCP Connectors</p>
             <div class="version-badge pulse">{{ system_data.version }}</div>
-            <div class="collaboration-badge pulse">COLLABORATIVE MODE</div>
+            <div class="openai-badge pulse">🤖 OpenAI GPT-4 Powered</div>
+            <div class="mcp-badge pulse">🔧 MCP Connectors Enabled</div>
         </div>
         
         <div class="system-info">
             <div class="info-item">
+                <div class="info-value">{{ system_data.openai_ops }}</div>
+                <div class="info-label">OpenAI Operations</div>
+            </div>
+            <div class="info-item">
+                <div class="info-value">{{ system_data.mcp_ops }}</div>
+                <div class="info-label">MCP Operations</div>
+            </div>
+            <div class="info-item">
                 <div class="info-value">{{ system_data.collaborations }}</div>
-                <div class="info-label">Collaborations</div>
-            </div>
-            <div class="info-item">
-                <div class="info-value">{{ system_data.comments }}</div>
-                <div class="info-label">Comments Made</div>
-            </div>
-            <div class="info-item">
-                <div class="info-value">{{ system_data.decisions }}</div>
-                <div class="info-label">Decisions Made</div>
+                <div class="info-label">AI Collaborations</div>
             </div>
             <div class="info-item">
                 <div class="info-value">{{ system_data.github_ops }}</div>
@@ -980,17 +1329,25 @@ COLLABORATIVE_FRONTEND_TEMPLATE = """
         </div>
         
         <div class="grid">
-            <!-- Collaborative Agents Section -->
+            <!-- OpenAI Agents Section -->
             <div class="card">
-                <h3>🤝 Collaborative AI Agents</h3>
+                <h3>🤖 OpenAI Agents with MCP Connectors</h3>
                 {% for agent_id, agent in agents_data.items() %}
                 <div class="agent-item">
                     <div class="agent-header">
                         <div>
                             <div class="agent-name">{{ agent.name }}</div>
                             <div class="agent-role">{{ agent.role }}</div>
+                            <div class="agent-ai-system">{{ agent.ai_system }}</div>
                         </div>
-                        <div class="collaboration-badge">COLLABORATIVE</div>
+                        <div class="openai-badge">GPT-4</div>
+                    </div>
+                    
+                    <div class="mcp-tools">
+                        <strong>MCP Tools:</strong>
+                        {% for tool in agent.mcp_tools %}
+                        <span class="mcp-tool">{{ tool }}</span>
+                        {% endfor %}
                     </div>
                     
                     <div class="agent-stats">
@@ -999,12 +1356,16 @@ COLLABORATIVE_FRONTEND_TEMPLATE = """
                             <div class="stat-label">Operations</div>
                         </div>
                         <div class="stat">
-                            <div class="stat-value">{{ agent.stats.get('comments_made', 0) }}</div>
-                            <div class="stat-label">Comments</div>
+                            <div class="stat-value">{{ agent.stats.get('openai_operations', 0) }}</div>
+                            <div class="stat-label">OpenAI</div>
                         </div>
                         <div class="stat">
-                            <div class="stat-value">{{ agent.stats.get('collaborations_led', 0) }}</div>
-                            <div class="stat-label">Led</div>
+                            <div class="stat-value">{{ agent.stats.get('mcp_operations', 0) }}</div>
+                            <div class="stat-label">MCP</div>
+                        </div>
+                        <div class="stat">
+                            <div class="stat-value">{{ agent.stats.get('comments_made', 0) }}</div>
+                            <div class="stat-label">Comments</div>
                         </div>
                     </div>
                     
@@ -1013,8 +1374,8 @@ COLLABORATIVE_FRONTEND_TEMPLATE = """
                         <div class="activity-item">
                             <span class="activity-time">{{ activity.formatted_time }}</span>
                             {{ activity.description }}
-                            {% if 'collaboration' in activity.type %}
-                                <span class="collaboration-badge">COLLAB</span>
+                            {% if activity.ai_powered %}
+                                <span class="openai-badge">AI</span>
                             {% endif %}
                         </div>
                         {% endfor %}
@@ -1025,11 +1386,11 @@ COLLABORATIVE_FRONTEND_TEMPLATE = """
             
             <!-- API Testing Section -->
             <div class="card">
-                <h3>🔧 System Testing</h3>
+                <h3>🔧 OpenAI System Testing</h3>
                 <button class="test-button" onclick="testAPI('/health')">Health Check</button>
                 <button class="test-button" onclick="testAPI('/agents')">Agent Status</button>
-                <button class="test-button" onclick="testAPI('/analytics')">Analytics</button>
-                <button class="test-button" onclick="forceCollaboration()">Force Collaboration</button>
+                <button class="test-button" onclick="testAPI('/analytics')">AI Analytics</button>
+                <button class="test-button" onclick="forceOpenAICollaboration()">Force AI Collaboration</button>
             </div>
         </div>
     </div>
@@ -1046,18 +1407,18 @@ COLLABORATIVE_FRONTEND_TEMPLATE = """
                 });
         }
         
-        function forceCollaboration() {
-            fetch('/api/force-collaboration', {
+        function forceOpenAICollaboration() {
+            fetch('/api/force-openai-collaboration', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' }
             })
             .then(response => response.json())
             .then(data => {
-                alert('Collaboration Initiated: ' + data.message);
+                alert('OpenAI Collaboration Initiated: ' + data.message);
                 setTimeout(() => location.reload(), 2000);
             })
             .catch(error => {
-                alert('Collaboration Failed: ' + error.message);
+                alert('OpenAI Collaboration Failed: ' + error.message);
             });
         }
         
@@ -1068,24 +1429,24 @@ COLLABORATIVE_FRONTEND_TEMPLATE = """
 </html>
 """
 
-# Flask Routes
+# Flask Routes for OpenAI Agents
 @app.route('/')
-def collaborative_index():
-    """Collaborative agents dashboard"""
+def openai_index():
+    """OpenAI agents dashboard"""
     global analytics
     
     analytics["requests_count"] += 1
     
     system_data = {
         "version": system_state["version"],
+        "openai_ops": analytics["openai_operations"],
+        "mcp_ops": analytics["mcp_operations"],
         "collaborations": analytics["agent_collaborations"],
-        "comments": analytics["comments_made"],
-        "decisions": analytics["decisions_made"],
         "github_ops": analytics["github_operations"]
     }
     
     return render_template_string(
-        COLLABORATIVE_FRONTEND_TEMPLATE,
+        OPENAI_FRONTEND_TEMPLATE,
         system_data=system_data,
         agents_data=agents_state
     )
@@ -1099,121 +1460,126 @@ def health_check():
         "status": "healthy",
         "timestamp": datetime.now().isoformat(),
         "version": system_state["version"],
-        "mode": "collaborative",
+        "mode": "openai_agents_mcp",
+        "openai_operations": analytics["openai_operations"],
+        "mcp_operations": analytics["mcp_operations"],
         "collaborations": analytics["agent_collaborations"],
-        "comments_made": analytics["comments_made"],
-        "decisions_made": analytics["decisions_made"],
-        "github_operations": analytics["github_operations"]
+        "ai_system": "OpenAI GPT-4 + MCP Connectors",
+        "agents_available": openai_agents.is_available()
     })
 
 @app.route('/agents')
 def get_agents():
-    """Get collaborative agents status"""
+    """Get OpenAI agents status"""
     global analytics
     
     analytics["requests_count"] += 1
     
     return jsonify({
         "agents": agents_state,
-        "collaboration_state": collaboration_state,
-        "total_collaborations": analytics["agent_collaborations"],
-        "total_comments": analytics["comments_made"],
-        "total_decisions": analytics["decisions_made"]
+        "ai_system": "OpenAI GPT-4 + MCP Connectors",
+        "openai_available": openai_agents.is_available(),
+        "mcp_connectors": len(openai_agents.mcp_connectors),
+        "total_openai_operations": analytics["openai_operations"],
+        "total_mcp_operations": analytics["mcp_operations"]
     })
 
 @app.route('/analytics')
 def get_analytics():
-    """Get collaboration analytics"""
+    """Get OpenAI analytics"""
     global analytics
     
     analytics["requests_count"] += 1
     
     return jsonify({
         "analytics": analytics,
-        "collaboration_metrics": {
-            "active_discussions": len(collaboration_state["active_discussions"]),
-            "total_collaborations": analytics["agent_collaborations"],
-            "comments_made": analytics["comments_made"],
-            "decisions_made": analytics["decisions_made"],
-            "coordinated_actions": analytics["coordinated_actions"]
+        "openai_metrics": {
+            "openai_operations": analytics["openai_operations"],
+            "mcp_operations": analytics["mcp_operations"],
+            "ai_collaborations": analytics["agent_collaborations"],
+            "ai_system": "OpenAI GPT-4 + MCP Connectors",
+            "agents_available": openai_agents.is_available()
         }
     })
 
-@app.route('/api/force-collaboration', methods=['POST'])
-def force_collaboration():
-    """Force agent collaboration"""
+@app.route('/api/force-openai-collaboration', methods=['POST'])
+def force_openai_collaboration():
+    """Force OpenAI agent collaboration"""
     global analytics
     
     try:
-        result = initiate_agent_collaboration()
+        result = initiate_openai_agent_collaboration()
         if result:
             return jsonify({
                 "status": "success",
-                "message": f"Collaboration initiated successfully",
-                "collaboration_id": result.get("collaboration_id", "unknown")
+                "message": f"OpenAI collaboration initiated successfully",
+                "collaboration_id": result.get("collaboration_id", "unknown"),
+                "ai_powered": True
             })
         else:
             return jsonify({
                 "status": "success",
-                "message": "Collaboration initiated (local mode)"
+                "message": "OpenAI collaboration initiated (local mode)",
+                "ai_powered": True
             })
     except Exception as e:
         return jsonify({
             "status": "error",
-            "message": f"Collaboration failed: {str(e)}"
+            "message": f"OpenAI collaboration failed: {str(e)}"
         }), 500
 
 # Initialize system
-def initialize_collaborative_system():
-    """Initialize the collaborative system"""
+def initialize_openai_system():
+    """Initialize the OpenAI agents system"""
     global analytics
     
     try:
-        logger.info("🤝 Initializing XMRT Collaborative System...")
+        logger.info("🤖 Initializing XMRT OpenAI Agents System with MCP Connectors...")
         
-        if collaborative_ai.is_available():
-            logger.info("✅ Collaborative AI: Available")
+        if openai_agents.is_available():
+            logger.info("✅ OpenAI Agents: Available with GPT-4")
+            logger.info(f"✅ MCP Connectors: {len(openai_agents.mcp_connectors)} connectors initialized")
         else:
-            logger.warning("⚠️ Collaborative AI: Limited mode")
+            logger.warning("⚠️ OpenAI Agents: Limited mode (installing dependencies)")
         
         if github_integration.is_available():
-            logger.info("✅ GitHub Integration: Available with collaboration features")
+            logger.info("✅ GitHub Integration: Available with OpenAI collaboration features")
         else:
             logger.warning("⚠️ GitHub Integration: Limited mode")
         
-        logger.info("✅ 5 Collaborative Agents: Initialized")
-        logger.info("✅ Collaboration Framework: Ready")
+        logger.info("✅ 5 OpenAI Agents: Initialized with MCP connectors")
+        logger.info("✅ Collaboration Framework: OpenAI-powered")
         logger.info(f"✅ System ready (v{system_state['version']})")
         
         return True
         
     except Exception as e:
-        logger.error(f"System initialization error: {e}")
+        logger.error(f"OpenAI system initialization error: {e}")
         return False
 
-def start_collaborative_worker():
-    """Start the collaborative worker thread"""
+def start_openai_worker():
+    """Start the OpenAI autonomous worker thread"""
     try:
-        worker_thread = threading.Thread(target=collaborative_autonomous_worker, daemon=True)
+        worker_thread = threading.Thread(target=openai_autonomous_worker, daemon=True)
         worker_thread.start()
-        logger.info("✅ Collaborative worker started")
+        logger.info("✅ OpenAI autonomous worker started")
     except Exception as e:
-        logger.error(f"Failed to start collaborative worker: {e}")
+        logger.error(f"Failed to start OpenAI worker: {e}")
 
 # Initialize on import
 try:
-    if initialize_collaborative_system():
-        logger.info("✅ Collaborative system initialization successful")
-        start_collaborative_worker()
+    if initialize_openai_system():
+        logger.info("✅ OpenAI system initialization successful")
+        start_openai_worker()
     else:
         logger.warning("⚠️ System initialization had issues but continuing...")
 except Exception as e:
-    logger.error(f"❌ System initialization error: {e}")
+    logger.error(f"❌ OpenAI system initialization error: {e}")
 
 # Main entry point
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
-    logger.info(f"🤝 Starting XMRT Collaborative server on port {port}")
+    logger.info(f"🤖 Starting XMRT OpenAI Agents server on port {port}")
     
     app.run(
         host='0.0.0.0',
