@@ -13,8 +13,8 @@ This application is part of the **XMRT DAO Ecosystem** - a decentralized economi
 
 This application integrates with the following XMRT repositories:
 - **assetverse-nexus**
-- **xmrt-eliza-enhanced**
-- **xmrt-test-env**
+- **xmrt-rust**
+- **xmrt-signup**
 
 ## ✨ Features
 
@@ -181,13 +181,13 @@ MIT License - Built for the XMRT DAO Ecosystem
 
 ## 🔗 Links
 
-- 🌐 **XMRT DAO**: https://xmrtdao.vercel.app
+- 🌐 **XMRT DAO**: https://xmrt.vercel.app
 - 📱 **MobileMonero**: https://mobilemonero.com
 - 🤖 **Eliza AI**: https://xmrteliza.vercel.app
 - 📁 **GitHub**: https://github.com/DevGruGold/XMRT-Ecosystem
 - 📚 **Documentation**: https://josephandrewlee.medium.com
 - 💰 **CashDapp**: https://cashdapp.vercel.app
-- 🌐 **MESHNET**: https://xmrtdao.streamlit.app
+- 🌐 **MESHNET**: https://meshnet.xmrt.vercel.app
 
 ---
 
