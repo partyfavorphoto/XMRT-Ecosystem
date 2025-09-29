@@ -12,9 +12,9 @@ This application is part of the **XMRT DAO Ecosystem** - a decentralized economi
 ### 🔗 XMRT Ecosystem Integration
 
 This application integrates with the following XMRT repositories:
-- **assetverse-nexus**
-- **xmrt-rayhunter**
-- **xmrt-signup**
+- **xmrtcash**
+- **xmrt-agno**
+- **xmrt-rust**
 
 ## ✨ Features
 
