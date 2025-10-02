@@ -22,9 +22,9 @@ Type: mobile_app
 
 ## Target Repositories
 
-- xmrtcash
-- xmrt-agno
+- xmrt-rust
 - eliza-xmrt-dao
+- xmrt-test-env
 
 ## Open Source Components
 
