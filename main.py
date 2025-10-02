@@ -1,4 +1,4 @@
-python
+
 #!/usr/bin/env python3
 """
 XMRT Ecosystem Main Application - Version 5.0 Enhanced
