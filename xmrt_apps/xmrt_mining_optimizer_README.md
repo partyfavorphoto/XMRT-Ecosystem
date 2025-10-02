@@ -22,9 +22,9 @@ Type: mobile_app
 
 ## Target Repositories
 
-- xmrt-agno
-- xmrt-activepieces
-- xmrt-rayhunter
+- xmrt-signup
+- xmrt-openai-agents-js
+- xmrtcash
 
 ## Open Source Components
 
