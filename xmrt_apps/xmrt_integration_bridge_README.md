@@ -13,7 +13,7 @@ This application is part of the **XMRT DAO Ecosystem** - a decentralized economi
 
 This application integrates with the following XMRT repositories:
 - **assetverse-nexus**
-- **xmrtassistant**
+- **eliza-xmrt-dao**
 - **xmrt-eliza-enhanced**
 
 ## ✨ Features
