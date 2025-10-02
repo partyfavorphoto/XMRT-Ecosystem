@@ -5,7 +5,7 @@ Seamless integration layer between XMRT components
 
 XMRT Ecosystem Application
 Type: integration_bridge
-Target Repositories: xmrtassistant, eliza-xmrt-dao, xmrtcash
+Target Repositories: xmrt-openai-agents-js, xmrt-rust, xmrt-agno
 
 This application is part of the XMRT DAO ecosystem, focusing on
 mobile-first cryptocurrency mining, AI governance, and decentralized systems.
@@ -27,7 +27,7 @@ logger = logging.getLogger(__name__)
 class XMRTIntegrationBridge:
     def __init__(self):
         self.config = {
-            "xmrt_repositories": ["xmrtassistant", "eliza-xmrt-dao", "xmrtcash"],
+            "xmrt_repositories": ["xmrt-openai-agents-js", "xmrt-rust", "xmrt-agno"],
             "version": "1.0.0",
             "type": "integration_bridge",
             "github_token": os.environ.get('GITHUB_TOKEN'),
