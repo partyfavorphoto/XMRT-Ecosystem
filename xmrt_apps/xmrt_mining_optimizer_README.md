@@ -22,9 +22,9 @@ Type: mobile_app
 
 ## Target Repositories
 
-- xmrt-rust
-- xmrt-activepieces
-- xmrt-rayhunter
+- XMRT-Ecosystem
+- xmrt-test-env
+- xmrt-signup
 
 ## Open Source Components
 
