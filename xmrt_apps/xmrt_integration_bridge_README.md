@@ -22,9 +22,9 @@ Type: integration_bridge
 
 ## Target Repositories
 
-- xmrtcash
 - xmrtassistant
-- xmrt-openai-agents-js
+- eliza-xmrt-dao
+- xmrtcash
 
 ## Open Source Components
 
