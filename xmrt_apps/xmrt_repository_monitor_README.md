@@ -22,9 +22,9 @@ Type: cli_utility
 
 ## Target Repositories
 
+- xmrt-agno
+- xmrt-rayhunter
 - xmrt-signup
-- xmrt-test-env
-- xmrtassistant
 
 ## Open Source Components
 
