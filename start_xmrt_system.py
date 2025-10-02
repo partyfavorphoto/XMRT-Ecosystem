@@ -1,367 +1,477 @@
+
 #!/usr/bin/env python3
 """
-XMRT Ecosystem Startup Script for Render Deployment
-Initializes and starts all enhanced agents and MCP servers
+start_xmrt_system.py — XMRT Ecosystem Worker Orchestrator (Render-friendly)
+
+Purpose:
+- Starts optional MCP servers (GitHub / Render / XMRT) as child processes
+- Runs autonomous background loops (learning, GitHub discovery/maintenance, deployment monitoring)
+- Emits coordination events to the web app (if COORDINATION_ENDPOINT is set) or logs locally
+
+This script DOES NOT bind to a network port. Run it as a Render "Background Worker".
+For the web UI and API, use gunicorn with main_enhanced_coordination:app.
+
+Key env vars (safe defaults applied when possible):
+  Required:
+    - GITHUB_TOKEN                : GitHub PAT (repo/public_repo scope as needed)
+    - OPENAI_API_KEY              : If downstream analysis uses OpenAI (optional for this worker)
+
+  Strongly recommended / safety:
+    - XMRT_DRY_RUN=1              : Prevents write mutations (advisory only in this worker)
+    - GITHUB_SAFE_MODE=advice     : advice | issues | prs | disabled
+    - GITHUB_ALLOWLIST_ORGS=DevGruGold
+    - GITHUB_BLOCKLIST_ORGS=
+
+  Discovery / scanning:
+    - GITHUB_GLOBAL_DISCOVERY=0   : 1 to enable global GitHub search (search API)
+    - GITHUB_SEARCH_QUERIES="monero OR xmrt in:readme,description language:rust,python"
+    - GITHUB_MAX_REPOS_PER_CYCLE=25
+    - GITHUB_REPOS="DevGruGold/XMRT-Ecosystem,DevGruGold/xmrtassistant"
+
+  Cadence:
+    - SCAN_INTERVAL_SECONDS=900
+    - SCAN_JITTER_SECONDS=60
+    - MONITOR_INTERVAL_SECONDS=120
+    - LEARNING_INTERVAL_SECONDS=300
+
+  Coordination bridge (optional):
+    - COORDINATION_ENDPOINT="https://<your-web-url>/api/coordination/trigger"
+    - COORDINATION_TOKEN="<shared-secret-if-you-enforce-one>"
+
+  Logging / misc:
+    - LOG_LEVEL=info
 """
 
 import os
 import sys
 import json
 import time
+import shlex
+import signal
+import queue
+import random
 import logging
 import asyncio
-import subprocess
 import threading
+import subprocess
 from pathlib import Path
-from typing import Dict, List, Any
+from typing import Dict, List, Any, Optional
 
-# Configure logging
+# Third-party (optional at runtime; guarded)
+try:
+    from github import Github, GithubException, RateLimitExceededException
+except Exception:  # pragma: no cover
+    Github = None
+    GithubException = Exception
+    RateLimitExceededException = Exception
+
+# ---------------------------
+# Logging
+# ---------------------------
+LOG_LEVEL = os.getenv("LOG_LEVEL", "info").upper()
 logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    level=getattr(logging, LOG_LEVEL, logging.INFO),
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
 )
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("xmrt.startup")
 
-class XMRTSystemManager:
-    """Manages the complete XMRT ecosystem startup and operation"""
-    
-    def __init__(self):
-        self.processes = {}
-        self.system_status = {
-            "startup_time": None,
-            "mcp_servers": {},
-            "agents": {},
-            "health_checks": {},
-            "last_update": None
-        }
-        
-        # Validate environment variables
-        self.validate_environment()
-        
-        logger.info("XMRT System Manager initialized")
-    
-    def validate_environment(self):
-        """Validate required environment variables"""
-        required_vars = [
-            "GITHUB_TOKEN",
-            "GITHUB_OAUTH_CLIENT_ID", 
-            "GITHUB_OAUTH_CLIENT_SECRET",
-            "RENDER_API_KEY"
-        ]
-        
-        missing_vars = []
-        for var in required_vars:
-            if not os.getenv(var):
-                missing_vars.append(var)
-        
-        if missing_vars:
-            logger.error(f"Missing required environment variables: {missing_vars}")
-            raise ValueError(f"Missing environment variables: {missing_vars}")
-        
-        logger.info("Environment validation passed")
-    
-    def start_mcp_servers(self):
-        """Start all MCP servers"""
-        logger.info("Starting MCP servers...")
-        
-        mcp_servers = {
-            "github": {
-                "script": "mcp-integration/github_mcp_server_clean.py",
-                "description": "GitHub MCP Server"
-            },
-            "render": {
-                "script": "mcp-integration/render_mcp_server_clean.py", 
-                "description": "Render MCP Server"
-            },
-            "xmrt": {
-                "script": "mcp-integration/xmrt_mcp_server_clean.py",
-                "description": "XMRT MCP Server"
-            }
-        }
-        
-        for server_name, config in mcp_servers.items():
-            try:
-                script_path = Path(config["script"])
-                if script_path.exists():
-                    process = subprocess.Popen(
-                        [sys.executable, str(script_path)],
-                        stdout=subprocess.PIPE,
-                        stderr=subprocess.PIPE,
-                        text=True
-                    )
-                    
-                    self.processes[f"mcp_{server_name}"] = process
-                    self.system_status["mcp_servers"][server_name] = {
-                        "status": "running",
-                        "pid": process.pid,
-                        "started_at": time.time()
-                    }
-                    
-                    logger.info(f"Started {config['description']} (PID: {process.pid})")
-                else:
-                    logger.warning(f"MCP server script not found: {script_path}")
-                    self.system_status["mcp_servers"][server_name] = {
-                        "status": "not_found",
-                        "error": f"Script not found: {script_path}"
-                    }
-                    
-            except Exception as e:
-                logger.error(f"Failed to start {config['description']}: {e}")
-                self.system_status["mcp_servers"][server_name] = {
-                    "status": "failed",
-                    "error": str(e)
-                }
-    
-    def start_enhanced_agents(self):
-        """Start enhanced agent system"""
-        logger.info("Starting enhanced agent system...")
-        
-        # Agent configurations
-        agents = {
-            "eliza": {
-                "role": "lead_coordinator",
-                "capabilities": ["discussion_management", "repository_improvement", "community_engagement"],
-                "oauth_username": "xmrt-eliza-agent"
-            },
-            "dao_governor": {
-                "role": "governance_manager", 
-                "capabilities": ["proposal_management", "voting_coordination", "governance_automation"],
-                "oauth_username": "xmrt-dao-governor"
-            },
-            "defi_specialist": {
-                "role": "financial_operations",
-                "capabilities": ["liquidity_management", "yield_optimization", "risk_assessment"],
-                "oauth_username": "xmrt-defi-specialist"
-            },
-            "security_guardian": {
-                "role": "security_operations",
-                "capabilities": ["vulnerability_scanning", "security_monitoring", "incident_response"],
-                "oauth_username": "xmrt-security-guardian"
-            },
-            "community_manager": {
-                "role": "community_engagement",
-                "capabilities": ["social_media_management", "community_support", "content_creation"],
-                "oauth_username": "xmrt-community-manager"
-            }
-        }
-        
-        for agent_name, config in agents.items():
-            try:
-                # Initialize agent with configuration
-                self.system_status["agents"][agent_name] = {
-                    "status": "initialized",
-                    "role": config["role"],
-                    "capabilities": config["capabilities"],
-                    "oauth_username": config["oauth_username"],
-                    "started_at": time.time(),
-                    "last_activity": time.time()
-                }
-                
-                logger.info(f"Initialized {agent_name} agent ({config['role']})")
-                
-            except Exception as e:
-                logger.error(f"Failed to initialize {agent_name} agent: {e}")
-                self.system_status["agents"][agent_name] = {
-                    "status": "failed",
-                    "error": str(e)
-                }
-    
-    def start_learning_cycles(self):
-        """Start autonomous learning cycles"""
-        logger.info("Starting autonomous learning cycles...")
-        
-        def learning_cycle():
-            """Background learning cycle"""
-            while True:
-                try:
-                    # Update agent activities
-                    current_time = time.time()
-                    for agent_name in self.system_status["agents"]:
-                        if self.system_status["agents"][agent_name]["status"] == "initialized":
-                            self.system_status["agents"][agent_name]["last_activity"] = current_time
-                    
-                    # Update system status
-                    self.system_status["last_update"] = current_time
-                    
-                    # Sleep for learning interval (5 minutes)
-                    time.sleep(300)
-                    
-                except Exception as e:
-                    logger.error(f"Error in learning cycle: {e}")
-                    time.sleep(60)  # Shorter sleep on error
-        
-        # Start learning cycle in background thread
-        learning_thread = threading.Thread(target=learning_cycle, daemon=True)
-        learning_thread.start()
-        
-        logger.info("Learning cycles started")
-    
-    def start_github_automation(self):
-        """Start GitHub discussion and repository improvement automation"""
-        logger.info("Starting GitHub automation...")
-        
-        def github_automation():
-            """Background GitHub automation"""
-            while True:
-                try:
-                    # Simulate GitHub automation activities
-                    logger.info("Running GitHub automation cycle...")
-                    
-                    # Update health checks
-                    self.system_status["health_checks"]["github_automation"] = {
-                        "status": "healthy",
-                        "last_check": time.time()
-                    }
-                    
-                    # Sleep for automation interval (10 minutes)
-                    time.sleep(600)
-                    
-                except Exception as e:
-                    logger.error(f"Error in GitHub automation: {e}")
-                    self.system_status["health_checks"]["github_automation"] = {
-                        "status": "error",
-                        "error": str(e),
-                        "last_check": time.time()
-                    }
-                    time.sleep(300)  # Shorter sleep on error
-        
-        # Start GitHub automation in background thread
-        github_thread = threading.Thread(target=github_automation, daemon=True)
-        github_thread.start()
-        
-        logger.info("GitHub automation started")
-    
-    def start_deployment_monitoring(self):
-        """Start deployment monitoring"""
-        logger.info("Starting deployment monitoring...")
-        
-        def deployment_monitoring():
-            """Background deployment monitoring"""
-            while True:
-                try:
-                    # Monitor system health
-                    logger.info("Running deployment health check...")
-                    
-                    # Check MCP server processes
-                    for server_name, process in self.processes.items():
-                        if process.poll() is None:
-                            self.system_status["mcp_servers"][server_name.replace("mcp_", "")]["status"] = "running"
-                        else:
-                            self.system_status["mcp_servers"][server_name.replace("mcp_", "")]["status"] = "stopped"
-                    
-                    # Update health checks
-                    self.system_status["health_checks"]["deployment_monitoring"] = {
-                        "status": "healthy",
-                        "last_check": time.time()
-                    }
-                    
-                    # Sleep for monitoring interval (2 minutes)
-                    time.sleep(120)
-                    
-                except Exception as e:
-                    logger.error(f"Error in deployment monitoring: {e}")
-                    self.system_status["health_checks"]["deployment_monitoring"] = {
-                        "status": "error",
-                        "error": str(e),
-                        "last_check": time.time()
-                    }
-                    time.sleep(60)  # Shorter sleep on error
-        
-        # Start deployment monitoring in background thread
-        monitoring_thread = threading.Thread(target=deployment_monitoring, daemon=True)
-        monitoring_thread.start()
-        
-        logger.info("Deployment monitoring started")
-    
-    def get_system_status(self) -> Dict[str, Any]:
-        """Get current system status"""
-        return self.system_status
-    
-    def start_system(self):
-        """Start the complete XMRT system"""
-        logger.info("🚀 Starting XMRT Ecosystem...")
-        
-        self.system_status["startup_time"] = time.time()
-        
-        try:
-            # Start MCP servers
-            self.start_mcp_servers()
-            time.sleep(3)  # Allow servers to initialize
-            
-            # Start enhanced agents
-            self.start_enhanced_agents()
-            time.sleep(2)  # Allow agents to initialize
-            
-            # Start learning cycles
-            self.start_learning_cycles()
-            
-            # Start GitHub automation
-            self.start_github_automation()
-            
-            # Start deployment monitoring
-            self.start_deployment_monitoring()
-            
-            logger.info("✅ XMRT Ecosystem startup complete!")
-            logger.info(f"🤖 Active agents: {len(self.system_status['agents'])}")
-            logger.info(f"🔧 MCP servers: {len(self.system_status['mcp_servers'])}")
-            logger.info("🔄 Learning cycles: Active")
-            logger.info("📊 Monitoring: Active")
-            
-            return True
-            
-        except Exception as e:
-            logger.error(f"❌ System startup failed: {e}")
-            return False
-    
-    def shutdown_system(self):
-        """Gracefully shutdown the system"""
-        logger.info("Shutting down XMRT system...")
-        
-        # Terminate MCP server processes
-        for process_name, process in self.processes.items():
-            try:
-                if process.poll() is None:
-                    process.terminate()
-                    process.wait(timeout=5)
-                    logger.info(f"Stopped {process_name}")
-            except Exception as e:
-                logger.error(f"Error stopping {process_name}: {e}")
-        
-        logger.info("XMRT system shutdown complete")
+# ---------------------------
+# Utilities
+# ---------------------------
+def _b2bool(v: Optional[str], default: bool = False) -> bool:
+    if v is None:
+        return default
+    return str(v).strip().lower() in {"1", "true", "yes", "y", "on"}
 
-def main():
-    """Main function for Render deployment"""
-    
-    # Create system manager
-    system_manager = XMRTSystemManager()
-    
+def _env_csv(key: str, default: str = "") -> List[str]:
+    raw = os.getenv(key, default)
+    if not raw:
+        return []
+    return [x.strip() for x in raw.split(",") if x.strip()]
+
+def _jittered_sleep(base_seconds: int, jitter_seconds: int) -> None:
+    time.sleep(base_seconds + random.randint(0, max(0, jitter_seconds)))
+
+def _safe_int(key: str, default: int) -> int:
     try:
-        # Start the system
-        if system_manager.start_system():
-            logger.info("XMRT system is running...")
-            
-            # Keep the main process alive
-            while True:
-                time.sleep(60)
-                
-                # Log periodic status
-                status = system_manager.get_system_status()
-                active_agents = len([a for a in status["agents"].values() if a["status"] == "initialized"])
-                running_servers = len([s for s in status["mcp_servers"].values() if s["status"] == "running"])
-                
-                logger.info(f"System Status: {active_agents} agents active, {running_servers} MCP servers running")
+        return int(os.getenv(key, str(default)))
+    except Exception:
+        return default
+
+# ---------------------------
+# Coordination bridge
+# ---------------------------
+def emit_coordination_event(event_type: str, payload: Dict[str, Any]) -> None:
+    """
+    POST an event to the web coordination API if COORDINATION_ENDPOINT is set,
+    otherwise just log it locally.
+    """
+    endpoint = os.getenv("COORDINATION_ENDPOINT")
+    if not endpoint:
+        logger.info("Coordination event (local): %s %s", event_type, json.dumps(payload)[:800])
+        return
+
+    try:
+        import requests  # local import to avoid hard dep if not used
+
+        headers = {"Content-Type": "application/json"}
+        token = os.getenv("COORDINATION_TOKEN")
+        if token:
+            headers["Authorization"] = f"Bearer {token}"
+
+        body = {"event_type": event_type, "payload": payload}
+        resp = requests.post(endpoint, headers=headers, json=body, timeout=15)
+        if resp.status_code < 300:
+            logger.info("Emitted coordination event to %s: %s", endpoint, event_type)
         else:
-            logger.error("Failed to start XMRT system")
-            sys.exit(1)
-            
-    except KeyboardInterrupt:
-        logger.info("Received shutdown signal")
-        system_manager.shutdown_system()
+            logger.warning("Coordination endpoint %s returned %s: %s", endpoint, resp.status_code, resp.text[:500])
+    except Exception as e:  # pragma: no cover
+        logger.warning("Failed to emit coordination event to %s: %s", endpoint, e)
+
+# ---------------------------
+# MCP server management
+# ---------------------------
+class MCPProcess:
+    def __init__(self, name: str, script: Path):
+        self.name = name
+        self.script = script
+        self.proc: Optional[subprocess.Popen] = None
+
+    def start(self) -> bool:
+        if not self.script.exists():
+            logger.warning("MCP script not found for %s: %s", self.name, self.script)
+            return False
+        try:
+            self.proc = subprocess.Popen(
+                [sys.executable, str(self.script)],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+            )
+            logger.info("Started MCP %s (PID=%s)", self.name, self.proc.pid)
+            return True
+        except Exception as e:  # pragma: no cover
+            logger.error("Failed to start MCP %s: %s", self.name, e)
+            return False
+
+    def is_running(self) -> bool:
+        return self.proc is not None and self.proc.poll() is None
+
+    def stop(self, timeout: float = 5.0) -> None:
+        if self.proc and self.is_running():
+            try:
+                self.proc.terminate()
+                self.proc.wait(timeout=timeout)
+                logger.info("Stopped MCP %s", self.name)
+            except Exception as e:  # pragma: no cover
+                logger.warning("Error stopping MCP %s: %s", self.name, e)
+
+# ---------------------------
+# GitHub automation
+# ---------------------------
+class GithubAutomation:
+    def __init__(self) -> None:
+        self.token = os.getenv("GITHUB_TOKEN")
+        self.safe_mode = os.getenv("GITHUB_SAFE_MODE", "advice").lower()  # advice|issues|prs|disabled
+        self.dry_run = _b2bool(os.getenv("XMRT_DRY_RUN", "1"), default=True)
+        self.allow_orgs = set(x.lower() for x in _env_csv("GITHUB_ALLOWLIST_ORGS", "DevGruGold"))
+        self.block_orgs = set(x.lower() for x in _env_csv("GITHUB_BLOCKLIST_ORGS", ""))
+        self.global_discovery = _b2bool(os.getenv("GITHUB_GLOBAL_DISCOVERY", "0"))
+        self.max_repos = _safe_int("GITHUB_MAX_REPOS_PER_CYCLE", 25)
+        self.seed_repos = _env_csv("GITHUB_REPOS", "DevGruGold/XMRT-Ecosystem,DevGruGold/xmrtassistant")
+        self.search_queries = os.getenv(
+            "GITHUB_SEARCH_QUERIES",
+            "monero OR xmrt in:readme,description language:rust language:python",
+        )
+
+        self.gh = Github(self.token, per_page=min(100, self.max_repos)) if self.token and Github else None
+
+    def _allowed_repo(self, full_name: str) -> bool:
+        try:
+            org = full_name.split("/")[0].lower()
+        except Exception:
+            return False
+        if self.block_orgs and org in self.block_orgs:
+            return False
+        if self.allow_orgs and org not in self.allow_orgs and not self.global_discovery:
+            return False
+        return True
+
+    def _list_seed_repos(self) -> List[str]:
+        return [r for r in self.seed_repos if self._allowed_repo(r)]
+
+    def _search_repos(self) -> List[str]:
+        if not (self.gh and self.global_discovery and self.search_queries):
+            return []
+        out = []
+        try:
+            q = self.search_queries
+            logger.info("GitHub search query: %s", q)
+            for repo in self.gh.search_repositories(query=q)[: self.max_repos]:
+                full = repo.full_name
+                if self._allowed_repo(full):
+                    out.append(full)
+            return out
+        except RateLimitExceededException as e:  # pragma: no cover
+            logger.warning("GitHub rate limit exceeded: %s", e)
+            return []
+        except GithubException as e:  # pragma: no cover
+            logger.warning("GitHub search error: %s", e)
+            return []
+        except Exception as e:  # pragma: no cover
+            logger.warning("Unexpected GitHub search error: %s", e)
+            return []
+
+    def analyze_repo(self, full_name: str) -> Dict[str, Any]:
+        """
+        Lightweight, safe analysis of a repo. Avoids mutations unless safe_mode permits and dry_run=False.
+        """
+        result = {"repo": full_name, "status": "ok", "actions": []}
+        if not self.gh:
+            result["status"] = "skipped"
+            result["reason"] = "GitHub client not initialized"
+            return result
+
+        try:
+            repo = self.gh.get_repo(full_name)
+            default_branch = repo.default_branch or "main"
+            topics = []
+            try:
+                topics = repo.get_topics()
+            except Exception:
+                pass
+
+            # Heuristics: surface missing files or stale issues (advice mode)
+            advice = []
+            if "security" not in topics and "dependabot" not in topics:
+                advice.append("Consider enabling Dependabot and adding SECURITY.md")
+
+            if default_branch not in {"main", "master"}:
+                advice.append(f"Non-standard default branch '{default_branch}'")
+
+            # Emit coordination event with findings
+            payload = {
+                "action": "repo_analysis",
+                "repo": full_name,
+                "default_branch": default_branch,
+                "topics": topics,
+                "advice": advice,
+                "safe_mode": self.safe_mode,
+                "dry_run": self.dry_run,
+            }
+            emit_coordination_event("coordination.request", payload)
+
+            # Optional safe write actions (issues/PRs) — gated
+            if not self.dry_run and self.safe_mode in {"issues", "prs"} and advice and self._allowed_repo(full_name):
+                title = "XMRT Ecosystem Advice: Project Hardening Suggestions"
+                body = (
+                    "This is an automated suggestion from the XMRT ecosystem worker.\n\n"
+                    "Recommendations:\n"
+                    + "".join(f"- {a}\n" for a in advice)
+                    + "\nSet `XMRT_DRY_RUN=1` to disable actions, or `GITHUB_SAFE_MODE=advice` to only log suggestions."
+                )
+                try:
+                    repo.create_issue(title=title, body=body)
+                    result["actions"].append("opened_issue")
+                except Exception as e:  # pragma: no cover
+                    logger.info("Could not open issue on %s: %s", full_name, e)
+
+            return result
+        except GithubException as e:
+            return {"repo": full_name, "status": "error", "error": str(e)}
+        except Exception as e:
+            return {"repo": full_name, "status": "error", "error": str(e)}
+
+    def run_cycle(self) -> Dict[str, Any]:
+        """
+        One automation cycle:
+          - analyze seed repos
+          - (optional) search & analyze global repos
+        """
+        analyzed: List[Dict[str, Any]] = []
+        seeds = self._list_seed_repos()
+        for r in seeds:
+            analyzed.append(self.analyze_repo(r))
+
+        if self.global_discovery:
+            for r in self._search_repos():
+                analyzed.append(self.analyze_repo(r))
+
+        summary = {
+            "count": len(analyzed),
+            "ok": sum(1 for a in analyzed if a.get("status") == "ok"),
+            "errors": [a for a in analyzed if a.get("status") == "error"],
+        }
+        logger.info("GitHub automation summary: %s ok / %s total", summary["ok"], summary["count"])
+        emit_coordination_event("coordination.request", {"action": "automation_summary", **summary})
+        return summary
+
+# ---------------------------
+# System Manager
+# ---------------------------
+class XMRTSystemManager:
+    def __init__(self) -> None:
+        self.processes: Dict[str, MCPProcess] = {}
+        self.shutdown_flag = threading.Event()
+
+        # Intervals
+        self.scan_interval = _safe_int("SCAN_INTERVAL_SECONDS", 900)
+        self.scan_jitter = _safe_int("SCAN_JITTER_SECONDS", 60)
+        self.monitor_interval = _safe_int("MONITOR_INTERVAL_SECONDS", 120)
+        self.learning_interval = _safe_int("LEARNING_INTERVAL_SECONDS", 300)
+
+        # Components
+        self.gh_automation = GithubAutomation()
+
+        # State snapshot
+        self.state_lock = threading.Lock()
+        self.state: Dict[str, Any] = {
+            "startup_time": time.time(),
+            "mcp_servers": {},
+            "agents": {},         # logical agent bookkeeping only (no processes here)
+            "health_checks": {},
+            "last_update": time.time(),
+        }
+
+        # Validate minimal environment — be lenient to keep worker alive
+        if not os.getenv("GITHUB_TOKEN"):
+            logger.warning("GITHUB_TOKEN is not set. GitHub automation will be skipped.")
+        if not os.getenv("OPENAI_API_KEY"):
+            logger.info("OPENAI_API_KEY is not set. Downstream LLM analysis will be skipped if required.")
+
+    # ---------- MCP ----------
+    def start_mcp_servers(self) -> None:
+        logger.info("Starting MCP servers...")
+        configs = {
+            "github": Path("mcp-integration/github_mcp_server_clean.py"),
+            "render": Path("mcp-integration/render_mcp_server_clean.py"),
+            "xmrt": Path("mcp-integration/xmrt_mcp_server_clean.py"),
+        }
+        for name, script in configs.items():
+            proc = MCPProcess(name, script)
+            ok = proc.start()
+            if ok:
+                self.processes[name] = proc
+                with self.state_lock:
+                    self.state["mcp_servers"][name] = {
+                        "status": "running",
+                        "pid": proc.proc.pid if proc.proc else None,
+                        "started_at": time.time(),
+                    }
+            else:
+                with self.state_lock:
+                    self.state["mcp_servers"][name] = {"status": "not_found"}
+
+    def monitor_loop(self) -> None:
+        logger.info("Deployment monitoring loop started (interval=%ss)", self.monitor_interval)
+        while not self.shutdown_flag.is_set():
+            try:
+                for name, proc in list(self.processes.items()):
+                    status = "running" if proc.is_running() else "stopped"
+                    with self.state_lock:
+                        self.state["mcp_servers"].setdefault(name, {})["status"] = status
+                with self.state_lock:
+                    self.state["health_checks"]["deployment_monitoring"] = {
+                        "status": "healthy",
+                        "last_check": time.time(),
+                    }
+                    self.state["last_update"] = time.time()
+            except Exception as e:  # pragma: no cover
+                logger.warning("Monitor error: %s", e)
+            time.sleep(self.monitor_interval)
+
+    # ---------- Learning ----------
+    def learning_loop(self) -> None:
+        logger.info("Learning loop started (interval=%ss)", self.learning_interval)
+        # lightweight heartbeat; real learning is delegated to app-side agents
+        while not self.shutdown_flag.is_set():
+            with self.state_lock:
+                self.state["agents"]["heartbeat"] = {
+                    "status": "alive",
+                    "last_activity": time.time(),
+                }
+                self.state["last_update"] = time.time()
+            emit_coordination_event(
+                "coordination.request",
+                {"action": "heartbeat", "source": "worker", "ts": int(time.time())},
+            )
+            time.sleep(self.learning_interval)
+
+    # ---------- GitHub Automation ----------
+    def github_loop(self) -> None:
+        if not self.gh_automation.gh:
+            logger.info("GitHub automation disabled (no GITHUB_TOKEN or PyGithub missing).")
+            return
+        logger.info(
+            "GitHub automation loop started (interval=%ss ±%ss) global_discovery=%s",
+            self.scan_interval, self.scan_jitter, self.gh_automation.global_discovery,
+        )
+        while not self.shutdown_flag.is_set():
+            try:
+                self.gh_automation.run_cycle()
+            except Exception as e:  # pragma: no cover
+                logger.warning("GitHub automation cycle error: %s", e)
+            _jittered_sleep(self.scan_interval, self.scan_jitter)
+
+    # ---------- Lifecycle ----------
+    def start(self) -> None:
+        logger.info("🚀 XMRT Worker starting… (no network port will be opened)")
+        self.start_mcp_servers()
+
+        # Threads
+        threading.Thread(target=self.monitor_loop, name="monitor", daemon=True).start()
+        threading.Thread(target=self.learning_loop, name="learning", daemon=True).start()
+        threading.Thread(target=self.github_loop, name="github", daemon=True).start()
+
+        # Initial coordination event
+        emit_coordination_event(
+            "coordination.request",
+            {
+                "action": "worker_started",
+                "mcp": list(self.state["mcp_servers"].keys()),
+                "safe_mode": os.getenv("GITHUB_SAFE_MODE", "advice"),
+                "dry_run": _b2bool(os.getenv("XMRT_DRY_RUN", "1"), True),
+            },
+        )
+
+    def stop(self) -> None:
+        logger.info("Stopping XMRT Worker…")
+        self.shutdown_flag.set()
+        for proc in self.processes.values():
+            proc.stop()
+
+    def status_snapshot(self) -> Dict[str, Any]:
+        with self.state_lock:
+            return json.loads(json.dumps(self.state))
+
+# ---------------------------
+# Entrypoint
+# ---------------------------
+def main() -> None:
+    mgr = XMRTSystemManager()
+
+    # Graceful shutdown handlers
+    def _graceful(signum, frame):  # pragma: no cover
+        logger.info("Received signal %s; shutting down.", signum)
+        mgr.stop()
         sys.exit(0)
-    except Exception as e:
-        logger.error(f"Unexpected error: {e}")
-        system_manager.shutdown_system()
-        sys.exit(1)
+
+    for sig in (signal.SIGINT, signal.SIGTERM):
+        signal.signal(sig, _graceful)
+
+    mgr.start()
+    logger.info("XMRT worker is running. (Use the web service for API/UI)")
+
+    # Keep alive
+    try:
+        while True:
+            time.sleep(60)
+            snap = mgr.status_snapshot()
+            active_mcp = sum(1 for s in snap["mcp_servers"].values() if s.get("status") == "running")
+            logger.info("Status: %s MCP servers running", active_mcp)
+    except KeyboardInterrupt:  # pragma: no cover
+        _graceful("KeyboardInterrupt", None)
 
 if __name__ == "__main__":
     main()
+```
