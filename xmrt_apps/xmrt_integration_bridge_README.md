@@ -22,9 +22,9 @@ Type: integration_bridge
 
 ## Target Repositories
 
-- xmrt-openai-agents-js
-- xmrt-rust
-- xmrt-agno
+- assetverse-nexus
+- xmrt-test-env
+- xmrt-eliza-enhanced
 
 ## Open Source Components
 
