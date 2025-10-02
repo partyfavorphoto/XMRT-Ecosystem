@@ -1,114 +1,73 @@
 #!/usr/bin/env python3
 """
-Configuration for XMRT Integration Bridge
-XMRT Ecosystem Application Configuration
+Configuration module for XMRT Integration Bridge
 """
 
 import os
 from datetime import datetime
+from typing import Dict, List, Optional
 
 class XMRTIntegrationBridgeConfig:
-    """Configuration class for XMRT Integration Bridge"""
-    
-    # XMRT Ecosystem Configuration
-    XMRT_REPOSITORIES = ['XMRT-Ecosystem', 'xmrtassistant', 'xmrtcash', 'assetverse-nexus', 'xmrt-signup', 'xmrt-test-env', 'eliza-xmrt-dao', 'xmrt-eliza-enhanced', 'xmrt-activepieces', 'xmrt-openai-agents-js', 'xmrt-agno', 'xmrt-rust', 'xmrt-rayhunter']
-    
-    # API Endpoints
-    GITHUB_API_BASE = "https://api.github.com"
-    XMRT_API_BASE = "https://xmrt.vercel.app"
-    MOBILE_MONERO_API = "https://mobilemonero.com/api"
-    CASHDAPP_API = "https://cashdapp.vercel.app/api"
-    MESHNET_API = "https://meshnet.xmrt.vercel.app/api"
-    
-    # Application Settings
+    XMRT_REPOSITORIES = [
+        "XMRT-Ecosystem",
+        "xmrtassistant",
+        "xmrtcash",
+        "assetverse-nexus",
+        "xmrt-signup",
+        "xmrt-test-env",
+        "eliza-xmrt-dao",
+        "xmrt-eliza-enhanced",
+        "xmrt-activepieces",
+        "xmrt-openai-agents-js",
+        "xmrt-agno",
+        "xmrt-rust",
+        "xmrt-rayhunter"
+]
     VERSION = "1.0.0"
+    APPLICATION_NAME = "XMRT Integration Bridge"
+    APPLICATION_TYPE = "integration_bridge"
     DEBUG = os.environ.get('DEBUG', 'False').lower() == 'true'
-    
-    # GitHub Integration
+    ENVIRONMENT = os.environ.get('ENVIRONMENT', 'production')
     GITHUB_TOKEN = os.environ.get('GITHUB_TOKEN')
-    GITHUB_USERNAME = "DevGruGold"
-    
-    # OpenAI Integration
+    GITHUB_API_URL = "https://api.github.com"
     OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY')
-    
-    # XMRT DAO Configuration
-    XMRT_DAO_MODE = True
-    ECOSYSTEM_INTEGRATION = True
-    MOBILE_MINING_ENABLED = True
-    MESHNET_ENABLED = True
-    CASHDAPP_ENABLED = True
-    ELIZA_AI_ENABLED = True
-    
-    # Logging Configuration
+    MOBILE_MINING = {"enabled": True, "auto_optimize": True, "power_efficient_mode": True, "max_cpu_usage": 80, "battery_threshold": 20}
+    SECURITY_SETTINGS = {"encryption_enabled": True, "privacy_mode": True, "secure_communications": True, "audit_logging": True}
+    PERFORMANCE_SETTINGS = {"cache_enabled": True, "async_operations": True, "batch_processing": True, "optimization_level": "high"}
     LOG_LEVEL = os.environ.get('LOG_LEVEL', 'INFO')
     LOG_FORMAT = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-    
-    # XMRT Ecosystem Specific
-    ECOSYSTEM_COMPONENTS = [
-        "XMRT-Ecosystem",
-        "MobileMonero.com", 
-        "CashDapp",
-        "MESHNET",
-        "Eliza AI Governor",
-        "XMRT Assistant",
-        "Asset Verse Nexus"
-    ]
-    
-    # Mobile Mining Configuration
-    MOBILE_MINING_CONFIG = {
-        "enabled": True,
-        "optimization_level": "high",
-        "battery_management": True,
-        "network_efficiency": True,
-        "meshnet_coordination": True
-    }
-    
-    # Privacy and Security
-    PRIVACY_SETTINGS = {
-        "monero_integration": True,
-        "no_kyc_policy": True,
-        "privacy_first": True,
-        "decentralized_banking": True
-    }
-    
-    # Application Metadata
     CREATED_AT = datetime.now().isoformat()
-    AUTHOR = "XMRT DAO Autonomous Agents"
-    LICENSE = "MIT"
-    ECOSYSTEM = "XMRT DAO"
-    
+    UPDATE_INTERVAL = 300
+    HEALTH_CHECK_INTERVAL = 60
+    INTEGRATIONS = {
+        "github": {"enabled": True, "rate_limit": 5000},
+        "discord": {"enabled": False, "webhook_url": None},
+        "telegram": {"enabled": False, "bot_token": None}
+    }
+
     @classmethod
-    def get_config_dict(cls):
-        """Get configuration as dictionary"""
+    def get_config_dict(cls) -> Dict:
         return {
-            "repositories": cls.XMRT_REPOSITORIES,
-            "api_endpoints": {
-                "github": cls.GITHUB_API_BASE,
-                "xmrt": cls.XMRT_API_BASE,
-                "mobile_monero": cls.MOBILE_MONERO_API,
-                "cashdapp": cls.CASHDAPP_API,
-                "meshnet": cls.MESHNET_API
-            },
             "version": cls.VERSION,
-            "ecosystem_components": cls.ECOSYSTEM_COMPONENTS,
-            "mobile_mining": cls.MOBILE_MINING_CONFIG,
-            "privacy_settings": cls.PRIVACY_SETTINGS,
-            "created_at": cls.CREATED_AT,
-            "xmrt_dao_mode": cls.XMRT_DAO_MODE
-        }
-    
-    @classmethod
-    def get_xmrt_ecosystem_status(cls):
-        """Get XMRT ecosystem status"""
-        return {
-            "ecosystem": "XMRT DAO",
-            "components_active": len(cls.ECOSYSTEM_COMPONENTS),
-            "mobile_mining": cls.MOBILE_MINING_CONFIG["enabled"],
-            "privacy_protection": cls.PRIVACY_SETTINGS["privacy_first"],
-            "decentralized_governance": cls.ELIZA_AI_ENABLED,
-            "offline_capability": cls.MESHNET_ENABLED,
-            "financial_sovereignty": cls.CASHDAPP_ENABLED
+            "application_name": cls.APPLICATION_NAME,
+            "application_type": cls.APPLICATION_TYPE,
+            "environment": cls.ENVIRONMENT,
+            "debug": cls.DEBUG,
+            "xmrt_repositories": cls.XMRT_REPOSITORIES,
+            "mobile_mining": cls.MOBILE_MINING,
+            "security_settings": cls.SECURITY_SETTINGS,
+            "performance_settings": cls.PERFORMANCE_SETTINGS,
+            "created_at": cls.CREATED_AT
         }
 
-# Export configuration instance
+    @classmethod
+    def validate_config(cls) -> bool:
+        required_settings = ['VERSION', 'APPLICATION_NAME', 'XMRT_REPOSITORIES']
+        for setting in required_settings:
+            if not hasattr(cls, setting):
+                return False
+        return True
+
 config = XMRTIntegrationBridgeConfig()
+if not config.validate_config():
+    raise ValueError("Invalid configuration detected")
