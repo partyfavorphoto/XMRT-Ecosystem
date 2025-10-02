@@ -22,9 +22,9 @@ Type: mobile_app
 
 ## Target Repositories
 
-- xmrt-signup
-- xmrtcash
-- xmrt-rayhunter
+- xmrt-test-env
+- assetverse-nexus
+- xmrtassistant
 
 ## Open Source Components
 
