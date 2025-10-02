@@ -22,9 +22,9 @@ Type: cli_utility
 
 ## Target Repositories
 
-- xmrt-agno
-- XMRT-Ecosystem
-- assetverse-nexus
+- xmrt-signup
+- xmrt-test-env
+- xmrtassistant
 
 ## Open Source Components
 
