@@ -22,9 +22,9 @@ Type: mobile_app
 
 ## Target Repositories
 
-- xmrt-activepieces
-- assetverse-nexus
-- xmrt-openai-agents-js
+- xmrt-signup
+- xmrtcash
+- xmrt-rayhunter
 
 ## Open Source Components
 
