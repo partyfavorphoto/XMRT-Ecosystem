@@ -23,8 +23,8 @@ Type: web_app
 ## Target Repositories
 
 - eliza-xmrt-dao
-- assetverse-nexus
-- xmrt-openai-agents-js
+- xmrt-activepieces
+- xmrtcash
 
 ## Open Source Components
 
