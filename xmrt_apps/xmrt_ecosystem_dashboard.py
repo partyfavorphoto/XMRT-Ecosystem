@@ -5,7 +5,7 @@ Comprehensive web dashboard for XMRT ecosystem health and metrics
 
 XMRT Ecosystem Application
 Type: web_app
-Target Repositories: eliza-xmrt-dao, xmrt-activepieces, xmrtcash
+Target Repositories: xmrt-agno, xmrtcash, xmrtassistant
 
 This application is part of the XMRT DAO ecosystem, focusing on
 mobile-first cryptocurrency mining, AI governance, and decentralized systems.
@@ -27,7 +27,7 @@ logger = logging.getLogger(__name__)
 class XMRTEcosystemDashboard:
     def __init__(self):
         self.config = {
-            "xmrt_repositories": ["eliza-xmrt-dao", "xmrt-activepieces", "xmrtcash"],
+            "xmrt_repositories": ["xmrt-agno", "xmrtcash", "xmrtassistant"],
             "version": "1.0.0",
             "type": "web_app",
             "github_token": os.environ.get('GITHUB_TOKEN'),
