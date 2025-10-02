@@ -22,9 +22,9 @@ Type: mobile_app
 
 ## Target Repositories
 
-- xmrt-signup
+- xmrt-eliza-enhanced
+- xmrtassistant
 - xmrt-openai-agents-js
-- xmrtcash
 
 ## Open Source Components
 
