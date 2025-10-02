@@ -5,7 +5,7 @@ Mobile application for optimizing Monero mining performance
 
 XMRT Ecosystem Application
 Type: mobile_app
-Target Repositories: xmrt-signup, xmrt-openai-agents-js, xmrtcash
+Target Repositories: xmrt-eliza-enhanced, xmrtassistant, xmrt-openai-agents-js
 
 This application is part of the XMRT DAO ecosystem, focusing on
 mobile-first cryptocurrency mining, AI governance, and decentralized systems.
@@ -27,7 +27,7 @@ logger = logging.getLogger(__name__)
 class XMRTMiningOptimizer:
     def __init__(self):
         self.config = {
-            "xmrt_repositories": ["xmrt-signup", "xmrt-openai-agents-js", "xmrtcash"],
+            "xmrt_repositories": ["xmrt-eliza-enhanced", "xmrtassistant", "xmrt-openai-agents-js"],
             "version": "1.0.0",
             "type": "mobile_app",
             "github_token": os.environ.get('GITHUB_TOKEN'),
