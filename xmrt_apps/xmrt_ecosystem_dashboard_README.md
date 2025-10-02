@@ -22,9 +22,9 @@ Type: web_app
 
 ## Target Repositories
 
-- xmrt-agno
-- xmrtcash
-- xmrtassistant
+- XMRT-Ecosystem
+- xmrt-signup
+- xmrt-eliza-enhanced
 
 ## Open Source Components
 
