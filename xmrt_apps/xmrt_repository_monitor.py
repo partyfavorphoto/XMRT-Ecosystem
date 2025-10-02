@@ -5,7 +5,7 @@ Real-time monitoring tool for XMRT ecosystem repositories
 
 XMRT Ecosystem Application
 Type: cli_utility
-Target Repositories: xmrt-signup, xmrt-agno, eliza-xmrt-dao
+Target Repositories: xmrt-agno, XMRT-Ecosystem, assetverse-nexus
 
 This application is part of the XMRT DAO ecosystem, focusing on
 mobile-first cryptocurrency mining, AI governance, and decentralized systems.
@@ -27,7 +27,7 @@ logger = logging.getLogger(__name__)
 class XMRTRepositoryMonitor:
     def __init__(self):
         self.config = {
-            "xmrt_repositories": ["xmrt-signup", "xmrt-agno", "eliza-xmrt-dao"],
+            "xmrt_repositories": ["xmrt-agno", "XMRT-Ecosystem", "assetverse-nexus"],
             "version": "1.0.0",
             "type": "cli_utility",
             "github_token": os.environ.get('GITHUB_TOKEN'),
