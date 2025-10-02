@@ -5,7 +5,7 @@ Mobile application for optimizing Monero mining performance
 
 XMRT Ecosystem Application
 Type: mobile_app
-Target Repositories: xmrt-signup, xmrtcash, xmrt-rayhunter
+Target Repositories: xmrt-test-env, assetverse-nexus, xmrtassistant
 
 This application is part of the XMRT DAO ecosystem, focusing on
 mobile-first cryptocurrency mining, AI governance, and decentralized systems.
@@ -27,7 +27,7 @@ logger = logging.getLogger(__name__)
 class XMRTMiningOptimizer:
     def __init__(self):
         self.config = {
-            "xmrt_repositories": ["xmrt-signup", "xmrtcash", "xmrt-rayhunter"],
+            "xmrt_repositories": ["xmrt-test-env", "assetverse-nexus", "xmrtassistant"],
             "version": "1.0.0",
             "type": "mobile_app",
             "github_token": os.environ.get('GITHUB_TOKEN'),
