@@ -22,8 +22,8 @@ Type: cli_utility
 
 ## Target Repositories
 
-- xmrt-rust
 - XMRT-Ecosystem
+- eliza-xmrt-dao
 - xmrt-test-env
 
 ## Open Source Components
