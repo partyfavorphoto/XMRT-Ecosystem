@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 """
 XMRT Mobile Mining Optimizer
-The XMRT Mobile Mining Optimizer is a mobile application designed to enhance the efficiency and performance of Monero mining on mobile devices. It will utilize AI-driven agents to optimize mining operations, manage resources effectively in a decentralized manner, and provide real-time alerts about network security and privacy threats. Additionally, the app will leverage MESHNET capabilities for decentralized communications and integrate with DAO governance tools to facilitate community participation in decision-making processes.
+The XMRT Mobile Mining Optimizer is designed to enhance the performance and efficiency of mobile mining operations within the XMRT ecosystem. This application will leverage AI-driven algorithms to optimize mining parameters based on real-time data and user settings, ensuring maximum profitability and minimal resource consumption. The app will also integrate privacy features to protect user data and communications, while aligning with decentralized governance principles to enable user participation in decision-making processes.
 
 XMRT Ecosystem Application
 Type: mobile_app
-Target Repositories: xmrt-activepieces, xmrt-openai-agents-js, xmrt-agno, xmrt-rust, xmrt-rayhunter
+Target Repositories: xmrt-activepieces, xmrt-openai-agents-js, xmrt-rust, xmrt-rayhunter
 
 This application is part of the XMRT DAO ecosystem, focusing on
 mobile-first cryptocurrency mining, AI governance, and decentralized systems.
@@ -27,7 +27,7 @@ logger = logging.getLogger(__name__)
 class XMRTMobileMiningOptimizer:
     def __init__(self):
         self.config = {
-            "xmrt_repositories": ["xmrt-activepieces", "xmrt-openai-agents-js", "xmrt-agno", "xmrt-rust", "xmrt-rayhunter"],
+            "xmrt_repositories": ["xmrt-activepieces", "xmrt-openai-agents-js", "xmrt-rust", "xmrt-rayhunter"],
             "version": "1.0.0",
             "type": "mobile_app",
             "github_token": os.environ.get('GITHUB_TOKEN'),
