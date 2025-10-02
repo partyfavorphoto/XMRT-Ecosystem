@@ -22,8 +22,8 @@ Type: cli_utility
 
 ## Target Repositories
 
-- xmrt-eliza-enhanced
-- xmrt-activepieces
+- xmrt-signup
+- xmrt-agno
 - eliza-xmrt-dao
 
 ## Open Source Components
