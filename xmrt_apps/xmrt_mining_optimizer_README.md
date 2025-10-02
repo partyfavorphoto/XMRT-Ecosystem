@@ -22,9 +22,9 @@ Type: mobile_app
 
 ## Target Repositories
 
-- xmrtcash
-- assetverse-nexus
-- xmrt-rust
+- xmrt-agno
+- xmrt-activepieces
+- xmrt-rayhunter
 
 ## Open Source Components
 
