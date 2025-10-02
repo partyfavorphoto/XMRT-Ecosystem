@@ -22,9 +22,9 @@ Type: cli_utility
 
 ## Target Repositories
 
-- xmrt-agno
-- xmrt-rayhunter
-- xmrt-signup
+- assetverse-nexus
+- xmrtassistant
+- xmrt-eliza-enhanced
 
 ## Open Source Components
 
