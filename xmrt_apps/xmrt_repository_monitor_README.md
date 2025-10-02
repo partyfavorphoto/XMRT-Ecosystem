@@ -22,9 +22,9 @@ Type: cli_utility
 
 ## Target Repositories
 
-- XMRT-Ecosystem
+- xmrt-eliza-enhanced
+- xmrt-activepieces
 - eliza-xmrt-dao
-- xmrt-test-env
 
 ## Open Source Components
 
