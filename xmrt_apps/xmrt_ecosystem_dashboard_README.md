@@ -22,9 +22,9 @@ Type: web_app
 
 ## Target Repositories
 
-- eliza-xmrt-dao
-- xmrt-activepieces
+- xmrt-agno
 - xmrtcash
+- xmrtassistant
 
 ## Open Source Components
 
