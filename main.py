@@ -25,6 +25,7 @@ except ImportError:
 # OpenAI integration
 try:
     from openai import OpenAI
+    import httpx  # For custom http_client
     OPENAI_AVAILABLE = True
 except ImportError:
     OPENAI_AVAILABLE = False
@@ -125,13 +126,15 @@ class AIProcessor:
     def __init__(self):
         self.openai_client = None
         if OPENAI_AVAILABLE and os.environ.get('OPENAI_API_KEY'):
-            self.openai_client = OpenAI(api_key=os.environ.get('OPENAI_API_KEY'))
-            # Test connection
             try:
+                # Fix: Use custom http_client to disable proxies
+                http_client = httpx.Client(proxies=None)
+                self.openai_client = OpenAI(api_key=os.environ.get('OPENAI_API_KEY'), http_client=http_client)
+                # Test connection
                 self.openai_client.chat.completions.create(model="gpt-4", messages=[{"role": "user", "content": "Test"}], max_tokens=5)
                 logger.info("✅ OpenAI connected successfully")
             except Exception as e:
-                logger.error(f"OpenAI test failed: {e}")
+                logger.error(f"OpenAI init failed: {e}")
                 self.openai_client = None
         self.gemini_model = None
         if GEMINI_AVAILABLE and os.environ.get('GEMINI_API_KEY'):
