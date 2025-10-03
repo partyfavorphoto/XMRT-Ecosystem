@@ -8,5 +8,5 @@ gunicorn
 flask_cors
 supabase
 flask-sock
-prometheus
-websocket
+prometheus-client
+websockets
