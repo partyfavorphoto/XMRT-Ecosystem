@@ -7,3 +7,4 @@ python-dotenv
 gunicorn
 asyncio
 flask_cors
+supabase-py
