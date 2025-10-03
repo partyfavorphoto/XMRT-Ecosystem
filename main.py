@@ -63,7 +63,7 @@ import uuid
 from dataclasses import dataclass, field, asdict
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, List, Literal, Optional, Tuple
+from typing import Any, Dict, List, Literal, Optional, Tuple, Union
 
 # Third-party imports — optional fallbacks when not available
 try:
@@ -650,7 +650,7 @@ class XMRTGitHub:
             self._client = None
 
     # ---------------------------- Helpers -----------------------------------------
-    def _org(self):  # type: ignore[override]
+    def _org(self) -> Any:  # Fixed: removed conflicting type hint
         if not self._client:
             return None
         try:
@@ -807,7 +807,7 @@ class ConsensusEngine:
 
     def __init__(self, db: DB) -> None:
         self.db = db
-        self._openai_client = None
+        self._openai_client: Optional[Any] = None
         if OPENAI_API_KEY and OpenAI:
             try:
                 self._openai_client = OpenAI()
@@ -954,7 +954,7 @@ STAGE_ORDER: List[Stage] = ["discover", "assess", "bootstrap", "integrate", "ver
 class Coordinator(threading.Thread):
     daemon = True
 
-    def __init__(self, db: DB, gh: XMRTGitHub):
+    def __init__(self, db: DB, gh: XMRTGitHub) -> None:
         super().__init__(name="xmrt-coordinator")
         self.db = db
         self.gh = gh
@@ -1037,7 +1037,7 @@ class Coordinator(threading.Thread):
                         description=desc,
                         repo=plan.name,
                         category=plan.category,
-                        stage=stage,  # type: ignore[arg-type]
+                        stage=stage,
                         status="PENDING" if exists else "BLOCKED",
                         priority=5,
                         assignee_agent_id=None,
@@ -1283,9 +1283,9 @@ def create_app(db: DB, coordinator: Coordinator) -> Flask:
 
     @app.route("/api/tasks", methods=["GET"])
     def api_tasks() -> Response:
-        status = request.args.get("status")
+        status_param = request.args.get("status")
         limit = int(request.args.get("limit", "50"))
-        tasks = db.list_tasks(limit=limit, status=status)
+        tasks = db.list_tasks(limit=limit, status=status_param)
         return jsonify([t.to_dict() for t in tasks])
 
     @app.route("/api/decisions", methods=["GET"])
@@ -1308,11 +1308,11 @@ def create_app(db: DB, coordinator: Coordinator) -> Flask:
 # --------------------------------------------------------------------------------------
 
 # Global instances for gunicorn
-_db = None
-_coordinator = None
-_app = None
+_db: Optional[DB] = None
+_coordinator: Optional[Coordinator] = None
+_app: Optional[Flask] = None
 
-def initialize_services():
+def initialize_services() -> Flask:
     """Initialize global services for production deployment."""
     global _db, _coordinator, _app
     
