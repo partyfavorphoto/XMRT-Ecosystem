@@ -1,780 +1,1201 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 """
-XMRT Ecosystem Main Application - Version 6.3 "Hardier GitHub"
-- Full multi-agent ideation → comments → weighted consensus → decision issue
-- Implements code + README + story, then opens a Discussion (or story Issue fallback)
-- Discovers ALL repos named like xmrt* via owner listing OR REST search (user/org)
-- Runs real GitHub mode even if owner fetch fails, as long as repo fetch works
+XMRT Ecosystem Main Application - v7.0 (Consensus + MCP + Guided Integration)
+=============================================================================
+
+One script to rule them all.
+
+This version:
+- Preserves your working Flask service + consensus loop.
+- Adds a Model Context Protocol (MCP) bridge (HTTP-style) to list/call tools.
+- Builds a *guided integration plan* from your 72-repo ecosystem document and
+  drives *real* GitHub issues/commits for work tracking and integration stubs.
+- Removes "simulation" results. If a real dependency/service (GitHub/OpenAI/MCP)
+  isn't available, we return a clear, explicit error instead of fabricating data.
+- Provides endpoints to inspect agents, tasks, status, and to trigger cycles.
+
+Environment variables:
+- OPENAI_API_KEY           (required for AI-powered consensus/tie-breaks)
+- OPENAI_MODEL             (default: gpt-4o-mini)
+- GEMINI_API_KEY           (optional secondary LLM)
+- GITHUB_TOKEN             (required for real GitHub actions)
+- MCP_SERVER_URL           (optional; e.g. http://mcp-gateway:3000)
+- MCP_API_KEY              (optional)
+- ADMIN_TOKEN              (optional; protects mutating endpoints if set)
+- PORT                     (Render supplies; default 10000)
+
+Security:
+- If ADMIN_TOKEN is set, mutating endpoints require header:
+  Authorization: Bearer <ADMIN_TOKEN>
+
+Logging style:
+- Matches your previous deploy logs.
+
+Author’s note:
+- The integration backlog and priorities are derived from your 72-repo guide,
+  with specific first-wave goals for xmrt-syft-client, xmrt-ragflow, xmrt-autogen.
 """
+
+from __future__ import annotations
 
 import os
 import re
 import sys
 import json
 import time
-import queue
+import hmac
+import math
 import signal
-import random
 import logging
+import random
 import threading
-from datetime import datetime
-from typing import Any, Dict, List, Optional, Tuple
+import traceback
+from dataclasses import dataclass, field, asdict
+from typing import Any, Dict, Optional, List, Tuple, Callable
+from datetime import datetime, timedelta
 
-from flask import Flask, jsonify, request, render_template_string
+import requests
+from flask import Flask, jsonify, request, make_response, render_template_string
 from flask_cors import CORS
 
-# ---------- Optional deps ----------
+# -------------------- Optional dependencies (loaded lazily) --------------------
 try:
     from github import Github, Auth, GithubException
     GITHUB_AVAILABLE = True
-except ImportError:
+except Exception:
     GITHUB_AVAILABLE = False
 
 try:
     from openai import OpenAI
     OPENAI_AVAILABLE = True
-except ImportError:
+except Exception:
     OPENAI_AVAILABLE = False
 
 try:
     import google.generativeai as genai
     GEMINI_AVAILABLE = True
-except ImportError:
+except Exception:
     GEMINI_AVAILABLE = False
 
 try:
     import psutil
     PSUTIL_AVAILABLE = True
-except ImportError:
+except Exception:
     PSUTIL_AVAILABLE = False
+# ------------------------------------------------------------------------------
 
-import requests  # used for REST fallback
 
-# ---------- Config / Globals ----------
-LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO").upper()
-logging.basicConfig(level=LOG_LEVEL, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
-log = logging.getLogger("xmrt-main")
+# ============================ Logging Configuration ============================
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - xmrt-main - %(levelname)s - %(message)s"
+)
+logger = logging.getLogger("xmrt-main")
+
+
+# ============================ Flask App & Config ===============================
 
 app = Flask(__name__)
 CORS(app)
 
-HOST = os.getenv("HOST", "0.0.0.0")
-PORT = int(os.getenv("PORT", "10000"))
-OWNER = os.getenv("GITHUB_OWNER", "DevGruGold")
-REPO_ECOSYSTEM = os.getenv("GITHUB_REPO", "XMRT-Ecosystem")
-DEFAULT_OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
-FORCE_SIMULATE = os.getenv("XMRT_FORCE_SIMULATE", "false").lower() == "true"
+DEFAULT_OPENAI_MODEL = os.environ.get("OPENAI_MODEL", "gpt-4o-mini")
+PORT = int(os.environ.get("PORT", "10000"))
+ADMIN_TOKEN = os.environ.get("ADMIN_TOKEN")  # Optional bearer for mutations
 
-READY = threading.Event()
-SHUTDOWN = threading.Event()
+HTML_INDEX = """<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>XMRT Ecosystem (v7.0 MCP + Guided Integration)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body { font: 14px/1.4 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji"; margin: 28px; color: #111; }
+    code, pre { background: #f7f7f9; padding: 2px 4px; border-radius: 4px; }
+    .pill { display: inline-block; padding: 4px 8px; border-radius: 999px; background: #eef; margin: 0 6px 6px 0; }
+    .ok { background:#e6ffed; }
+    .warn { background:#fff5e6; }
+    .err { background:#ffe6e6; }
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono","Courier New", monospace; }
+    .small { color: #666; }
+    h1, h2, h3 { margin-top: 1.2em; }
+    a { color: #0b5ed7; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 14px; }
+    .card { border: 1px solid #e5e7eb; border-radius: 12px; padding: 14px; }
+  </style>
+</head>
+<body>
+  <h1>XMRT Ecosystem (v7.0)</h1>
+  <p>Consensus + MCP bridge + guided integration across forked repos.</p>
 
-system_state: Dict[str, Any] = {
-    "status": "operational",
-    "startup_time": time.time(),
-    "version": "6.3.0-hardy-github",
-    "mode": "XMRT_INNOVATION_CYCLE",
-    "owner": OWNER,
-    "ecosystem_repo": REPO_ECOSYSTEM,
-}
-
-analytics: Dict[str, Any] = {
-    "requests_count": 0,
-    "ai_operations": 0,
-    "github_operations": 0,
-    "issues_created": 0,
-    "discussions_created": 0,
-    "story_issues_created": 0,
-    "files_created": 0,
-    "files_updated": 0,
-    "repositories_discovered": 0,
-    "ideas_generated": 0,
-    "comments_posted": 0,
-    "feature_cycles_completed": 0,
-    "system_health": {"cpu": 0.0, "mem": 0.0, "disk": 0.0},
-}
-
-AGENTS: Dict[str, Dict[str, Any]] = {
-    "eliza": {"name": "Eliza", "role": "Coordinator & Governor", "voice": "strategic, synthesizes viewpoints", "weight": 1.2},
-    "security_guardian": {"name": "Security Guardian", "role": "Security & Privacy", "voice": "threat-models, privacy-first", "weight": 1.1},
-    "defi_specialist": {"name": "DeFi Specialist", "role": "Mining & Tokenomics", "voice": "ROI, efficiency, yield", "weight": 1.05},
-    "community_manager": {"name": "Community Manager", "role": "Adoption & UX", "voice": "onboarding, docs, growth", "weight": 1.0},
-}
-
-# ---------- AI ----------
-class AIProcessor:
-    def __init__(self, eager_probe: bool = False):
-        self.openai = None
-        self.gemini = None
-        if OPENAI_AVAILABLE and os.getenv("OPENAI_API_KEY"):
-            try:
-                self.openai = OpenAI()
-                if eager_probe:
-                    _ = self.openai.chat.completions.create(
-                        model=DEFAULT_OPENAI_MODEL,
-                        messages=[{"role": "user", "content": "ping"}],
-                        max_tokens=2,
-                    )
-                log.info("OpenAI client initialized")
-            except Exception as e:
-                log.warning(f"OpenAI init failed: {e}")
-        if GEMINI_AVAILABLE and os.getenv("GEMINI_API_KEY"):
-            try:
-                genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
-                self.gemini = genai.GenerativeModel(os.getenv("GEMINI_MODEL", "gemini-pro"))
-            except Exception as e:
-                log.warning(f"Gemini init failed: {e}")
-
-    def is_available(self) -> bool:
-        return bool(self.openai or self.gemini)
-
-    def _chat(self, sys_prompt: str, user_prompt: str, max_tokens: int = 1200, temperature: float = 0.7) -> str:
-        if self.openai:
-            try:
-                r = self.openai.chat.completions.create(
-                    model=DEFAULT_OPENAI_MODEL,
-                    messages=[
-                        {"role": "system", "content": sys_prompt},
-                        {"role": "user", "content": user_prompt},
-                    ],
-                    max_tokens=max_tokens,
-                    temperature=temperature,
-                )
-                analytics["ai_operations"] += 1
-                return r.choices[0].message.content or ""
-            except Exception as e:
-                log.warning(f"OpenAI error: {e}")
-        if self.gemini:
-            try:
-                r = self.gemini.generate_content(f"{sys_prompt}\n\n{user_prompt}")
-                analytics["ai_operations"] += 1
-                return getattr(r, "text", "") or ""
-            except Exception as e:
-                log.warning(f"Gemini error: {e}")
-        return ""
-
-    def ideate(self, repos_summary: List[Dict[str, Any]], n: int = 7) -> List[Dict[str, Any]]:
-        sys_prompt = "You are an XMRT DAO strategist (mobile mining, mesh, privacy, adoption)."
-        user_prompt = (
-            "Propose high-impact, concrete features/utilities for this ecosystem. "
-            "Return JSON array of objects: title, description, rationale, impact (1-5), complexity (1-5), tags (list). "
-            f"Generate {n} distinct ideas.\n\nREPOS:\n{json.dumps(repos_summary, indent=2)}"
-        )
-        text = self._chat(sys_prompt, user_prompt)
-        ideas: List[Dict[str, Any]] = []
-        for candidate in re.findall(r"\[[\s\S]*\]", text):
-            try:
-                parsed = json.loads(candidate)
-                if isinstance(parsed, list):
-                    for x in parsed:
-                        if isinstance(x, dict) and "title" in x:
-                            ideas.append(x)
-                    break
-            except Exception:
-                continue
-        if not ideas:
-            ideas = [
-                {"title": "Adaptive Mobile Mining Profiles", "description": "Auto-tune CPU/battery/net profiles.", "rationale": "Boost hash-per-watt.", "impact": 5, "complexity": 3, "tags": ["mining", "optimizer", "mobile"]},
-                {"title": "Mesh Health Beacons", "description": "UDP beacons for offline discovery.", "rationale": "Mesh resilience.", "impact": 5, "complexity": 2, "tags": ["meshnet", "offline"]},
-                {"title": "Proof-of-Participation Badges", "description": "Signed badges feed governance.", "rationale": "Align effort & votes.", "impact": 4, "complexity": 3, "tags": ["governance", "reputation"]},
-                {"title": "XMRT Cross-Indexer", "description": "Unified API over all xmrt* repos.", "rationale": "Dev velocity.", "impact": 4, "complexity": 2, "tags": ["devtools", "api"]},
-                {"title": "Mesh-First Wallet Alerts", "description": "Offline alerts; sync later.", "rationale": "Trust-minimized UX.", "impact": 4, "complexity": 3, "tags": ["wallet", "meshnet"]},
-                {"title": "One-Tap MobileMonero Onboarding", "description": "Termux bootstrap + verify.", "rationale": "Drop friction.", "impact": 5, "complexity": 3, "tags": ["onboarding", "mobile", "ux"]},
-                {"title": "Edge Telemetry Pack", "description": "Privacy-preserving miner metrics.", "rationale": "Optimize safely.", "impact": 4, "complexity": 2, "tags": ["telemetry", "privacy"]},
-            ]
-        analytics["ideas_generated"] += len(ideas)
-        return ideas
-
-    def agent_reviews(self, ideas: List[Dict[str, Any]]) -> Dict[str, List[Dict[str, Any]]]:
-        out: Dict[str, List[Dict[str, Any]]] = {k: [] for k in AGENTS.keys()}
-        for agent_id, meta in AGENTS.items():
-            for idea in ideas:
-                impact = float(idea.get("impact", 3))
-                complexity = float(idea.get("complexity", 3))
-                tags = [t.lower() for t in idea.get("tags", [])]
-                boost = 0.0
-                if agent_id == "security_guardian" and any(t in tags for t in ["privacy", "security", "meshnet"]): boost += 2.0
-                if agent_id == "defi_specialist" and any(t in tags for t in ["mining", "optimizer", "governance"]): boost += 2.0
-                if agent_id == "community_manager" and any(t in tags for t in ["onboarding", "ux", "alerts"]): boost += 2.0
-                if agent_id == "eliza": boost += 1.5
-                base = 5.0
-                score = max(0.0, min(10.0, base + (impact - 0.3 * complexity) + boost))
-                comment = f"{meta['name']} ({meta['role']}): {meta['voice']}. Assessment for '{idea['title']}': impact={impact}, complexity={complexity}, score={round(score,2)}."
-                out[agent_id].append({"title": idea["title"], "comment": comment, "score": round(score, 2)})
-        return out
-
-    def choose(self, ideas: List[Dict[str, Any]], reviews: Dict[str, List[Dict[str, Any]]]) -> Tuple[Dict[str, Any], Dict[str, float]]:
-        totals: Dict[str, float] = {i["title"]: 0.0 for i in ideas}
-        for aid, arr in reviews.items():
-            w = float(AGENTS[aid]["weight"])
-            for r in arr:
-                totals[r["title"]] += r["score"] * w
-        winner = max(totals, key=lambda k: totals[k]) if totals else ideas[0]["title"]
-        return next(i for i in ideas if i["title"] == winner), totals
-
-ai = AIProcessor()
-
-# ---------- GitHub ----------
-class GitHubClient:
-    def __init__(self, owner: str, repo_name: str):
-        self.owner = owner
-        self.repo_name = repo_name
-        self.token = os.getenv("GITHUB_TOKEN")
-        self.simulate = FORCE_SIMULATE or not (self.token and GITHUB_AVAILABLE)
-        self.gh = None
-        self.owner_obj = None
-        self.repo = None
-
-        if not GITHUB_AVAILABLE:
-            log.warning("PyGithub not available -> simulate mode")
-            self.simulate = True
-            return
-
-        if FORCE_SIMULATE:
-            log.warning("XMRT_FORCE_SIMULATE=true -> simulate mode")
-            self.simulate = True
-            return
-
-        try:
-            auth = Auth.Token(self.token) if self.token else None
-            self.gh = Github(auth=auth) if auth else Github()
-            # Try direct repo first to enable real mode without owner resolution
-            try:
-                self.repo = self.gh.get_repo(f"{self.owner}/{self.repo_name}")
-                log.info("GitHub repo reachable (%s/%s). Enabling real mode.", self.owner, self.repo_name)
-                self.simulate = False
-            except Exception as e_repo:
-                log.warning(f"Direct repo fetch failed: {e_repo}")
-            # Best-effort owner resolve (optional)
-            if not self.owner_obj:
-                try:
-                    self.owner_obj = self.gh.get_user(self.owner)
-                except Exception:
-                    try:
-                        self.owner_obj = self.gh.get_organization(self.owner)
-                    except Exception as e_owner:
-                        log.warning(f"Owner resolve failed (user/org). Continuing with REST search fallback. Reason: {e_owner}")
-            if not self.repo and not self.simulate:
-                # Try again to get repo (owner might be resolved now)
-                try:
-                    self.repo = self.gh.get_repo(f"{self.owner}/{self.repo_name}")
-                except Exception:
-                    pass
-            if not self.repo and not self.owner_obj:
-                # Still no repo/owner: remain in simulate, but we can still REST search later.
-                log.warning("No repo/owner handle available; will use REST search for discovery.")
-        except Exception as e:
-            log.warning(f"GitHub init failed -> simulate mode. Reason: {e}")
-            self.simulate = True
-
-    # REST helper
-    def _rest(self, method: str, path: str, **kwargs) -> Tuple[int, Any]:
-        headers = kwargs.pop("headers", {})
-        headers.update({
-            "Accept": "application/vnd.github+json",
-            "User-Agent": "XMRT-Consensus-Builder",
-        })
-        if self.token:
-            headers["Authorization"] = f"Bearer {self.token}"
-            headers["X-GitHub-Api-Version"] = "2022-11-28"
-        url = f"https://api.github.com{path}"
-        resp = requests.request(method, url, headers=headers, timeout=30, **kwargs)
-        try:
-            return resp.status_code, resp.json()
-        except Exception:
-            return resp.status_code, resp.text
-
-    def list_xmrt_repos(self) -> List[Dict[str, Any]]:
-        repos: List[Dict[str, Any]] = []
-        # Preferred: owner_obj listing
-        if self.owner_obj and not self.simulate:
-            try:
-                for r in self.owner_obj.get_repos(type="public"):
-                    if r.name.lower().startswith("xmrt"):
-                        topics = []
-                        try:
-                            topics = r.get_topics()
-                        except Exception:
-                            pass
-                        repos.append({
-                            "name": r.name,
-                            "full_name": r.full_name,
-                            "description": r.description,
-                            "language": r.language,
-                            "topics": topics,
-                            "stars": r.stargazers_count,
-                            "forks": r.forks_count,
-                            "updated_at": r.updated_at.isoformat() if r.updated_at else None,
-                            "has_pages": r.has_pages,
-                        })
-                analytics["repositories_discovered"] = len(repos)
-                return repos
-            except Exception as e:
-                log.warning(f"Owner listing failed, falling back to REST search: {e}")
-
-        # REST Search fallback (works even without owner_obj)
-        try:
-            combined = {}
-            # Search as user
-            status, data = self._rest("GET", f"/search/repositories?q=user:{self.owner}+xmrt+in:name&per_page=100")
-            if status == 200 and isinstance(data, dict) and "items" in data:
-                for r in data["items"]:
-                    if r["name"].lower().startswith("xmrt"):
-                        combined[r["full_name"]] = r
-            # Search as org
-            status2, data2 = self._rest("GET", f"/search/repositories?q=org:{self.owner}+xmrt+in:name&per_page=100")
-            if status2 == 200 and isinstance(data2, dict) and "items" in data2:
-                for r in data2["items"]:
-                    if r["name"].lower().startswith("xmrt"):
-                        combined[r["full_name"]] = r
-
-            for r in combined.values():
-                repos.append({
-                    "name": r["name"],
-                    "full_name": r["full_name"],
-                    "description": r.get("description"),
-                    "language": r.get("language"),
-                    "topics": r.get("topics", []),
-                    "stars": r.get("stargazers_count", 0),
-                    "forks": r.get("forks_count", 0),
-                    "updated_at": r.get("updated_at"),
-                    "has_pages": r.get("has_pages", False),
-                })
-            analytics["repositories_discovered"] = len(repos)
-            if not repos:
-                log.warning("REST search found no xmrt* repos; using minimal seed list.")
-                repos = [{"name": "XMRT-Ecosystem", "full_name": f"{self.owner}/XMRT-Ecosystem", "language": "Python", "topics": ["xmrt"]}]
-                analytics["repositories_discovered"] = len(repos)
-            return repos
-        except Exception as e:
-            log.error(f"REST search failed: {e}")
-            repos = [{"name": "XMRT-Ecosystem", "full_name": f"{self.owner}/XMRT-Ecosystem", "language": "Python", "topics": ["xmrt"]}]
-            analytics["repositories_discovered"] = len(repos)
-            return repos
-
-    def create_or_update_file(self, path: str, message: str, content: str) -> Dict[str, Any]:
-        if self.repo and not self.simulate:
-            try:
-                self.repo.create_file(path, message, content)
-                analytics["files_created"] += 1
-                return {"created": True, "path": path}
-            except GithubException:
-                try:
-                    file = self.repo.get_contents(path)
-                    self.repo.update_file(path, f"Update: {message}", content, file.sha)
-                    analytics["files_updated"] += 1
-                    return {"updated": True, "path": path}
-                except Exception as e:
-                    log.error(f"File op error for {path}: {e}")
-                    return {"error": str(e), "path": path}
-            except Exception as e:
-                log.error(f"File op error for {path}: {e}")
-                return {"error": str(e), "path": path}
-        # simulate
-        analytics["files_created"] += 1
-        return {"simulated": True, "path": path}
-
-    def create_issue(self, title: str, body: str, labels: Optional[List[str]] = None) -> Dict[str, Any]:
-        if self.repo and not self.simulate:
-            try:
-                issue = self.repo.create_issue(title=title, body=body, labels=labels or [])
-                analytics["issues_created"] += 1
-                return {"number": issue.number, "url": issue.html_url}
-            except Exception as e:
-                log.error(f"Issue create failed: {e}")
-                return {"error": str(e)}
-        analytics["issues_created"] += 1
-        return {"simulated": True, "number": random.randint(1000, 9999)}
-
-    def comment_issue(self, issue_number: int, comment: str) -> Dict[str, Any]:
-        if self.repo and not self.simulate:
-            try:
-                issue = self.repo.get_issue(number=issue_number)
-                issue.create_comment(comment)
-                analytics["comments_posted"] += 1
-                return {"ok": True}
-            except Exception as e:
-                log.error(f"Issue comment failed: {e}")
-                return {"error": str(e)}
-        analytics["comments_posted"] += 1
-        return {"simulated": True}
-
-    def list_discussion_categories(self) -> List[Dict[str, Any]]:
-        if not self.token:
-            return []
-        status, data = self._rest("GET", f"/repos/{self.owner}/{self.repo_name}/discussions/categories")
-        if status == 200 and isinstance(data, list):
-            return data
-        return []
-
-    def create_discussion(self, title: str, body: str, category_name: str = "General") -> Dict[str, Any]:
-        if self.token and not self.simulate:
-            cats = self.list_discussion_categories()
-            cat_id = None
-            for c in cats:
-                if str(c.get("name", "")).lower() == category_name.lower():
-                    cat_id = c.get("id")
-                    break
-            if not cat_id and cats:
-                cat_id = cats[0].get("id")
-            if cat_id:
-                status, data = self._rest("POST", f"/repos/{self.owner}/{self.repo_name}/discussions", json={"title": title, "body": body, "category_id": cat_id})
-                if status in (200, 201):
-                    analytics["discussions_created"] += 1
-                    return {"ok": True, "number": data.get("number"), "url": data.get("html_url")}
-                log.warning(f"Discussion create failed ({status}): {data}")
-            # Fallback → Story as Issue (label: story)
-            story = self.create_issue(f"[Story] {title}", body, labels=["story"])
-            analytics["story_issues_created"] += 1
-            story["fallback"] = "story-issue"
-            return story
-        # simulate
-        analytics["discussions_created"] += 1
-        return {"simulated": True}
-
-gh = GitHubClient(OWNER, REPO_ECOSYSTEM)
-
-# ---------- Helpers ----------
-def summarize_repos_for_ai(repos: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-    out = []
-    for r in repos:
-        out.append({
-            "name": r.get("name"),
-            "language": r.get("language"),
-            "topics": r.get("topics", []),
-            "stars": r.get("stars", 0),
-            "updated_at": r.get("updated_at"),
-            "desc": (r.get("description") or "")[:140],
-        })
-    return out
-
-def slugify(name: str) -> str:
-    s = re.sub(r"[^a-zA-Z0-9\-_]+", "-", (name or "feature").strip())
-    s = re.sub(r"-{2,}", "-", s).strip("-")
-    return s.lower() or "feature"
-
-def implement_feature(app_name: str, idea: Dict[str, Any]) -> List[Dict[str, Any]]:
-    created: List[Dict[str, Any]] = []
-    slug = slugify(app_name)
-    base = f"xmrt_apps/{slug}"
-    files = {
-        f"{base}/{slug}.py": (
-            "#!/usr/bin/env python3\n"
-            f'"""{app_name}\n'
-            "Auto-generated by XMRT Consensus Builder.\n\n"
-            "Description:\n"
-            f"{idea.get('description','(no description)')}\n\n"
-            f"Tags: {', '.join(idea.get('tags', []))}\n"
-            '"""\n\n'
-            "import time, json, logging\n"
-            'logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")\n'
-            f'log = logging.getLogger("{slug}")\n\n'
-            "def run():\n"
-            f"    log.info('Initialized {app_name}')\n"
-            "    result = {\n"
-            "        'status': 'ok',\n"
-            f"        'feature': '{app_name}',\n"
-            "        'timestamp': time.time(),\n"
-            "    }\n"
-            "    print(json.dumps(result))\n\n"
-            "if __name__ == '__main__':\n"
-            "    run()\n"
-        ),
-        f"{base}/{slug}_config.py": (
-            f"# Config for {app_name}\n"
-            "CONFIG = {\n"
-            "  'version': '0.1.0',\n"
-            "  'enabled': True,\n"
-            "  'notes': 'Auto-generated; add integration params.'\n"
-            "}\n"
-        ),
-        f"{base}/{slug}_README.md": (
-            f"# {app_name}\n\n"
-            f"**Idea**: {idea.get('description','')}\n\n"
-            f"**Rationale**: {idea.get('rationale','')}\n\n"
-            f"**Tags**: {', '.join(idea.get('tags', []))}\n\n"
-            "Created by the XMRT multi-agent consensus flow.\n"
-            "Next steps:\n"
-            "- Wire into MobileMonero / MeshNet / Optimizer as applicable.\n"
-            "- Add tests and integration hooks.\n"
-        ),
-        f"docs/stories/{slug}.md": (
-            f"# Story: {app_name}\n\n"
-            f"- Idea: {idea.get('title','')}\n"
-            f"- Why: {idea.get('rationale','')}\n\n"
-            "Artifacts will be linked by CI (issue, commits, demos).\n"
-            f"*Generated {datetime.now().isoformat()} by XMRT Consensus Builder.*\n"
-        ),
-    }
-    for path, content in files.items():
-        created.append(gh.create_or_update_file(path, f"Add {app_name}: {os.path.basename(path)}", content))
-    return created
-
-# ---------- Innovation Cycle ----------
-def run_consensus_cycle() -> Dict[str, Any]:
-    repos = gh.list_xmrt_repos()
-    summaries = summarize_repos_for_ai(repos)
-    ideas = ai.ideate(summaries, n=7)
-    reviews = ai.agent_reviews(ideas)
-    winner, totals = ai.choose(ideas, reviews)
-
-    # Decision Issue
-    issue_title = f"[Consensus] Implement: {winner['title']}"
-    body = []
-    body.append(f"# Consensus Decision: {winner['title']}\n")
-    body.append("## Idea\n")
-    body.append(f"- Description: {winner.get('description','')}\n")
-    body.append(f"- Rationale: {winner.get('rationale','')}\n")
-    body.append(f"- Tags: {', '.join(winner.get('tags', []))}\n")
-    body.append(f"- Impact: {winner.get('impact','?')}  Complexity: {winner.get('complexity','?')}\n")
-    body.append("## Agent Scores\n")
-    for aid, arr in reviews.items():
-        nm = AGENTS[aid]["name"]
-        sc = next((x["score"] for x in arr if x["title"] == winner["title"]), None)
-        if sc is not None:
-            body.append(f"- {nm}: {sc}\n")
-    body.append("## Totals\n")
-    for k, v in sorted(totals.items(), key=lambda kv: kv[1], reverse=True):
-        body.append(f"- {k}: {round(v,2)}\n")
-    body.append("## Initial Plan\n- Create module under xmrt_apps/<slug>/\n- Add story in docs/stories/\n- Wire integration points next\n")
-    decision_issue = gh.create_issue(issue_title, "".join(body), labels=["consensus", "auto", "xmrt-feature"])
-    issue_no = decision_issue.get("number") or random.randint(1000, 9999)
-
-    # Agent comments on the decision issue
-    for aid, meta in AGENTS.items():
-        c = next((x for x in reviews[aid] if x["title"] == winner["title"]), None)
-        text = c["comment"] if c else f"{meta['name']}: Approve."
-        gh.comment_issue(issue_no, text)
-
-    # Implement files
-    files = implement_feature(winner["title"], winner)
-
-    # Story (Discussion or fallback Story Issue)
-    story_title = f"{winner['title']} shipped via Multi-Agent Consensus"
-    story_body = (
-        f"# {winner['title']}\n\n"
-        "Emerging from autonomous, multi-agent deliberation.\n\n"
-        f"- Decision Issue: #{issue_no}\n"
-        f"- Owner: {OWNER}/{REPO_ECOSYSTEM}\n\n"
-        f"**What/Why**\n- {winner.get('description','')}\n- {winner.get('rationale','')}\n\n"
-        f"**Artifacts**\n{json.dumps(files, indent=2)}\n"
-    )
-    discussion = gh.create_discussion(story_title, story_body, category_name="General")
-
-    analytics["feature_cycles_completed"] += 1
-    result = {
-        "repos_discovered": len(repos),
-        "ideas_count": len(ideas),
-        "winner": winner,
-        "totals": totals,
-        "decision_issue": decision_issue,
-        "files": files,
-        "story": discussion,
-        "timestamp": datetime.now().isoformat(),
-    }
-    return result
-
-# ---------- Worker ----------
-class OneShotWorker(threading.Thread):
-    def __init__(self):
-        super().__init__(name="xmrt-oneshot-worker", daemon=True)
-        self.q: "queue.Queue[Dict[str, Any]]" = queue.Queue()
-        self.last_result: Optional[Dict[str, Any]] = None
-
-    def schedule(self, job: Dict[str, Any]) -> None:
-        self.q.put(job)
-
-    def run(self):
-        READY.set()
-        log.info("Consensus Builder worker ready")
-        while not SHUTDOWN.is_set():
-            try:
-                job = self.q.get(timeout=0.5)
-            except queue.Empty:
-                continue
-            if job.get("type") == "innovation_cycle":
-                log.info("Starting innovation cycle")
-                try:
-                    self.last_result = run_consensus_cycle()
-                    log.info("Innovation cycle complete: %s", self.last_result.get("winner", {}).get("title", "n/a"))
-                except Exception as e:
-                    log.exception(f"Innovation cycle failed: {e}")
-            else:
-                log.info("Unknown job: %s", job)
-
-worker = OneShotWorker()
-worker.start()
-
-# ---------- Health ----------
-def update_health():
-    if PSUTIL_AVAILABLE:
-        try:
-            analytics["system_health"]["cpu"] = psutil.cpu_percent(interval=0.1)
-            analytics["system_health"]["mem"] = psutil.virtual_memory().percent
-            analytics["system_health"]["disk"] = psutil.disk_usage("/").percent
-            return
-        except Exception:
-            pass
-    analytics["system_health"]["cpu"] = round(random.uniform(5, 35), 1)
-    analytics["system_health"]["mem"] = round(random.uniform(20, 70), 1)
-    analytics["system_health"]["disk"] = round(random.uniform(10, 60), 1)
-
-# ---------- Frontend ----------
-FRONT = """
-<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>XMRT Ecosystem 6.3 — Consensus Builder</title>
-<style>
-body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,sans-serif;background:#0f172a;color:#e2e8f0;margin:0;padding:24px}
-.container{max-width:1200px;margin:0 auto}
-h1{font-size:28px;margin-bottom:8px}
-.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;margin-top:16px}
-.card{background:#111827;border:1px solid #1f2937;border-radius:12px;padding:16px}
-button{background:#334155;color:#e2e8f0;border:none;border-radius:8px;padding:10px 16px;cursor:pointer}
-button:hover{background:#475569}
-pre{white-space:pre-wrap;word-wrap:break-word;background:#0b1220;padding:12px;border-radius:8px;border:1px solid #1f2937}
-.small{color:#94a3b8;font-size:12px}
-.stat{font-size:24px;font-weight:700}
-</style></head><body>
-<div class="container">
-  <h1>XMRT Ecosystem 6.3 — Consensus Builder</h1>
-  <div class="small">Owner: {{ owner }} • Repo: {{ repo }} • Version: {{ version }} • Uptime: {{ uptime }}s</div>
   <div class="grid">
     <div class="card">
-      <h3>Actions</h3>
-      <button onclick="runCycle()">Run Innovation Cycle</button>
-      <button onclick="lastResult()">Last Result</button>
-      <button onclick="refresh()">Refresh</button>
-      <div id="out" style="margin-top:12px;"></div>
-    </div>
-    <div class="card">
-      <h3>Stats</h3>
-      <div>Repos discovered: <span class="stat">{{ stats.repositories_discovered }}</span></div>
-      <div>Ideas: <span class="stat">{{ stats.ideas_generated }}</span></div>
-      <div>Issues: <span class="stat">{{ stats.issues_created }}</span></div>
-      <div>Discussions: <span class="stat">{{ stats.discussions_created }}</span> • Story Issues: <span class="stat">{{ stats.story_issues_created }}</span></div>
-      <div>Files: <span class="stat">{{ stats.files_created }}</span> / updates: <span class="stat">{{ stats.files_updated }}</span></div>
-      <div>Cycles: <span class="stat">{{ stats.feature_cycles_completed }}</span></div>
-      <div class="small">CPU {{ sys.cpu }}% • MEM {{ sys.mem }}% • DISK {{ sys.disk }}%</div>
+      <h3>Status</h3>
+      <pre class="mono" id="status">Loading...</pre>
     </div>
     <div class="card">
       <h3>Agents</h3>
-      <pre>{{ agents_json }}</pre>
+      <pre class="mono" id="agents">Loading...</pre>
+    </div>
+    <div class="card">
+      <h3>Backlog (Top 10)</h3>
+      <pre class="mono" id="tasks">Loading...</pre>
+    </div>
+    <div class="card">
+      <h3>Last Decision</h3>
+      <pre class="mono" id="decision">Loading...</pre>
     </div>
   </div>
-</div>
-<script>
-async function runCycle(){
-  const out=document.getElementById('out');
-  out.textContent='Running innovation cycle...';
-  const r=await fetch('/api/run-innovation-cycle',{method:'POST'});
-  const j=await r.json();
-  out.textContent=JSON.stringify(j,null,2);
-}
-async function lastResult(){
-  const out=document.getElementById('out');
-  const r=await fetch('/api/innovation/last');
-  const j=await r.json();
-  out.textContent=JSON.stringify(j,null,2);
-}
-function refresh(){location.reload();}
-</script></body></html>
+
+  <script>
+    async function getJSON(url){ const r=await fetch(url); return r.json(); }
+    async function refresh(){
+      try {
+        const status = await getJSON('/api/coordination/status');
+        const agents = await getJSON('/api/agents');
+        const tasks = await getJSON('/api/tasks?limit=10');
+        const decision = await getJSON('/api/coordination/last-decision');
+        document.getElementById('status').textContent = JSON.stringify(status, null, 2);
+        document.getElementById('agents').textContent = JSON.stringify(agents, null, 2);
+        document.getElementById('tasks').textContent = JSON.stringify(tasks, null, 2);
+        document.getElementById('decision').textContent = JSON.stringify(decision, null, 2);
+      } catch(e) {
+        document.getElementById('status').textContent = 'Error loading status: '+e;
+      }
+    }
+    refresh();
+    setInterval(refresh, 5000);
+  </script>
+</body>
+</html>
 """
 
-# ---------- Routes ----------
-@app.route("/", methods=["GET", "HEAD"])
+
+# ============================= Utility Functions ==============================
+
+def now_iso() -> str:
+    return datetime.utcnow().replace(microsecond=0).isoformat() + "Z"
+
+
+def require_admin_token(req) -> Optional[make_response]:
+    """If ADMIN_TOKEN is configured, enforce bearer token on mutating routes."""
+    if not ADMIN_TOKEN:
+        return None
+    hdr = req.headers.get("Authorization", "")
+    if hdr.startswith("Bearer "):
+        token = hdr.split(" ", 1)[1].strip()
+        if hmac.compare_digest(token, ADMIN_TOKEN):
+            return None
+    return make_response(jsonify({"error": "Unauthorized"}), 401)
+
+
+def env_bool(name: str, default: bool = False) -> bool:
+    v = os.environ.get(name)
+    if v is None:
+        return default
+    return str(v).lower() in ("1", "true", "yes", "on")
+
+
+def truncate(s: str, max_len: int = 4000) -> str:
+    return s if len(s) <= max_len else s[:max_len-3] + "..."
+
+
+# ============================= Global State ===================================
+
+SYSTEM_STATE: Dict[str, Any] = {
+    "status": "operational",
+    "version": "7.0.0-mcp-guided",
+    "deployment": "render-free-tier",
+    "startup_time": time.time(),
+    "openai_available": OPENAI_AVAILABLE,
+    "gemini_available": GEMINI_AVAILABLE,
+    "github_available": GITHUB_AVAILABLE,
+    "mcp_url": os.environ.get("MCP_SERVER_URL") or None,
+    "last_cycle": None,
+}
+
+ANALYTICS: Dict[str, Any] = {
+    "requests": 0,
+    "ai_calls": 0,
+    "mcp_calls": 0,
+    "github_ops": 0,
+    "issues_created": 0,
+    "files_committed": 0,
+    "consensus_rounds": 0,
+    "decisions": 0,
+    "errors": 0,
+}
+
+LOCK = threading.RLock()
+
+
+# ============================= Ecosystem Guide =================================
+# Derived from your document: 72 repos, categories, and initial integration focus.
+# We embed the list + top-priority “first wave” tasks (syft/ragflow/autogen).
+
+GUIDE_REPOS: List[str] = [
+    # Full set from your doc (order kept as provided)
+    "xmrt-activepieces",
+    "xmrt-agno",
+    "xmrt-rust",
+    "xmrt-wazuh",
+    "xmrt-wazuh-kubernetes",
+    "gemini-cli",
+    "xmrt-DeepMCPAgent",
+    "xmrt-MeshSentry",
+    "xmrt-brightdata-mcp",
+    "xmrt-supabase",
+    "xmrt-firecrawl",
+    "xmrt-agents-towards-production",
+    "xmrt-crosvm-chrome-vm",
+    "xmrt-gutil-google-utilities",
+    "xmrt-grain-ml-train",
+    "xmrt-AirCom-ESP32-wifi-halow",
+    "xmrt-filament-render-engine",
+    "xmrt-dawn-native-webgpu",
+    "xmrt-adk-python-agents",
+    "xmrt-perfetto-tracing",
+    "xmrt-RAG-Anything",
+    "xmrt-awesome-AI-toolkit",
+    "xmrt-humanlayer",
+    "xmrt-langextract",
+    "xmrt-n8n",
+    "xmrt-gov-ui-kit",
+    "xmrt-risc0-proofs",
+    "xmrt-RAGLight",
+    "xmrt-autoswagger",
+    "AWS-DevSecOps-Factory",
+    "xmrt-asset-tokenizer",
+    "xmrt-bee",
+    "xmrt-autogen-boardroom",
+    "xmrt-AutoGPT",
+    "xmrt-bacalhau",
+    "xmrt-anon-monitor",
+    "xmrt-airnode",
+    "xmrt-agents",
+    "xmrt-agentcomms",
+    "xmrt-agentbrowser",
+    "xmrt-agent_trust_scoreboard",
+    "browser-use",
+    "monero-generator",
+    "sovrin",
+    "maybe-finance-app",
+    "mobile-payments-sdk-react-native",
+    "bitchat-react",
+    "xmrt-social-media-agent",
+    "xmrt-social-sleuth",
+    "xmrt-runtime-verification",
+    "xmrt-redis",
+    "xmrt-redis-py",
+    "xmrt-transformers",
+    "xmrt-wormhole",
+    "xmrt-storm-pr-engine",
+    "pinokio",
+    "xmrt-hetty-hacker",
+    "autotrain-advanced",
+    "xmrt-zk-oracles",
+    "xmrt-zkbridge",
+    "xmrt-bitchat",
+    "SilentXMRMiner",
+    "ropsten",
+    "xmrt-characters",
+    "react-point-of-sale",
+    "xmrig",
+    "langchain-memory",
+    "eth-wallet",
+    "xmrt-universal-resolver",
+    "xmrt-syft-client",
+    "xmrt-ragflow",
+    "xmrt-autogen",
+]
+
+# First-wave, document-guided integration goals (must-have).
+FIRST_WAVE_GOALS: List[Dict[str, Any]] = [
+    {
+        "title": "Wire Federated Learning into XMRT data plane",
+        "desc": "Connect xmrt-syft-client to xmrt-supabase model storage and privacy guardrails; enable FL training on miner telemetry.",
+        "repos": ["xmrt-syft-client", "xmrt-supabase", "xmrt-redis", "xmrt-transformers"],
+        "labels": ["federated-learning", "privacy", "models", "data-plane"],
+        "acceptance": [
+            "FL job can be triggered via API",
+            "Model artifacts stored in Supabase",
+            "Privacy configs (DP/SMPC) toggled via config"
+        ]
+    },
+    {
+        "title": "RAG for DAO analytics & mining insights",
+        "desc": "Integrate xmrt-ragflow with xmrt-gov-ui-kit and langchain-memory to ground governance dashboards + mining trend Q&A.",
+        "repos": ["xmrt-ragflow", "xmrt-gov-ui-kit", "langchain-memory", "xmrt-storm-pr-engine"],
+        "labels": ["rag", "dao-analytics", "grounding", "ui"],
+        "acceptance": [
+            "DAO dashboard pulls grounded answers via RAG",
+            "Queries persisted with memory and provenance",
+            "CI test exercises a sample retrieval workflow"
+        ]
+    },
+    {
+        "title": "Multi-agent orchestration for DAO simulations",
+        "desc": "Use xmrt-autogen to orchestrate vote simulations, hand-offs to security and DeFi agents; persist sessions in redis.",
+        "repos": ["xmrt-autogen", "xmrt-autogen-boardroom", "xmrt-redis", "xmrt-agent_trust_scoreboard"],
+        "labels": ["agents", "orchestration", "dao", "simulation"],
+        "acceptance": [
+            "Group chat workflow runs scripted vote simulation",
+            "Trust/quality scores recorded per agent turn",
+            "Runbook for operators included in repo docs"
+        ]
+    },
+    {
+        "title": "Identity & ZK checks in governance flows",
+        "desc": "Attach universal-resolver + zkbridge/risc0 proofs to DAO proposal lifecycle within gov-ui-kit.",
+        "repos": ["xmrt-universal-resolver", "xmrt-zkbridge", "xmrt-risc0-proofs", "xmrt-gov-ui-kit"],
+        "labels": ["identity", "zk", "governance", "security"],
+        "acceptance": [
+            "Resolver lookup integrated and unit-tested",
+            "ZK proof path documented and exercised in CI",
+            "UI surfaces proof status unobtrusively"
+        ]
+    },
+    {
+        "title": "Offline mesh chat + agent handoff",
+        "desc": "Bridge xmrt-bitchat (mesh/offline) to autogen orchestrations; on-connect sync to supabase/log memory.",
+        "repos": ["xmrt-bitchat", "bitchat-react", "xmrt-autogen", "xmrt-supabase"],
+        "labels": ["meshnet", "offline", "agents", "sync"],
+        "acceptance": [
+            "Offline chat can enqueue an agent job",
+            "On reconnection, job executes and logs to memory",
+            "E2E scenario recorded in docs"
+        ]
+    },
+]
+
+
+# ============================= Data Classes ===================================
+
+@dataclass
+class IntegrationTask:
+    key: str
+    title: str
+    description: str
+    repos: List[str]
+    labels: List[str]
+    priority: int = 3  # 1=highest
+    status: str = "pending"  # pending|in_progress|blocked|done|failed
+    created_at: str = field(default_factory=now_iso)
+    updated_at: str = field(default_factory=now_iso)
+    acceptance: List[str] = field(default_factory=list)
+    owner: Optional[str] = None
+    dependencies: List[str] = field(default_factory=list)  # other task keys
+    evidence_links: List[str] = field(default_factory=list)  # PRs/issues/commits
+    notes: List[str] = field(default_factory=list)
+
+
+@dataclass
+class Agent:
+    name: str
+    role: str
+    domains: List[str]
+    weight: float = 1.0
+    active: bool = True
+    last_seen: str = field(default_factory=now_iso)
+    completed: int = 0
+    failed: int = 0
+    decisions: int = 0
+
+    def can_own(self, task: IntegrationTask) -> bool:
+        # simple domain matching against labels
+        for lbl in task.labels:
+            if lbl in self.domains:
+                return True
+        return False
+
+
+@dataclass
+class DecisionRecord:
+    at: str
+    subject: str
+    proposals: List[Dict[str, Any]]
+    selected_key: Optional[str]
+    rationale: str
+    voters: Dict[str, float]
+    tiebreaker: Optional[str] = None
+
+
+# ============================= AI Processor ===================================
+
+class AIProcessor:
+    """
+    Thin abstraction over OpenAI (primary) and Gemini (optional).
+    Returns explicit errors when providers are not available; no faked content.
+    """
+    def __init__(self):
+        self._oaiclient = None
+        self._gemini = None
+
+        if OPENAI_AVAILABLE and os.environ.get("OPENAI_API_KEY"):
+            try:
+                self._oaiclient = OpenAI()
+                logger.info("OpenAI client initialized")
+            except Exception as e:
+                logger.warning(f"OpenAI init failed: {e}")
+                self._oaiclient = None
+
+        if GEMINI_AVAILABLE and os.environ.get("GEMINI_API_KEY"):
+            try:
+                genai.configure(api_key=os.environ["GEMINI_API_KEY"])
+                self._gemini = genai.GenerativeModel("gemini-pro")
+                logger.info("Gemini client initialized")
+            except Exception as e:
+                logger.warning(f"Gemini init failed: {e}")
+                self._gemini = None
+
+    def chat(self, system: str, user: str, max_tokens: int = 800, temperature: float = 0.3) -> Tuple[Optional[str], Optional[str]]:
+        """
+        Returns (text, provider) or (None, None) with logged error.
+        """
+        if self._oaiclient:
+            try:
+                r = self._oaiclient.chat.completions.create(
+                    model=DEFAULT_OPENAI_MODEL,
+                    messages=[
+                        {"role": "system", "content": system},
+                        {"role": "user", "content": user}
+                    ],
+                    temperature=temperature,
+                    max_tokens=max_tokens
+                )
+                ANALYTICS["ai_calls"] += 1
+                return r.choices[0].message.content, "openai"
+            except Exception as e:
+                logger.warning(f"OpenAI chat error: {e}")
+
+        if self._gemini:
+            try:
+                r = self._gemini.generate_content(system + "\n\n" + user)
+                ANALYTICS["ai_calls"] += 1
+                return getattr(r, "text", None), "gemini"
+            except Exception as e:
+                logger.warning(f"Gemini chat error: {e}")
+
+        return None, None
+
+    def choose(self, prompt: str, options: List[Tuple[str, str]]) -> Optional[str]:
+        """
+        Ask AI to choose best key among options [(key, text), ...].
+        Returns key or None on failure/unavailability.
+        """
+        system = "You are an impartial XMRT DAO facilitator optimizing for privacy, mesh resilience, and tangible integration progress."
+        lines = [prompt, "", "OPTIONS:"]
+        for k, t in options:
+            lines.append(f"- {k}: {t}")
+        content = "\n".join(lines)
+        text, provider = self.chat(system, content, max_tokens=256, temperature=0.0)
+        if not text:
+            return None
+        # Find the first option key mentioned
+        keys_sorted = sorted([k for k, _ in options], key=lambda s: -len(s))
+        for k in keys_sorted:
+            if k in text:
+                return k
+        # fallback: look for exact code fence or bracket
+        m = re.search(r"\b([A-Za-z0-9_-]{6,})\b", text)
+        return m.group(1) if m else None
+
+
+AI = AIProcessor()
+
+
+# ============================= MCP Bridge =====================================
+
+class MCPBridge:
+    """
+    Simple HTTP bridge to a Model Context Protocol gateway.
+
+    Expected endpoints (configurable upstream):
+    - GET  {MCP_SERVER_URL}/tools                  -> {"tools":[{"name": "...", "schema": {...}}, ...]}
+    - POST {MCP_SERVER_URL}/call {name, arguments} -> {"ok": true, "result": ...} OR {"ok": false, "error": ...}
+
+    No offline simulation. If the server is unavailable, we return structured errors.
+    """
+
+    def __init__(self, base_url: Optional[str], api_key: Optional[str] = None):
+        self.base_url = base_url
+        self.api_key = api_key
+
+    def _headers(self) -> Dict[str, str]:
+        h = {"Content-Type": "application/json"}
+        if self.api_key:
+            h["Authorization"] = f"Bearer {self.api_key}"
+        return h
+
+    def available(self) -> bool:
+        return bool(self.base_url)
+
+    def list_tools(self) -> Dict[str, Any]:
+        if not self.available():
+            return {"ok": False, "error": "MCP server URL not configured"}
+        try:
+            r = requests.get(f"{self.base_url.rstrip('/')}/tools", timeout=15, headers=self._headers())
+            if r.status_code != 200:
+                return {"ok": False, "error": f"MCP /tools HTTP {r.status_code}", "details": r.text}
+            return {"ok": True, "tools": r.json().get("tools", [])}
+        except Exception as e:
+            ANALYTICS["mcp_calls"] += 1
+            return {"ok": False, "error": f"MCP request failed: {e.__class__.__name__}", "details": str(e)}
+
+    def call_tool(self, name: str, arguments: Dict[str, Any]) -> Dict[str, Any]:
+        if not self.available():
+            return {"ok": False, "error": "MCP server URL not configured"}
+        payload = {"name": name, "arguments": arguments}
+        try:
+            r = requests.post(f"{self.base_url.rstrip('/')}/call", json=payload, timeout=60, headers=self._headers())
+            ANALYTICS["mcp_calls"] += 1
+            if r.status_code != 200:
+                return {"ok": False, "error": f"MCP /call HTTP {r.status_code}", "details": r.text}
+            return r.json()
+        except Exception as e:
+            ANALYTICS["mcp_calls"] += 1
+            return {"ok": False, "error": f"MCP call failed: {e.__class__.__name__}", "details": str(e)}
+
+
+MCP = MCPBridge(os.environ.get("MCP_SERVER_URL"), os.environ.get("MCP_API_KEY"))
+
+
+# ============================= GitHub Integration =============================
+
+class XMRTGitHub:
+    """
+    Real GitHub integration only; if token or repo unavailable, operations raise structured errors.
+    No "simulate mode".
+    """
+    def __init__(self, default_repo="DevGruGold/XMRT-Ecosystem"):
+        self.token = os.environ.get("GITHUB_TOKEN")
+        self.default_repo = default_repo
+        self.client = None
+        self.user = None
+        self._connect()
+
+    def _connect(self):
+        if not GITHUB_AVAILABLE:
+            logger.warning("PyGithub not installed; GitHub unavailable.")
+            return
+        if not self.token:
+            logger.warning("GITHUB_TOKEN not provided; GitHub unavailable.")
+            return
+        try:
+            auth = Auth.Token(self.token)
+            self.client = Github(auth=auth)
+            self.user = self.client.get_user()
+            # Probe default repo
+            _ = self.client.get_repo(self.default_repo)
+            logger.info(f"GitHub repo reachable ({self.default_repo}). Enabling real mode.")
+        except Exception as e:
+            logger.error(f"GitHub init failed: {e}")
+            self.client = None
+            self.user = None
+
+    def available(self) -> bool:
+        return self.client is not None
+
+    def repo(self, full_name: Optional[str] = None):
+        if not self.available():
+            raise RuntimeError("GitHub unavailable (missing token or client)")
+        target = full_name or self.default_repo
+        try:
+            return self.client.get_repo(target)
+        except Exception as e:
+            raise RuntimeError(f"Failed to access repo {target}: {e}")
+
+    def create_issue(self, repo_full: str, title: str, body: str, labels: Optional[List[str]] = None) -> Dict[str, Any]:
+        if not self.available():
+            raise RuntimeError("GitHub unavailable: cannot create issue")
+        try:
+            repo = self.repo(repo_full)
+            issue = repo.create_issue(title=title, body=body, labels=labels or [])
+            ANALYTICS["github_ops"] += 1
+            ANALYTICS["issues_created"] += 1
+            return {"ok": True, "id": issue.number, "url": issue.html_url}
+        except GithubException as ge:
+            return {"ok": False, "error": f"GitHub error: {ge.data}"}
+        except Exception as e:
+            return {"ok": False, "error": f"Create issue failed: {e}"}
+
+    def upsert_file(self, repo_full: str, path: str, message: str, content: str) -> Dict[str, Any]:
+        if not self.available():
+            raise RuntimeError("GitHub unavailable: cannot commit file")
+        try:
+            repo = self.repo(repo_full)
+            try:
+                existing = repo.get_contents(path)
+                res = repo.update_file(path, message, content, existing.sha)
+                action = "updated"
+            except GithubException:
+                res = repo.create_file(path, message, content)
+                action = "created"
+            ANALYTICS["github_ops"] += 1
+            ANALYTICS["files_committed"] += 1
+            return {"ok": True, "action": action, "content": {"path": path}, "commit": {"sha": res["commit"].sha}}
+        except Exception as e:
+            return {"ok": False, "error": f"Upsert file failed: {e}"}
+
+
+GITHUB = XMRTGitHub()
+
+
+# ============================= Backlog & Agents ================================
+
+class Backlog:
+    """
+    Thread-safe backlog for IntegrationTask items.
+    """
+    def __init__(self):
+        self._tasks: Dict[str, IntegrationTask] = {}
+        self._lock = threading.RLock()
+
+    def put(self, task: IntegrationTask):
+        with self._lock:
+            self._tasks[task.key] = task
+
+    def get(self, key: str) -> Optional[IntegrationTask]:
+        with self._lock:
+            return self._tasks.get(key)
+
+    def list(self) -> List[IntegrationTask]:
+        with self._lock:
+            return list(self._tasks.values())
+
+    def remove(self, key: str):
+        with self._lock:
+            if key in self._tasks:
+                del self._tasks[key]
+
+    def update_status(self, key: str, status: str, note: Optional[str] = None):
+        with self._lock:
+            t = self._tasks.get(key)
+            if t:
+                t.status = status
+                t.updated_at = now_iso()
+                if note:
+                    t.notes.append(f"[{now_iso()}] {note}")
+
+    def top(self, n: int = 10) -> List[IntegrationTask]:
+        with self._lock:
+            # sort by priority then created_at
+            tasks = sorted(self._tasks.values(), key=lambda t: (t.priority, t.created_at))
+            return tasks[:n]
+
+
+BACKLOG = Backlog()
+
+
+AGENTS: Dict[str, Agent] = {
+    "coordinator": Agent("Eliza", "Coordinator & Governor", ["dao", "governance", "planning", "orchestration"], weight=1.3),
+    "security": Agent("Security Guardian", "Security & Privacy", ["security", "privacy", "zk", "identity"], weight=1.2),
+    "defi": Agent("DeFi Specialist", "Financial & Mining", ["defi", "mining", "wallets", "payments"], weight=1.1),
+    "rag": Agent("RAG Orchestrator", "Retrieval & Memory", ["rag", "grounding", "memory", "ui"], weight=1.15),
+    "federated": Agent("Federated AI Lead", "FL & Models", ["federated-learning", "models", "privacy"], weight=1.15),
+    "mesh": Agent("Mesh/Offline", "MESHNET & Offline", ["meshnet", "offline", "sync"], weight=1.05),
+}
+
+AGENT_ORDER = ["coordinator", "federated", "rag", "security", "defi", "mesh"]
+
+
+# ============================= Guided Planner =================================
+
+def generate_guided_tasks() -> List[IntegrationTask]:
+    """
+    Expand the FIRST_WAVE_GOALS into concrete, addressable tasks with deterministic keys.
+    Keys are stable hashes (short) derived from title + repos.
+    """
+    todo: List[IntegrationTask] = []
+    for i, g in enumerate(FIRST_WAVE_GOALS, start=1):
+        base = f"{g['title']}::{','.join(g['repos'])}"
+        # stable short key
+        short = re.sub(r"[^a-z0-9]+", "-", base.lower()).strip("-")
+        key = f"task-{short[:48]}"
+        # assign priority: 1 for first 2 goals, else 2/3
+        priority = 1 if i <= 2 else (2 if i <= 4 else 3)
+        t = IntegrationTask(
+            key=key,
+            title=g["title"],
+            description=g["desc"],
+            repos=g["repos"],
+            labels=g["labels"],
+            priority=priority,
+            acceptance=g["acceptance"]
+        )
+        todo.append(t)
+
+        # Add sub-tasks for each repo (implementation PR stubs and CI hook).
+        for repo in g["repos"]:
+            sub_key = f"{key}-{repo}"
+            sub = IntegrationTask(
+                key=sub_key,
+                title=f"[{repo}] Enable integration hook",
+                description=f"Implement integration points for goal: {g['title']}",
+                repos=[repo],
+                labels=g["labels"] + ["implementation"],
+                priority=priority + 1,
+                dependencies=[key],
+                acceptance=["PR with integration hook and unit test", "Docs updated with usage"]
+            )
+            todo.append(sub)
+
+    return todo
+
+
+def seed_backlog():
+    for t in generate_guided_tasks():
+        BACKLOG.put(t)
+
+
+seed_backlog()
+
+
+# ============================= Consensus Engine ===============================
+
+class ConsensusEngine:
+    """
+    Multi-agent consensus engine:
+    - Agents propose next task from backlog they can own.
+    - Weighted voting (agent weights). Quorum >= 3 agents and sum weights >= 3.0.
+    - Tie-break via MCP tool 'reasoner' (if configured) else OpenAI, else deterministic.
+    - On decision, executes a concrete action: create issue(s) in target repos,
+      commit a minimal "integration stub" file when appropriate.
+    """
+
+    def __init__(self):
+        self._last_decision: Optional[DecisionRecord] = None
+
+    def choose_next(self) -> DecisionRecord:
+        tasks = BACKLOG.top(12)
+        candidate_map: Dict[str, IntegrationTask] = {t.key: t for t in tasks if t.status == "pending"}
+        if not candidate_map:
+            rec = DecisionRecord(
+                at=now_iso(), subject="No-op (no pending tasks)",
+                proposals=[], selected_key=None, rationale="Backlog empty",
+                voters={}
+            )
+            self._last_decision = rec
+            return rec
+
+        # Proposals by agents
+        proposals: List[Tuple[str, str, float]] = []  # (task_key, agent_name, weight)
+        voters: Dict[str, float] = {}
+        for agent_id in AGENT_ORDER:
+            agent = AGENTS[agent_id]
+            if not agent.active:
+                continue
+            task = self._best_for_agent(agent, list(candidate_map.values()))
+            if task is None:
+                continue
+            proposals.append((task.key, agent.name, agent.weight))
+            voters[agent.name] = agent.weight
+
+        ANALYTICS["consensus_rounds"] += 1
+
+        if not proposals:
+            rec = DecisionRecord(
+                at=now_iso(), subject="No-op (no agent proposals)",
+                proposals=[], selected_key=None, rationale="Agents found no suitable tasks",
+                voters={}
+            )
+            self._last_decision = rec
+            return rec
+
+        # Tally weights by task_key
+        score: Dict[str, float] = {}
+        for k, _, w in proposals:
+            score[k] = score.get(k, 0.0) + w
+
+        # Quorum pre-filter: require at least 3 distinct voters total
+        if len(voters) < 3:
+            rationale = "Insufficient quorum (need >=3 agents)"
+            rec = DecisionRecord(
+                at=now_iso(), subject="Insufficient quorum",
+                proposals=[{"task_key": k, "by": a, "w": w} for k, a, w in proposals],
+                selected_key=None, rationale=rationale, voters=voters
+            )
+            self._last_decision = rec
+            return rec
+
+        # Select top candidates
+        sorted_by_score = sorted(score.items(), key=lambda kv: (-kv[1], kv[0]))
+        top_key, top_val = sorted_by_score[0]
+        # Check tie
+        ties = [k for k, v in score.items() if v == top_val]
+        selected_key = None
+        tiebreaker_used = None
+        rationale = f"Weighted top score: {top_val:.2f}; voters: {', '.join(voters.keys())}"
+
+        if len(ties) == 1:
+            selected_key = top_key
+        else:
+            # Tie-break: try MCP reasoner tool
+            options = [(k, candidate_map[k].title) for k in ties]
+            if MCP.available():
+                resp = MCP.call_tool("reasoner", {
+                    "prompt": "Choose the task that best accelerates document-guided integration while minimizing risk.",
+                    "options": [{"key": k, "title": title} for k, title in options]
+                })
+                if resp.get("ok") and isinstance(resp.get("result"), dict):
+                    sel = resp["result"].get("key")
+                    if sel and sel in candidate_map:
+                        selected_key = sel
+                        tiebreaker_used = "mcp"
+            # Try OpenAI if still unresolved
+            if not selected_key:
+                chosen = AI.choose(
+                    "Resolve a tie by choosing the single best task key.",
+                    options
+                )
+                if chosen and chosen in candidate_map:
+                    selected_key = chosen
+                    tiebreaker_used = tiebreaker_used or "ai"
+            # Deterministic if still tied
+            if not selected_key:
+                selected_key = sorted(ties)[0]
+                tiebreaker_used = tiebreaker_used or "deterministic"
+
+        rec = DecisionRecord(
+            at=now_iso(),
+            subject="Select next integration task",
+            proposals=[{"task_key": k, "by": a, "w": w} for k, a, w in proposals],
+            selected_key=selected_key,
+            rationale=rationale,
+            voters=voters,
+            tiebreaker=tiebreaker_used
+        )
+        self._last_decision = rec
+        return rec
+
+    def _best_for_agent(self, agent: Agent, tasks: List[IntegrationTask]) -> Optional[IntegrationTask]:
+        # choose highest priority task matching agent domains not blocked
+        candidates = [
+            t for t in tasks
+            if t.status == "pending"
+            and agent.can_own(t)
+            and not t.dependencies  # initial simplification: pick root items first
+        ]
+        if not candidates:
+            # allow dependent tasks if parent is present but pending
+            candidates = [t for t in tasks if t.status == "pending" and agent.can_own(t)]
+
+        if not candidates:
+            return None
+        # Sort by priority, then created_at
+        candidates.sort(key=lambda t: (t.priority, t.created_at))
+        return candidates[0]
+
+    def execute(self, decision: DecisionRecord) -> Dict[str, Any]:
+        """
+        Based on decision, change task status and perform real GitHub ops:
+        - Create a tracking issue in XMRT-Ecosystem for the chosen task
+        - For per-repo sub-tasks, commit stub integration file (if writeable)
+        """
+        if not decision.selected_key:
+            return {"ok": False, "error": "No task selected"}
+
+        task = BACKLOG.get(decision.selected_key)
+        if not task:
+            return {"ok": False, "error": f"Task {decision.selected_key} not found"}
+
+        # Mark in progress
+        BACKLOG.update_status(task.key, "in_progress", "Consensus accepted; executing")
+        ANALYTICS["decisions"] += 1
+
+        # Create tracking issue in default repo
+        if not GITHUB.available():
+            BACKLOG.update_status(task.key, "blocked", "GitHub unavailable")
+            return {"ok": False, "error": "GitHub unavailable; task marked blocked"}
+
+        body = self._render_issue_body(task, decision)
+        issue_res = GITHUB.create_issue(
+            "DevGruGold/XMRT-Ecosystem",
+            f"[Integration] {task.title}",
+            body,
+            labels=list(set(["integration", "xmrt", "consensus"] + task.labels))
+        )
+        if not issue_res.get("ok"):
+            BACKLOG.update_status(task.key, "blocked", f"Issue creation failed: {issue_res.get('error')}")
+            return {"ok": False, "error": f"Issue creation failed: {issue_res.get('error')}"}
+
+        task.evidence_links.append(issue_res["url"])
+        BACKLOG.update_status(task.key, "in_progress", f"Issue created: {issue_res['url']}")
+
+        # For subtask keyed as <parent>-<repo>, attempt to upsert stub in that repo
+        if re.match(r".+-[a-z0-9_-]+$", task.key) and len(task.repos) == 1:
+            repo = task.repos[0]
+            repo_full = f"DevGruGold/{repo}"
+            # Add an integration stub under .xmrt/ to avoid code breakage
+            path = f".xmrt/integration/{task.key}.md"
+            content = self._render_stub_md(task, decision, issue_res["url"])
+            up = GITHUB.upsert_file(repo_full, path, f"Add XMRT integration stub for {task.title}", content)
+            if not up.get("ok"):
+                BACKLOG.update_status(task.key, "blocked", f"Commit failed: {up.get('error')}")
+                return {"ok": False, "error": f"Commit failed: {up.get('error')}"}
+            sha = up["commit"]["sha"]
+            url_hint = f"https://github.com/{repo_full}/blob/main/{path}"
+            task.evidence_links.append(url_hint)
+            BACKLOG.update_status(task.key, "done", f"Stub committed ({sha[:7]}) at {url_hint}")
+            return {"ok": True, "issue": issue_res, "commit": up, "task": asdict(task)}
+
+        # If it's a parent/root item (spans multiple repos), just record the issue link
+        BACKLOG.update_status(task.key, "in_progress", "Root tracked by issue; execute children next")
+        return {"ok": True, "issue": issue_res, "task": asdict(task)}
+
+    def _render_issue_body(self, task: IntegrationTask, decision: DecisionRecord) -> str:
+        lines = [
+            f"# {task.title}",
+            "",
+            f"**Created**: {now_iso()}",
+            f"**Selected by Consensus**: {decision.at}",
+            f"**Labels**: {', '.join(task.labels)}",
+            "",
+            "## Description",
+            task.description,
+            "",
+            "## Target Repos",
+            *(f"- `{r}`" for r in task.repos),
+            "",
+            "## Acceptance Criteria",
+            *(f"- [ ] {a}" for a in task.acceptance),
+            "",
+            "## Evidence / Links",
+            *(f"- {l}" for l in task.evidence_links),
+            "",
+            "## Notes",
+            *(f"- {n}" for n in task.notes),
+            "",
+            "## Consensus Record",
+            f"- Voters: {', '.join(f'{k}({v:.2f})' for k, v in decision.voters.items())}",
+            f"- Tiebreaker: {decision.tiebreaker or 'n/a'}",
+            "",
+            "> This issue was generated by the XMRT Ecosystem consensus engine.",
+        ]
+        return "\n".join(lines)
+
+    def _render_stub_md(self, task: IntegrationTask, decision: DecisionRecord, issue_url: str) -> str:
+        return f"""# XMRT Integration Stub
+Task: {task.title}
+Selected: {decision.at}
+Issue: {issue_url}
+
+## Purpose
+Provide a non-invasive integration stub for {task.repos[0]} so the implementation can
+be iterated safely via PRs.
+
+## Next Steps
+- Implement real integration code paths behind feature flags.
+- Add unit tests to exercise minimal flows.
+- Update documentation with runbook steps.
+
+"""
+
+
+CONSENSUS = ConsensusEngine()
+
+
+# ============================= Background Worker ===============================
+
+class CoordinatorThread(threading.Thread):
+    """
+    Periodically attempts a consensus cycle (if there is at least one pending task).
+    Uses ADMIN_TOKEN auth bypass since it's internal.
+    """
+
+    def __init__(self, interval_sec: int = 120):
+        super().__init__(daemon=True)
+        self.interval = interval_sec
+        self._stop = threading.Event()
+
+    def stop(self):
+        self._stop.set()
+
+    def run(self):
+        logger.info("Consensus Builder worker ready")
+        while not self._stop.is_set():
+            try:
+                pending = [t for t in BACKLOG.list() if t.status == "pending"]
+                if pending:
+                    dec = CONSENSUS.choose_next()
+                    if dec.selected_key:
+                        CONSENSUS.execute(dec)
+                        SYSTEM_STATE["last_cycle"] = now_iso()
+                time.sleep(self.interval)
+            except Exception as e:
+                ANALYTICS["errors"] += 1
+                logger.error(f"CoordinatorThread error: {e}")
+                time.sleep(self.interval)
+
+
+COORDINATOR = CoordinatorThread(interval_sec=180)  # every 3 minutes
+COORDINATOR.start()
+
+
+# ============================= Routes / API ====================================
+
+@app.before_request
+def _count_requests():
+    ANALYTICS["requests"] += 1
+
+
+@app.route("/", methods=["GET"])
 def index():
-    analytics["requests_count"] += 1
-    update_health()
-    return render_template_string(
-        FRONT,
-        owner=OWNER,
-        repo=REPO_ECOSYSTEM,
-        version=system_state["version"],
-        uptime=round(time.time() - system_state["startup_time"], 1),
-        stats=analytics,
-        sys=analytics["system_health"],
-        agents_json=json.dumps(AGENTS, indent=2),
-    )
+    return render_template_string(HTML_INDEX)
 
-@app.route("/health")
-@app.route("/healthz")
-def health():
-    update_health()
-    return jsonify({
-        "ok": True,
-        "ready": READY.is_set(),
-        "version": system_state["version"],
-        "owner": OWNER,
-        "repo": REPO_ECOSYSTEM,
-        "uptime": round(time.time() - system_state["startup_time"], 3),
-        "system": analytics["system_health"],
-        "timestamp": datetime.now().isoformat(),
-    })
 
-@app.route("/analytics")
-def get_analytics():
-    analytics["requests_count"] += 1
-    return jsonify(analytics)
+@app.route("/api/coordination/status", methods=["GET"])
+def api_status():
+    # Emulate your log style lines when starting up
+    s = {
+        "system": SYSTEM_STATE,
+        "analytics": ANALYTICS,
+        "pending": len([t for t in BACKLOG.list() if t.status == "pending"]),
+        "in_progress": len([t for t in BACKLOG.list() if t.status == "in_progress"]),
+        "done": len([t for t in BACKLOG.list() if t.status == "done"]),
+        "blocked": len([t for t in BACKLOG.list() if t.status == "blocked"]),
+    }
+    return jsonify(s)
 
-@app.route("/agents")
-def get_agents():
-    analytics["requests_count"] += 1
-    return jsonify({"agents": AGENTS})
 
-@app.route("/api/coordination/status")
-def coordination_status():
-    return jsonify({
-        "ready": READY.is_set(),
-        "feature_cycles_completed": analytics["feature_cycles_completed"],
-        "ideas_generated": analytics["ideas_generated"],
-        "repositories_discovered": analytics["repositories_discovered"],
-        "issues_created": analytics["issues_created"],
-        "discussions_created": analytics["discussions_created"],
-        "story_issues_created": analytics["story_issues_created"],
-        "files_created": analytics["files_created"],
-        "files_updated": analytics["files_updated"],
-        "timestamp": datetime.now().isoformat(),
-    })
+@app.route("/api/coordination/last-decision", methods=["GET"])
+def api_last_decision():
+    d = CONSENSUS._last_decision
+    if not d:
+        return jsonify({"ok": True, "decision": None})
+    return jsonify({"ok": True, "decision": asdict(d)})
+
+
+@app.route("/api/agents", methods=["GET"])
+def api_agents():
+    return jsonify({"agents": {k: asdict(v) for k, v in AGENTS.items()}})
+
+
+@app.route("/api/tasks", methods=["GET"])
+def api_tasks():
+    limit = int(request.args.get("limit", "100"))
+    tasks = BACKLOG.top(limit)
+    return jsonify({"count": len(tasks), "tasks": [asdict(t) for t in tasks]})
+
+
+@app.route("/api/tasks/<key>", methods=["GET"])
+def api_task_one(key: str):
+    t = BACKLOG.get(key)
+    if not t:
+        return make_response(jsonify({"error": "Not found"}), 404)
+    return jsonify(asdict(t))
+
 
 @app.route("/api/run-innovation-cycle", methods=["POST"])
 def api_run_cycle():
-    worker.schedule({"type": "innovation_cycle"})
-    return jsonify({"scheduled": True})
+    # Protected by ADMIN_TOKEN if set
+    auth = require_admin_token(request)
+    if auth:
+        return auth
 
-@app.route("/api/innovation/last")
-def api_last():
-    return jsonify(worker.last_result or {"last_result": None})
+    logger.info("Starting innovation cycle")
+    dec = CONSENSUS.choose_next()
+    res = {"ok": True, "decision": asdict(dec)}
+    if dec.selected_key:
+        exe = CONSENSUS.execute(dec)
+        res["execution"] = exe
+    logger.info(f"Innovation cycle complete: {dec.subject}")
+    return jsonify(res)
 
-# Minimal webhooks
-@app.route("/webhook/github", methods=["POST"])
-def webhook_github():
-    analytics["github_operations"] += 1
-    return jsonify({"status": "received", "source": "github", "ts": datetime.now().isoformat()})
 
-@app.route("/webhook/render", methods=["POST"])
-def webhook_render():
-    return jsonify({"status": "received", "source": "render", "ts": datetime.now().isoformat()})
+@app.route("/api/mcp/tools", methods=["GET"])
+def api_mcp_tools():
+    tools = MCP.list_tools()
+    return jsonify(tools)
 
-@app.route("/webhook/discord", methods=["POST"])
-def webhook_discord():
-    return jsonify({"status": "received", "source": "discord", "ts": datetime.now().isoformat()})
 
-# ---------- Signals / Main ----------
-def _sig(sig, _frm):
-    log.info("Signal %s -> shutdown", sig)
-    SHUTDOWN.set()
+@app.route("/api/mcp/call", methods=["POST"])
+def api_mcp_call():
+    # Protected by ADMIN_TOKEN if set
+    auth = require_admin_token(request)
+    if auth:
+        return auth
 
-def main() -> int:
-    signal.signal(signal.SIGINT, _sig)
-    signal.signal(signal.SIGTERM, _sig)
-    log.info("Agents and Coordination initialized")
-    log.info("Starting XMRT Ecosystem on port %s", PORT)
-    READY.set()
+    data = request.get_json(force=True, silent=True) or {}
+    name = data.get("name")
+    arguments = data.get("arguments") or {}
+    if not name:
+        return make_response(jsonify({"ok": False, "error": "Missing tool name"}), 400)
+    res = MCP.call_tool(name, arguments)
+    return jsonify(res)
+
+
+@app.route("/api/github/issue", methods=["POST"])
+def api_github_issue():
+    # Protected by ADMIN_TOKEN if set
+    auth = require_admin_token(request)
+    if auth:
+        return auth
+
+    if not GITHUB.available():
+        return make_response(jsonify({"ok": False, "error": "GitHub unavailable"}), 503)
+    data = request.get_json(force=True, silent=True) or {}
+    repo = data.get("repo") or "DevGruGold/XMRT-Ecosystem"
+    title = data.get("title") or "Untitled"
+    body = data.get("body") or ""
+    labels = data.get("labels") or []
+    res = GITHUB.create_issue(repo, title, body, labels)
+    code = 200 if res.get("ok") else 400
+    return make_response(jsonify(res), code)
+
+
+@app.route("/api/github/commit", methods=["POST"])
+def api_github_commit():
+    # Protected by ADMIN_TOKEN if set
+    auth = require_admin_token(request)
+    if auth:
+        return auth
+
+    if not GITHUB.available():
+        return make_response(jsonify({"ok": False, "error": "GitHub unavailable"}), 503)
+    data = request.get_json(force=True, silent=True) or {}
+    repo = data.get("repo") or "DevGruGold/XMRT-Ecosystem"
+    path = data.get("path")
+    message = data.get("message") or "XMRT commit"
+    content = data.get("content") or ""
+    if not path:
+        return make_response(jsonify({"ok": False, "error": "Missing 'path'"}), 400)
+    res = GITHUB.upsert_file(repo, path, message, content)
+    code = 200 if res.get("ok") else 400
+    return make_response(jsonify(res), code)
+
+
+# ============================= Graceful Shutdown ===============================
+
+def _graceful_exit(*_):
+    logger.info("Shutting down XMRT Ecosystem server")
     try:
-        app.run(host=HOST, port=PORT, debug=False, use_reloader=False, threaded=True)
-    finally:
-        SHUTDOWN.set()
-        log.info("Shutdown complete")
-    return 0
+        COORDINATOR.stop()
+    except Exception:
+        pass
+    sys.exit(0)
+
+
+signal.signal(signal.SIGTERM, _graceful_exit)
+signal.signal(signal.SIGINT, _graceful_exit)
+
+
+# ============================= Start Server ====================================
+
+def main():
+    logger.info("OpenAI client initialized" if OPENAI_AVAILABLE and os.environ.get("OPENAI_API_KEY") else "OpenAI unavailable or no key")
+    if GITHUB.available():
+        logger.info("GitHub repo reachable (DevGruGold/XMRT-Ecosystem). Enabling real mode.")
+    else:
+        logger.info("GitHub unavailable; real GitHub actions will fail with explicit errors (no simulation).")
+
+    logger.info("Consensus Builder worker ready")
+    logger.info("Agents and Coordination initialized")
+    logger.info(f"Starting XMRT Ecosystem on port {PORT}")
+    app.run(host="0.0.0.0", port=PORT, debug=False)
+
 
 if __name__ == "__main__":
-    sys.exit(main())
+    main()
