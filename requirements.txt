@@ -9,4 +9,4 @@ flask_cors
 supabase
 flask-sock
 prometheus-client
-websockets
+websocket-client
