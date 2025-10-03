@@ -277,7 +277,7 @@ class DB:
                 category TEXT NOT NULL,
                 url TEXT,
                 is_fork INTEGER DEFAULT 0,
-                exists INTEGER DEFAULT 0,
+                "exists" INTEGER DEFAULT 0,
                 default_branch TEXT,
                 last_checked TEXT
             );
@@ -366,29 +366,29 @@ class DB:
         now = datetime.now(timezone.utc).isoformat()
         url = extras.get("url")
         is_fork = int(bool(extras.get("is_fork", 0)))
-        exists = int(bool(extras.get("exists", 0)))
+        repo_exists = int(bool(extras.get("exists", 0)))
         default_branch = extras.get("default_branch")
         last_checked = extras.get("last_checked", now)
         conn.execute(
             """
-            INSERT INTO repos (name, category, url, is_fork, exists, default_branch, last_checked)
+            INSERT INTO repos (name, category, url, is_fork, "exists", default_branch, last_checked)
             VALUES (?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(name) DO UPDATE SET
                 category=excluded.category,
                 url=excluded.url,
                 is_fork=excluded.is_fork,
-                exists=excluded.exists,
+                "exists"=excluded."exists",
                 default_branch=excluded.default_branch,
                 last_checked=excluded.last_checked
             ;
             """,
-            (name, category, url, is_fork, exists, default_branch, last_checked),
+            (name, category, url, is_fork, "exists", default_branch, last_checked),
         )
         conn.commit()
 
     def list_repos(self) -> List[Dict[str, Any]]:
         rows = self._conn().execute(
-            "SELECT name, category, url, is_fork, exists, default_branch, last_checked FROM repos ORDER BY name"
+            "SELECT name, category, url, is_fork, "exists", default_branch, last_checked FROM repos ORDER BY name"
         ).fetchall()
         return [dict(r) for r in rows]
 
