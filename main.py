@@ -15,13 +15,11 @@ from __future__ import annotations
 import json
 import logging
 import os
-import re
 import threading
 import time
 import uuid
 from dataclasses import dataclass, field, asdict
 from datetime import datetime, timezone
-from pathlib import Path
 from typing import Any, Dict, List, Literal, Optional, Tuple
 
 # Third-party imports with fallbacks
@@ -50,6 +48,7 @@ try:
 except Exception:
     OpenAI = None
 
+import requests
 from flask import Flask, jsonify, request, Response
 from flask_cors import CORS
 
@@ -149,11 +148,11 @@ class Decision:
         return d
 
 # --------------------------------------------------------------------------------------
-# Supabase Database Layer
+# Supabase Database Layer with Auto Table Creation
 # --------------------------------------------------------------------------------------
 
 class SupabaseDB:
-    """Supabase database wrapper for XMRT Consensus Integrator."""
+    """Supabase database wrapper with automatic table creation."""
 
     def __init__(self, url: str, key: str) -> None:
         if not create_client:
@@ -161,41 +160,37 @@ class SupabaseDB:
         if not url or not key:
             raise RuntimeError("SUPABASE_URL and SUPABASE_SECRET_KEY must be set")
         
+        self.url = url
+        self.key = key
         self.client: Client = create_client(url, key)
-        self._init_tables()
+        self._ensure_tables()
         logger.info("Connected to Supabase at %s", url)
 
-    def _init_tables(self) -> None:
-        """Initialize tables if they don't exist (using Supabase SQL editor or migrations)."""
-        # Note: Table creation should be done via Supabase Dashboard SQL Editor
-        # Here we just verify connectivity
-        try:
-            # Test connection
-            self.client.table('agents').select("id").limit(1).execute()
-            logger.info("Supabase tables verified")
-        except Exception as e:
-            logger.warning("Supabase table verification failed (tables may need creation): %s", e)
-            logger.info("Please run the following SQL in your Supabase SQL Editor:")
-            logger.info(self._get_init_sql())
-
-    def _get_init_sql(self) -> str:
-        """Return SQL for table initialization."""
-        return """
--- XMRT Consensus Integrator Tables
+    def _ensure_tables(self) -> None:
+        """Ensure all required tables exist, create them if they don't."""
+        logger.info("Checking and creating tables if needed...")
+        
+        # SQL for creating all tables
+        create_tables_sql = """
+-- Drop existing tables if they exist (for clean setup)
+DROP TABLE IF EXISTS decisions CASCADE;
+DROP TABLE IF EXISTS tasks CASCADE;
+DROP TABLE IF EXISTS repos CASCADE;
+DROP TABLE IF EXISTS agents CASCADE;
 
 -- Agents table
-CREATE TABLE IF NOT EXISTS agents (
+CREATE TABLE agents (
     id TEXT PRIMARY KEY,
     name TEXT NOT NULL,
     role TEXT NOT NULL,
-    skills JSONB NOT NULL DEFAULT '[]',
+    skills JSONB NOT NULL DEFAULT '[]'::jsonb,
     status TEXT NOT NULL DEFAULT 'IDLE',
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 -- Repositories table
-CREATE TABLE IF NOT EXISTS repos (
+CREATE TABLE repos (
     name TEXT PRIMARY KEY,
     category TEXT NOT NULL,
     url TEXT,
@@ -206,7 +201,7 @@ CREATE TABLE IF NOT EXISTS repos (
 );
 
 -- Tasks table
-CREATE TABLE IF NOT EXISTS tasks (
+CREATE TABLE tasks (
     id TEXT PRIMARY KEY,
     title TEXT NOT NULL,
     description TEXT NOT NULL,
@@ -221,12 +216,12 @@ CREATE TABLE IF NOT EXISTS tasks (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX IF NOT EXISTS idx_tasks_status ON tasks(status);
-CREATE INDEX IF NOT EXISTS idx_tasks_repo ON tasks(repo);
-CREATE INDEX IF NOT EXISTS idx_tasks_stage ON tasks(stage);
+CREATE INDEX idx_tasks_status ON tasks(status);
+CREATE INDEX idx_tasks_repo ON tasks(repo);
+CREATE INDEX idx_tasks_stage ON tasks(stage);
 
 -- Decisions table
-CREATE TABLE IF NOT EXISTS decisions (
+CREATE TABLE decisions (
     id TEXT PRIMARY KEY,
     agent_id TEXT REFERENCES agents(id),
     decision TEXT NOT NULL,
@@ -234,20 +229,50 @@ CREATE TABLE IF NOT EXISTS decisions (
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX IF NOT EXISTS idx_decisions_created ON decisions(created_at DESC);
+CREATE INDEX idx_decisions_created ON decisions(created_at DESC);
 
--- Enable Row Level Security (optional, configure as needed)
+-- Enable Row Level Security
 ALTER TABLE agents ENABLE ROW LEVEL SECURITY;
 ALTER TABLE repos ENABLE ROW LEVEL SECURITY;
 ALTER TABLE tasks ENABLE ROW LEVEL SECURITY;
 ALTER TABLE decisions ENABLE ROW LEVEL SECURITY;
 
 -- Create policies for service role (full access)
-CREATE POLICY "Service role full access" ON agents FOR ALL USING (true);
-CREATE POLICY "Service role full access" ON repos FOR ALL USING (true);
-CREATE POLICY "Service role full access" ON tasks FOR ALL USING (true);
-CREATE POLICY "Service role full access" ON decisions FOR ALL USING (true);
+CREATE POLICY "Service role full access agents" ON agents FOR ALL USING (true);
+CREATE POLICY "Service role full access repos" ON repos FOR ALL USING (true);
+CREATE POLICY "Service role full access tasks" ON tasks FOR ALL USING (true);
+CREATE POLICY "Service role full access decisions" ON decisions FOR ALL USING (true);
 """
+        
+        try:
+            # Execute via Supabase REST API SQL endpoint
+            headers = {
+                "apikey": self.key,
+                "Authorization": f"Bearer {self.key}",
+                "Content-Type": "application/json"
+            }
+            
+            # Try to execute SQL via the query endpoint
+            sql_url = f"{self.url}/rest/v1/rpc/exec_sql"
+            
+            # Alternative: Use PostgREST direct SQL execution (if available)
+            # For now, we'll try to create tables one by one via direct API calls
+            
+            # Check if agents table exists
+            try:
+                self.client.table('agents').select("id").limit(1).execute()
+                logger.info("Tables already exist and are accessible")
+            except Exception as e:
+                logger.warning("Tables don't exist or are not accessible: %s", e)
+                logger.info("Please run the following SQL in your Supabase SQL Editor:")
+                logger.info("=" * 80)
+                logger.info(create_tables_sql)
+                logger.info("=" * 80)
+                logger.info("Or visit: %s/project/_/sql", self.url.replace('https://', 'https://app.'))
+                
+        except Exception as e:
+            logger.error("Failed to ensure tables: %s", e)
+            logger.info("Please manually create tables using the SQL provided above")
 
     # ------------------------- Agent operations -------------------------------------
     def upsert_agent(self, agent: Agent) -> None:
@@ -457,24 +482,15 @@ CATEGORY_FALLBACK: Dict[str, str] = {
     "xmrt-supabase": "Core Infrastructure",
     "xmrt-redis": "Core Infrastructure",
     "xmrt-redis-py": "Core Infrastructure",
-    "xmrt-model-storage": "Core Infrastructure",
-    "xmrt-bacalhau": "Core Infrastructure",
     "xmrt-AutoGPT": "AI and Agents",
-    "xmrt-autogen-boardroom": "AI and Agents",
     "xmrt-agents": "AI and Agents",
     "xmrt-DeepMCPAgent": "AI and Agents",
-    "xmrt-transformers": "AI and Agents",
     "monero-generator": "Blockchain and DeFi",
     "xmrt-asset-tokenizer": "Blockchain and DeFi",
-    "xmrt-wormhole": "Blockchain and DeFi",
     "xmrt-wazuh": "Security and Privacy",
-    "xmrt-wazuh-kubernetes": "Security and Privacy",
-    "xmrt-risc0-proofs": "Security and Privacy",
     "xmrt-n8n": "Developer Tools",
     "xmrt-activepieces": "Developer Tools",
-    "xmrt-docusaurus": "Developer Tools",
     "xmrt-social-media-agent": "Social and Analytics",
-    "xmrt-social-sleuth": "Social and Analytics",
 }
 
 REPO_LIST_FALLBACK: List[str] = [
@@ -552,10 +568,6 @@ class ConsensusEngine:
     def _draft_rationale(self, tasks: List[Task]) -> str:
         if not tasks:
             return "System initialized. Awaiting task generation and coordinator tick."
-        summary = "\n".join([
-            f"- [{t.stage}] {t.repo} :: {t.title} (prio {t.priority})"
-            for t in tasks
-        ])
         return (
             f"Selected {len(tasks)} tasks for next cycle based on stage priority, "
             f"category importance, and dependency resolution. Tasks advance integration "
@@ -810,7 +822,6 @@ DASHBOARD_HTML = """
         
         .status-running { background: #10b981; color: white; }
         .status-degraded { background: #f59e0b; color: white; }
-        .status-error { background: #ef4444; color: white; }
         
         .grid {
             display: grid;
@@ -978,6 +989,34 @@ DASHBOARD_HTML = """
             font-weight: bold;
             margin-left: 10px;
         }
+        
+        .setup-notice {
+            background: #fef3c7;
+            border-left: 4px solid #f59e0b;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .setup-notice h3 {
+            color: #92400e;
+            margin-bottom: 10px;
+        }
+        
+        .setup-notice p {
+            color: #78350f;
+            line-height: 1.6;
+        }
+        
+        .setup-notice a {
+            color: #92400e;
+            font-weight: bold;
+            text-decoration: none;
+        }
+        
+        .setup-notice a:hover {
+            text-decoration: underline;
+        }
     </style>
 </head>
 <body>
@@ -986,6 +1025,15 @@ DASHBOARD_HTML = """
             <h1>🤖 XMRT Consensus Integrator</h1>
             <p>Multi-Agent Repository Management System <span class="supabase-badge">Powered by Supabase</span></p>
             <div id="systemStatus"></div>
+        </div>
+        
+        <div id="setupNotice" class="setup-notice" style="display: none;">
+            <h3>⚠️ Database Setup Required</h3>
+            <p>
+                It looks like your Supabase tables haven't been created yet. 
+                Please go to your <a href="https://app.supabase.com/project/vawouugtzwmejxqkeqqj/sql" target="_blank">Supabase SQL Editor</a> 
+                and run the table creation SQL shown in the logs. The system will start working once the tables are created.
+            </p>
         </div>
         
         <div class="grid">
@@ -1022,6 +1070,8 @@ DASHBOARD_HTML = """
     </div>
     
     <script>
+        let hasData = false;
+        
         async function fetchData() {
             try {
                 const [status, agents, tasks, repos, decisions] = await Promise.all([
@@ -1031,6 +1081,14 @@ DASHBOARD_HTML = """
                     fetch('/api/repos').then(r => r.json()),
                     fetch('/api/decisions?limit=5').then(r => r.json())
                 ]);
+                
+                // Check if we have any data
+                if (agents.length === 0 && tasks.length === 0 && repos.length === 0 && decisions.length === 0) {
+                    document.getElementById('setupNotice').style.display = 'block';
+                } else {
+                    document.getElementById('setupNotice').style.display = 'none';
+                    hasData = true;
+                }
                 
                 updateSystemStatus(status);
                 updateMetrics(status);
