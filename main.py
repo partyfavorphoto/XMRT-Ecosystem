@@ -371,7 +371,7 @@ class DB:
         last_checked = extras.get("last_checked", now)
         conn.execute(
             """
-            INSERT INTO repos (name, category, url, is_fork, "exists", default_branch, last_checked)
+            INSERT INTO repos (name, category, url, is_fork, ""exists"", default_branch, last_checked)
             VALUES (?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(name) DO UPDATE SET
                 category=excluded.category,
@@ -388,7 +388,7 @@ class DB:
 
     def list_repos(self) -> List[Dict[str, Any]]:
         rows = self._conn().execute(
-            "SELECT name, category, url, is_fork, "exists", default_branch, last_checked FROM repos ORDER BY name"
+            "SELECT name, category, url, is_fork, ""exists"", default_branch, last_checked FROM repos ORDER BY name"
         ).fetchall()
         return [dict(r) for r in rows]
 
