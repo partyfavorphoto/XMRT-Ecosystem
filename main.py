@@ -6,6 +6,8 @@ XMRT Consensus Integrator — main.py
 A production-ready Flask service that orchestrates a consensus-driven agent team to
 integrate a set of forked repositories across the XMRT ecosystem.
 
+Uses Supabase as the backend database for distributed, scalable operations.
+
 (c) 2025 XMRT Project. Licensed under Apache-2.0
 """
 from __future__ import annotations
@@ -14,7 +16,6 @@ import json
 import logging
 import os
 import re
-import sqlite3
 import threading
 import time
 import uuid
@@ -31,6 +32,12 @@ except Exception:
         return None
 
 try:
+    from supabase import create_client, Client
+except Exception:
+    create_client = None
+    Client = None
+
+try:
     from github import Github, GithubException, Auth
 except Exception:
     Github = None
@@ -43,7 +50,7 @@ try:
 except Exception:
     OpenAI = None
 
-from flask import Flask, jsonify, request, Response, send_from_directory
+from flask import Flask, jsonify, request, Response
 from flask_cors import CORS
 
 # --------------------------------------------------------------------------------------
@@ -54,20 +61,19 @@ APP_NAME = "xmrt-main"
 DEFAULT_PORT = int(os.getenv("PORT", "10000"))
 DEFAULT_LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
 
-DATA_DIR = Path(os.getenv("DATA_DIR", "./data")).resolve()
-DATA_DIR.mkdir(parents=True, exist_ok=True)
+# Supabase Configuration
+SUPABASE_URL = os.getenv("SUPABASE_URL", "https://vawouugtzwmejxqkeqqj.supabase.co")
+SUPABASE_KEY = os.getenv("SUPABASE_SECRET_KEY") or os.getenv("SUPABASE_KEY")
 
-DB_PATH = Path(os.getenv("DATABASE_URL", str(DATA_DIR / "xmrt.db")))
-
-# Optional integrations
+# GitHub Configuration
 GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")
 GITHUB_ORG = os.getenv("GITHUB_ORG", "DevGruGold")
 
+# OpenAI Configuration
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
 
-DOC_PATH = Path(os.getenv("XMRT_REPO_DOC", "/mnt/data/XMRT Ecosystem at 72 Repositories.txt"))
-
+# Coordinator Configuration
 COORDINATOR_TICK_SECONDS = int(os.getenv("COORDINATOR_TICK_SECONDS", "60"))
 
 # --------------------------------------------------------------------------------------
@@ -143,226 +149,213 @@ class Decision:
         return d
 
 # --------------------------------------------------------------------------------------
-# Database Layer
+# Supabase Database Layer
 # --------------------------------------------------------------------------------------
 
-class DB:
-    def __init__(self, path: Path) -> None:
-        self.path = path
-        self._local = threading.local()
-        self._init_db()
+class SupabaseDB:
+    """Supabase database wrapper for XMRT Consensus Integrator."""
 
-    def _conn(self) -> sqlite3.Connection:
-        conn = getattr(self._local, "conn", None)
-        if conn is None:
-            conn = sqlite3.connect(self.path, check_same_thread=False)
-            conn.row_factory = sqlite3.Row
-            self._local.conn = conn
-        return conn
+    def __init__(self, url: str, key: str) -> None:
+        if not create_client:
+            raise RuntimeError("supabase-py is not installed. Install with: pip install supabase")
+        if not url or not key:
+            raise RuntimeError("SUPABASE_URL and SUPABASE_SECRET_KEY must be set")
+        
+        self.client: Client = create_client(url, key)
+        self._init_tables()
+        logger.info("Connected to Supabase at %s", url)
 
-    def _init_db(self) -> None:
-        conn = self._conn()
-        conn.execute("PRAGMA journal_mode=WAL;")
-        conn.execute("PRAGMA foreign_keys=ON;")
-        conn.executescript(
-            """
-            CREATE TABLE IF NOT EXISTS agents (
-                id TEXT PRIMARY KEY,
-                name TEXT NOT NULL,
-                role TEXT NOT NULL,
-                skills TEXT NOT NULL,
-                status TEXT NOT NULL,
-                created_at TEXT NOT NULL,
-                updated_at TEXT NOT NULL
-            );
+    def _init_tables(self) -> None:
+        """Initialize tables if they don't exist (using Supabase SQL editor or migrations)."""
+        # Note: Table creation should be done via Supabase Dashboard SQL Editor
+        # Here we just verify connectivity
+        try:
+            # Test connection
+            self.client.table('agents').select("id").limit(1).execute()
+            logger.info("Supabase tables verified")
+        except Exception as e:
+            logger.warning("Supabase table verification failed (tables may need creation): %s", e)
+            logger.info("Please run the following SQL in your Supabase SQL Editor:")
+            logger.info(self._get_init_sql())
 
-            CREATE TABLE IF NOT EXISTS repos (
-                name TEXT PRIMARY KEY,
-                category TEXT NOT NULL,
-                url TEXT,
-                is_fork INTEGER DEFAULT 0,
-                repo_exists INTEGER DEFAULT 0,
-                default_branch TEXT,
-                last_checked TEXT
-            );
+    def _get_init_sql(self) -> str:
+        """Return SQL for table initialization."""
+        return """
+-- XMRT Consensus Integrator Tables
 
-            CREATE TABLE IF NOT EXISTS tasks (
-                id TEXT PRIMARY KEY,
-                title TEXT NOT NULL,
-                description TEXT NOT NULL,
-                repo TEXT NOT NULL,
-                category TEXT NOT NULL,
-                stage TEXT NOT NULL,
-                status TEXT NOT NULL,
-                priority INTEGER NOT NULL,
-                assignee_agent_id TEXT,
-                blocking_reason TEXT,
-                created_at TEXT NOT NULL,
-                updated_at TEXT NOT NULL,
-                FOREIGN KEY (assignee_agent_id) REFERENCES agents(id)
-            );
+-- Agents table
+CREATE TABLE IF NOT EXISTS agents (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    role TEXT NOT NULL,
+    skills JSONB NOT NULL DEFAULT '[]',
+    status TEXT NOT NULL DEFAULT 'IDLE',
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
 
-            CREATE INDEX IF NOT EXISTS idx_tasks_status ON tasks(status);
-            CREATE INDEX IF NOT EXISTS idx_tasks_repo ON tasks(repo);
-            CREATE INDEX IF NOT EXISTS idx_tasks_stage ON tasks(stage);
+-- Repositories table
+CREATE TABLE IF NOT EXISTS repos (
+    name TEXT PRIMARY KEY,
+    category TEXT NOT NULL,
+    url TEXT,
+    is_fork BOOLEAN DEFAULT FALSE,
+    repo_exists BOOLEAN DEFAULT FALSE,
+    default_branch TEXT,
+    last_checked TIMESTAMPTZ
+);
 
-            CREATE TABLE IF NOT EXISTS decisions (
-                id TEXT PRIMARY KEY,
-                agent_id TEXT,
-                decision TEXT NOT NULL,
-                rationale TEXT NOT NULL,
-                created_at TEXT NOT NULL,
-                FOREIGN KEY (agent_id) REFERENCES agents(id)
-            );
-            
-            CREATE INDEX IF NOT EXISTS idx_decisions_created ON decisions(created_at DESC);
-            """
-        )
-        conn.commit()
+-- Tasks table
+CREATE TABLE IF NOT EXISTS tasks (
+    id TEXT PRIMARY KEY,
+    title TEXT NOT NULL,
+    description TEXT NOT NULL,
+    repo TEXT NOT NULL,
+    category TEXT NOT NULL,
+    stage TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'PENDING',
+    priority INTEGER NOT NULL DEFAULT 5,
+    assignee_agent_id TEXT REFERENCES agents(id),
+    blocking_reason TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
 
+CREATE INDEX IF NOT EXISTS idx_tasks_status ON tasks(status);
+CREATE INDEX IF NOT EXISTS idx_tasks_repo ON tasks(repo);
+CREATE INDEX IF NOT EXISTS idx_tasks_stage ON tasks(stage);
+
+-- Decisions table
+CREATE TABLE IF NOT EXISTS decisions (
+    id TEXT PRIMARY KEY,
+    agent_id TEXT REFERENCES agents(id),
+    decision TEXT NOT NULL,
+    rationale TEXT NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_decisions_created ON decisions(created_at DESC);
+
+-- Enable Row Level Security (optional, configure as needed)
+ALTER TABLE agents ENABLE ROW LEVEL SECURITY;
+ALTER TABLE repos ENABLE ROW LEVEL SECURITY;
+ALTER TABLE tasks ENABLE ROW LEVEL SECURITY;
+ALTER TABLE decisions ENABLE ROW LEVEL SECURITY;
+
+-- Create policies for service role (full access)
+CREATE POLICY "Service role full access" ON agents FOR ALL USING (true);
+CREATE POLICY "Service role full access" ON repos FOR ALL USING (true);
+CREATE POLICY "Service role full access" ON tasks FOR ALL USING (true);
+CREATE POLICY "Service role full access" ON decisions FOR ALL USING (true);
+"""
+
+    # ------------------------- Agent operations -------------------------------------
     def upsert_agent(self, agent: Agent) -> None:
-        conn = self._conn()
-        conn.execute(
-            """
-            INSERT INTO agents (id, name, role, skills, status, created_at, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
-            ON CONFLICT(id) DO UPDATE SET
-                name=excluded.name,
-                role=excluded.role,
-                skills=excluded.skills,
-                status=excluded.status,
-                updated_at=excluded.updated_at
-            ;
-            """,
-            (
-                agent.id,
-                agent.name,
-                agent.role,
-                json.dumps(agent.skills),
-                agent.status,
-                agent.created_at.isoformat(),
-                agent.updated_at.isoformat(),
-            ),
-        )
-        conn.commit()
+        try:
+            data = {
+                "id": agent.id,
+                "name": agent.name,
+                "role": agent.role,
+                "skills": agent.skills,
+                "status": agent.status,
+                "created_at": agent.created_at.isoformat(),
+                "updated_at": agent.updated_at.isoformat(),
+            }
+            self.client.table('agents').upsert(data).execute()
+        except Exception as e:
+            logger.error("Failed to upsert agent %s: %s", agent.id, e)
 
     def list_agents(self) -> List[Agent]:
-        rows = self._conn().execute(
-            "SELECT id, name, role, skills, status, created_at, updated_at FROM agents ORDER BY name"
-        ).fetchall()
-        res: List[Agent] = []
-        for r in rows:
-            res.append(
-                Agent(
-                    id=r["id"],
-                    name=r["name"],
-                    role=r["role"],
-                    skills=list(json.loads(r["skills"] or "[]")),
-                    status=r["status"],
-                    created_at=datetime.fromisoformat(r["created_at"]),
-                    updated_at=datetime.fromisoformat(r["updated_at"]),
-                )
-            )
-        return res
+        try:
+            response = self.client.table('agents').select("*").order('name').execute()
+            agents = []
+            for row in response.data:
+                agents.append(Agent(
+                    id=row['id'],
+                    name=row['name'],
+                    role=row['role'],
+                    skills=row.get('skills', []),
+                    status=row.get('status', 'IDLE'),
+                    created_at=datetime.fromisoformat(row['created_at'].replace('Z', '+00:00')),
+                    updated_at=datetime.fromisoformat(row['updated_at'].replace('Z', '+00:00')),
+                ))
+            return agents
+        except Exception as e:
+            logger.error("Failed to list agents: %s", e)
+            return []
 
+    # ------------------------- Repository operations --------------------------------
     def upsert_repo(self, name: str, category: str, **extras: Any) -> None:
-        conn = self._conn()
-        now = datetime.now(timezone.utc).isoformat()
-        url = extras.get("url")
-        is_fork = int(bool(extras.get("is_fork", 0)))
-        exists = int(bool(extras.get("exists", 0)))
-        default_branch = extras.get("default_branch")
-        last_checked = extras.get("last_checked", now)
-        conn.execute(
-            """
-            INSERT INTO repos (name, category, url, is_fork, repo_exists, default_branch, last_checked)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
-            ON CONFLICT(name) DO UPDATE SET
-                category=excluded.category,
-                url=excluded.url,
-                is_fork=excluded.is_fork,
-                repo_exists=excluded.repo_exists,
-                default_branch=excluded.default_branch,
-                last_checked=excluded.last_checked
-            ;
-            """,
-            (name, category, url, is_fork, exists, default_branch, last_checked),
-        )
-        conn.commit()
+        try:
+            data = {
+                "name": name,
+                "category": category,
+                "url": extras.get("url"),
+                "is_fork": bool(extras.get("is_fork", False)),
+                "repo_exists": bool(extras.get("exists", False)),
+                "default_branch": extras.get("default_branch"),
+                "last_checked": extras.get("last_checked", datetime.now(timezone.utc).isoformat()),
+            }
+            self.client.table('repos').upsert(data).execute()
+        except Exception as e:
+            logger.error("Failed to upsert repo %s: %s", name, e)
 
     def list_repos(self) -> List[Dict[str, Any]]:
-        rows = self._conn().execute(
-            "SELECT name, category, url, is_fork, repo_exists, default_branch, last_checked FROM repos ORDER BY name"
-        ).fetchall()
-        return [dict(r) for r in rows]
+        try:
+            response = self.client.table('repos').select("*").order('name').execute()
+            return response.data
+        except Exception as e:
+            logger.error("Failed to list repos: %s", e)
+            return []
 
+    # ------------------------- Task operations --------------------------------------
     def upsert_task(self, task: Task) -> None:
-        conn = self._conn()
-        conn.execute(
-            """
-            INSERT INTO tasks (id, title, description, repo, category, stage, status, priority,
-                               assignee_agent_id, blocking_reason, created_at, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            ON CONFLICT(id) DO UPDATE SET
-                title=excluded.title,
-                description=excluded.description,
-                repo=excluded.repo,
-                category=excluded.category,
-                stage=excluded.stage,
-                status=excluded.status,
-                priority=excluded.priority,
-                assignee_agent_id=excluded.assignee_agent_id,
-                blocking_reason=excluded.blocking_reason,
-                updated_at=excluded.updated_at
-            ;
-            """,
-            (
-                task.id,
-                task.title,
-                task.description,
-                task.repo,
-                task.category,
-                task.stage,
-                task.status,
-                task.priority,
-                task.assignee_agent_id,
-                task.blocking_reason,
-                task.created_at.isoformat(),
-                task.updated_at.isoformat(),
-            ),
-        )
-        conn.commit()
+        try:
+            data = {
+                "id": task.id,
+                "title": task.title,
+                "description": task.description,
+                "repo": task.repo,
+                "category": task.category,
+                "stage": task.stage,
+                "status": task.status,
+                "priority": task.priority,
+                "assignee_agent_id": task.assignee_agent_id,
+                "blocking_reason": task.blocking_reason,
+                "created_at": task.created_at.isoformat(),
+                "updated_at": task.updated_at.isoformat(),
+            }
+            self.client.table('tasks').upsert(data).execute()
+        except Exception as e:
+            logger.error("Failed to upsert task %s: %s", task.id, e)
 
     def list_tasks(self, *, limit: int = 50, status: Optional[str] = None) -> List[Task]:
-        conn = self._conn()
-        if status:
-            rows = conn.execute(
-                "SELECT * FROM tasks WHERE status=? ORDER BY priority ASC, created_at ASC LIMIT ?",
-                (status, limit),
-            ).fetchall()
-        else:
-            rows = conn.execute(
-                "SELECT * FROM tasks ORDER BY priority ASC, created_at ASC LIMIT ?", (limit,)
-            ).fetchall()
-        tasks: List[Task] = []
-        for r in rows:
-            tasks.append(
-                Task(
-                    id=r["id"],
-                    title=r["title"],
-                    description=r["description"],
-                    repo=r["repo"],
-                    category=r["category"],
-                    stage=r["stage"],
-                    status=r["status"],
-                    priority=int(r["priority"]),
-                    assignee_agent_id=r["assignee_agent_id"],
-                    blocking_reason=r["blocking_reason"],
-                    created_at=datetime.fromisoformat(r["created_at"]),
-                    updated_at=datetime.fromisoformat(r["updated_at"]),
-                )
-            )
-        return tasks
+        try:
+            query = self.client.table('tasks').select("*")
+            if status:
+                query = query.eq('status', status)
+            response = query.order('priority').order('created_at').limit(limit).execute()
+            
+            tasks = []
+            for row in response.data:
+                tasks.append(Task(
+                    id=row['id'],
+                    title=row['title'],
+                    description=row['description'],
+                    repo=row['repo'],
+                    category=row['category'],
+                    stage=row['stage'],
+                    status=row['status'],
+                    priority=row['priority'],
+                    assignee_agent_id=row.get('assignee_agent_id'),
+                    blocking_reason=row.get('blocking_reason'),
+                    created_at=datetime.fromisoformat(row['created_at'].replace('Z', '+00:00')),
+                    updated_at=datetime.fromisoformat(row['updated_at'].replace('Z', '+00:00')),
+                ))
+            return tasks
+        except Exception as e:
+            logger.error("Failed to list tasks: %s", e)
+            return []
 
     def update_task_status(
         self,
@@ -372,63 +365,89 @@ class DB:
         assignee_agent_id: Optional[str] = None,
         blocking_reason: Optional[str] = None,
     ) -> None:
-        conn = self._conn()
-        now = datetime.now(timezone.utc).isoformat()
-        conn.execute(
-            """
-            UPDATE tasks SET status=?, assignee_agent_id=?, blocking_reason=?, updated_at=?
-            WHERE id=?
-            """,
-            (status, assignee_agent_id, blocking_reason, now, task_id),
-        )
-        conn.commit()
+        try:
+            data = {
+                "status": status,
+                "updated_at": datetime.now(timezone.utc).isoformat(),
+            }
+            if assignee_agent_id is not None:
+                data["assignee_agent_id"] = assignee_agent_id
+            if blocking_reason is not None:
+                data["blocking_reason"] = blocking_reason
+            
+            self.client.table('tasks').update(data).eq('id', task_id).execute()
+        except Exception as e:
+            logger.error("Failed to update task %s: %s", task_id, e)
 
+    def get_task_by_id(self, task_id: str) -> Optional[Task]:
+        try:
+            response = self.client.table('tasks').select("*").eq('id', task_id).execute()
+            if response.data:
+                row = response.data[0]
+                return Task(
+                    id=row['id'],
+                    title=row['title'],
+                    description=row['description'],
+                    repo=row['repo'],
+                    category=row['category'],
+                    stage=row['stage'],
+                    status=row['status'],
+                    priority=row['priority'],
+                    assignee_agent_id=row.get('assignee_agent_id'),
+                    blocking_reason=row.get('blocking_reason'),
+                    created_at=datetime.fromisoformat(row['created_at'].replace('Z', '+00:00')),
+                    updated_at=datetime.fromisoformat(row['updated_at'].replace('Z', '+00:00')),
+                )
+        except Exception as e:
+            logger.error("Failed to get task %s: %s", task_id, e)
+        return None
+
+    # ------------------------- Decision operations ----------------------------------
     def insert_decision(self, decision: Decision) -> None:
-        conn = self._conn()
-        conn.execute(
-            """
-            INSERT INTO decisions (id, agent_id, decision, rationale, created_at)
-            VALUES (?, ?, ?, ?, ?)
-            """,
-            (
-                decision.id,
-                decision.agent_id,
-                decision.decision,
-                decision.rationale,
-                decision.created_at.isoformat(),
-            ),
-        )
-        conn.commit()
+        try:
+            data = {
+                "id": decision.id,
+                "agent_id": decision.agent_id,
+                "decision": decision.decision,
+                "rationale": decision.rationale,
+                "created_at": decision.created_at.isoformat(),
+            }
+            self.client.table('decisions').insert(data).execute()
+        except Exception as e:
+            logger.error("Failed to insert decision %s: %s", decision.id, e)
 
     def last_decision(self) -> Optional[Decision]:
-        row = self._conn().execute(
-            "SELECT id, agent_id, decision, rationale, created_at FROM decisions ORDER BY created_at DESC LIMIT 1"
-        ).fetchone()
-        if not row:
-            return None
-        return Decision(
-            id=row["id"],
-            agent_id=row["agent_id"],
-            decision=row["decision"],
-            rationale=row["rationale"],
-            created_at=datetime.fromisoformat(row["created_at"]),
-        )
-    
+        try:
+            response = self.client.table('decisions').select("*").order('created_at', desc=True).limit(1).execute()
+            if response.data:
+                row = response.data[0]
+                return Decision(
+                    id=row['id'],
+                    agent_id=row.get('agent_id'),
+                    decision=row['decision'],
+                    rationale=row['rationale'],
+                    created_at=datetime.fromisoformat(row['created_at'].replace('Z', '+00:00')),
+                )
+        except Exception as e:
+            logger.error("Failed to get last decision: %s", e)
+        return None
+
     def list_decisions(self, limit: int = 10) -> List[Decision]:
-        rows = self._conn().execute(
-            "SELECT id, agent_id, decision, rationale, created_at FROM decisions ORDER BY created_at DESC LIMIT ?",
-            (limit,)
-        ).fetchall()
-        return [
-            Decision(
-                id=r["id"],
-                agent_id=r["agent_id"],
-                decision=r["decision"],
-                rationale=r["rationale"],
-                created_at=datetime.fromisoformat(r["created_at"]),
-            )
-            for r in rows
-        ]
+        try:
+            response = self.client.table('decisions').select("*").order('created_at', desc=True).limit(limit).execute()
+            decisions = []
+            for row in response.data:
+                decisions.append(Decision(
+                    id=row['id'],
+                    agent_id=row.get('agent_id'),
+                    decision=row['decision'],
+                    rationale=row['rationale'],
+                    created_at=datetime.fromisoformat(row['created_at'].replace('Z', '+00:00')),
+                ))
+            return decisions
+        except Exception as e:
+            logger.error("Failed to list decisions: %s", e)
+            return []
 
 # --------------------------------------------------------------------------------------
 # Fallback Data
@@ -437,17 +456,32 @@ class DB:
 CATEGORY_FALLBACK: Dict[str, str] = {
     "xmrt-supabase": "Core Infrastructure",
     "xmrt-redis": "Core Infrastructure",
+    "xmrt-redis-py": "Core Infrastructure",
+    "xmrt-model-storage": "Core Infrastructure",
+    "xmrt-bacalhau": "Core Infrastructure",
     "xmrt-AutoGPT": "AI and Agents",
+    "xmrt-autogen-boardroom": "AI and Agents",
     "xmrt-agents": "AI and Agents",
+    "xmrt-DeepMCPAgent": "AI and Agents",
+    "xmrt-transformers": "AI and Agents",
     "monero-generator": "Blockchain and DeFi",
+    "xmrt-asset-tokenizer": "Blockchain and DeFi",
+    "xmrt-wormhole": "Blockchain and DeFi",
     "xmrt-wazuh": "Security and Privacy",
+    "xmrt-wazuh-kubernetes": "Security and Privacy",
+    "xmrt-risc0-proofs": "Security and Privacy",
     "xmrt-n8n": "Developer Tools",
+    "xmrt-activepieces": "Developer Tools",
+    "xmrt-docusaurus": "Developer Tools",
     "xmrt-social-media-agent": "Social and Analytics",
+    "xmrt-social-sleuth": "Social and Analytics",
 }
 
 REPO_LIST_FALLBACK: List[str] = [
-    "xmrt-supabase", "xmrt-redis", "xmrt-AutoGPT", "xmrt-agents",
-    "monero-generator", "xmrt-wazuh", "xmrt-n8n", "xmrt-social-media-agent"
+    "xmrt-supabase", "xmrt-redis", "xmrt-redis-py", "xmrt-AutoGPT", 
+    "xmrt-agents", "xmrt-DeepMCPAgent", "monero-generator", 
+    "xmrt-asset-tokenizer", "xmrt-wazuh", "xmrt-n8n", 
+    "xmrt-activepieces", "xmrt-social-media-agent"
 ]
 
 # --------------------------------------------------------------------------------------
@@ -494,7 +528,7 @@ class ConsensusEngine:
         "unknown": 3,
     }
 
-    def __init__(self, db: DB) -> None:
+    def __init__(self, db: SupabaseDB) -> None:
         self.db = db
         self._openai_client: Optional[Any] = None
         if OPENAI_API_KEY and OpenAI:
@@ -547,10 +581,11 @@ class ConsensusEngine:
 
 AGENT_CATALOG: List[Tuple[str, List[str]]] = [
     ("Integrator", ["python", "git", "pr", "ci", "docs"]),
-    ("Security", ["wazuh", "audit", "policy"]),
+    ("Security", ["wazuh", "audit", "policy", "risc0"]),
     ("RAG Architect", ["rag", "embed", "supabase", "redis"]),
-    ("Blockchain", ["monero", "wallet"]),
-    ("DevOps", ["docker", "k8s", "ci"]),
+    ("Blockchain", ["monero", "wallet", "bridge"]),
+    ("DevOps", ["docker", "k8s", "ci", "n8n"]),
+    ("Comms", ["social", "analytics", "content"]),
 ]
 
 CATEGORY_TO_AGENT: Dict[str, str] = {
@@ -559,7 +594,7 @@ CATEGORY_TO_AGENT: Dict[str, str] = {
     "Security and Privacy": "Security",
     "Blockchain and DeFi": "Blockchain",
     "Developer Tools": "DevOps",
-    "Social and Analytics": "Integrator",
+    "Social and Analytics": "Comms",
     "unknown": "Integrator",
 }
 
@@ -603,7 +638,7 @@ STAGE_ORDER: List[Stage] = ["discover", "assess", "bootstrap", "integrate", "ver
 class Coordinator(threading.Thread):
     daemon = True
 
-    def __init__(self, db: DB, gh: XMRTGitHub) -> None:
+    def __init__(self, db: SupabaseDB, gh: XMRTGitHub) -> None:
         super().__init__(name="xmrt-coordinator")
         self.db = db
         self.gh = gh
@@ -620,6 +655,7 @@ class Coordinator(threading.Thread):
             if name not in existing:
                 agent = Agent(id=str(uuid.uuid4()), name=name, role=name, skills=skills)
                 self.db.upsert_agent(agent)
+                logger.info("Created agent: %s", name)
 
     def _load_plan(self) -> List[RepoPlan]:
         plans: List[RepoPlan] = []
@@ -640,14 +676,14 @@ class Coordinator(threading.Thread):
                 exists=1 if exists else 0,
                 default_branch=default_branch,
             )
+            
             for stage in STAGE_ORDER:
                 for (title, desc_tmpl) in STAGE_TASKS[stage]:
                     tid = str(uuid.uuid5(uuid.UUID(int=0), f"{plan.name}:{stage}:{title}"))
-                    existing_task = self.db._conn().execute(
-                        "SELECT id FROM tasks WHERE id=?", (tid,)
-                    ).fetchone()
+                    existing_task = self.db.get_task_by_id(tid)
                     if existing_task:
                         continue
+                    
                     desc = desc_tmpl.format(repo=plan.name, org=GITHUB_ORG)
                     task = Task(
                         id=tid,
@@ -681,6 +717,7 @@ class Coordinator(threading.Thread):
 
             pending = [t for t in self.db.list_tasks(limit=5000) if t.status == "PENDING"]
             decision = self.consensus.decide(pending)
+            logger.info("Coordinator tick completed. Decision: %s", decision.decision)
             return decision
         finally:
             self.last_tick = datetime.now(timezone.utc)
@@ -697,6 +734,7 @@ class Coordinator(threading.Thread):
             "org": self.gh.org,
             "task_counts": counts,
             "active_agents": len(self.db.list_agents()),
+            "total_repos": len(self.db.list_repos()),
         }
 
     def run(self) -> None:
@@ -716,7 +754,7 @@ class Coordinator(threading.Thread):
                 logger.exception("Coordinator tick failed: %s", e)
 
 # --------------------------------------------------------------------------------------
-# Flask Application
+# Flask Application with Dashboard
 # --------------------------------------------------------------------------------------
 
 DASHBOARD_HTML = """
@@ -930,13 +968,23 @@ DASHBOARD_HTML = """
             color: #666;
             font-size: 0.85em;
         }
+        
+        .supabase-badge {
+            background: #3ecf8e;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 0.9em;
+            font-weight: bold;
+            margin-left: 10px;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
             <h1>🤖 XMRT Consensus Integrator</h1>
-            <p>Multi-Agent Repository Management System</p>
+            <p>Multi-Agent Repository Management System <span class="supabase-badge">Powered by Supabase</span></p>
             <div id="systemStatus"></div>
         </div>
         
@@ -1018,6 +1066,10 @@ DASHBOARD_HTML = """
                 <div class="metric">
                     <span class="metric-label">Active Agents</span>
                     <span class="metric-value">${status.active_agents}</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Total Repos</span>
+                    <span class="metric-value">${status.total_repos}</span>
                 </div>
                 <div class="metric">
                     <span class="metric-label">Pending Tasks</span>
@@ -1107,7 +1159,7 @@ DASHBOARD_HTML = """
 </html>
 """
 
-def create_app(db: DB, coordinator: Coordinator) -> Flask:
+def create_app(db: SupabaseDB, coordinator: Coordinator) -> Flask:
     app = Flask(APP_NAME)
     CORS(app)
 
@@ -1117,7 +1169,7 @@ def create_app(db: DB, coordinator: Coordinator) -> Flask:
     
     @app.route("/health", methods=["GET"])
     def health() -> Response:
-        return jsonify({"status": "ok", "service": APP_NAME})
+        return jsonify({"status": "ok", "service": APP_NAME, "backend": "supabase"})
 
     @app.route("/api/coordination/status", methods=["GET"])
     def api_coordination_status() -> Response:
@@ -1125,6 +1177,7 @@ def create_app(db: DB, coordinator: Coordinator) -> Flask:
         status.update({
             "coordination_health": "healthy" if status.get("active_agents", 0) > 0 else "degraded",
             "last_activity": datetime.now(timezone.utc).isoformat(),
+            "backend": "supabase",
         })
         return jsonify(status)
 
@@ -1162,7 +1215,7 @@ def create_app(db: DB, coordinator: Coordinator) -> Flask:
 # Main Entry Point
 # --------------------------------------------------------------------------------------
 
-_db: Optional[DB] = None
+_db: Optional[SupabaseDB] = None
 _coordinator: Optional[Coordinator] = None
 _app: Optional[Flask] = None
 
@@ -1175,16 +1228,18 @@ def initialize_services() -> Flask:
     load_dotenv()
     
     logger.info("Starting %s on port %d", APP_NAME, DEFAULT_PORT)
-    logger.info("Database: %s", DB_PATH)
+    logger.info("Supabase URL: %s", SUPABASE_URL)
     logger.info("GitHub org: %s", GITHUB_ORG)
     logger.info("GitHub token configured: %s", bool(GITHUB_TOKEN))
 
-    _db = DB(DB_PATH)
+    _db = SupabaseDB(SUPABASE_URL, SUPABASE_KEY)
     _gh = XMRTGitHub(GITHUB_TOKEN, GITHUB_ORG)
     _coordinator = Coordinator(_db, _gh)
     
     _coordinator.start()
     _app = create_app(_db, _coordinator)
+    
+    logger.info("XMRT Consensus Integrator initialized successfully")
     return _app
 
 def main() -> None:
