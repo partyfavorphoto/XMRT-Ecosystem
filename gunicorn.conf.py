@@ -69,24 +69,19 @@ def when_ready(server):
 def post_fork(server, worker):
     """
     After each worker forks:
-    - Bootstrap the coordination core (idempotent)
-    - Optionally start the autonomous worker loop if ENABLE_AUTON_WORKER=1
+    - Initialize the main application and coordination core
     """
     global _bootstrapped
     try:
-        from main_enhanced_coordination import _bootstrap_system, start_autonomous_worker_if_enabled
+        from main import initialize_services
         if not _bootstrapped:
-            _bootstrap_system()                       # sets up coordination core & initial event
-            start_autonomous_worker_if_enabled()      # spawns background worker thread if enabled
+            initialize_services()  # Initialize the Flask app and coordinator
             _bootstrapped = True
-            worker.log.info("✅ XMRT coordination bootstrapped (worker pid=%s)", worker.pid)
+            worker.log.info("✅ XMRT services initialized (worker pid=%s)", worker.pid)
         else:
-            # Safe to call again; functions are idempotent and worker-local
-            _bootstrap_system()
-            start_autonomous_worker_if_enabled()
-            worker.log.info("↻ XMRT coordination re-initialized (worker pid=%s)", worker.pid)
+            worker.log.info("↻ XMRT services already initialized (worker pid=%s)", worker.pid)
     except Exception as e:
-        worker.log.exception("❌ Post-fork bootstrap error: %s", e)
+        worker.log.exception("❌ Post-fork initialization error: %s", e)
 
 def worker_int(worker):
     worker.log.info("Worker received INT/QUIT signal (pid=%s)", worker.pid)

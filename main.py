@@ -73,9 +73,10 @@ except Exception:  # pragma: no cover - optional
         return None
 
 try:
-    from github import Github, GithubException  # type: ignore
+    from github import Github, GithubException, Auth  # type: ignore
 except Exception:  # pragma: no cover - optional
     Github = None  # type: ignore
+    Auth = None  # type: ignore
     class GithubException(Exception):
         pass
 
@@ -277,7 +278,7 @@ class DB:
                 category TEXT NOT NULL,
                 url TEXT,
                 is_fork INTEGER DEFAULT 0,
-                "exists" INTEGER DEFAULT 0,
+                repo_exists INTEGER DEFAULT 0,
                 default_branch TEXT,
                 last_checked TEXT
             );
@@ -371,13 +372,13 @@ class DB:
         last_checked = extras.get("last_checked", now)
         conn.execute(
             """
-            INSERT INTO repos (name, category, url, is_fork, "exists", default_branch, last_checked)
+            INSERT INTO repos (name, category, url, is_fork, repo_exists, default_branch, last_checked)
             VALUES (?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(name) DO UPDATE SET
                 category=excluded.category,
                 url=excluded.url,
                 is_fork=excluded.is_fork,
-                "exists"=excluded."exists",
+                repo_exists=excluded.repo_exists,
                 default_branch=excluded.default_branch,
                 last_checked=excluded.last_checked
             ;
@@ -388,7 +389,7 @@ class DB:
 
     def list_repos(self) -> List[Dict[str, Any]]:
         rows = self._conn().execute(
-            "SELECT name, category, url, is_fork, "exists", default_branch, last_checked FROM repos ORDER BY name"
+            "SELECT name, category, url, is_fork, repo_exists, default_branch, last_checked FROM repos ORDER BY name"
         ).fetchall()
         return [dict(r) for r in rows]
 
@@ -642,7 +643,11 @@ class XMRTGitHub:
     def __init__(self, token: Optional[str], org: str) -> None:
         self.token = token
         self.org = org
-        self._client = Github(token) if token and Github else None
+        if token and Github and Auth:
+            auth = Auth.Token(token)
+            self._client = Github(auth=auth)
+        else:
+            self._client = None
 
     # ---------------------------- Helpers -----------------------------------------
     def _org(self):  # type: ignore[override]
@@ -1232,6 +1237,15 @@ def create_app(db: DB, coordinator: Coordinator) -> Flask:
     app = Flask(APP_NAME)
     CORS(app)
 
+    @app.route("/", methods=["GET"])
+    def root() -> Response:
+        return jsonify({
+            "service": APP_NAME,
+            "status": "running",
+            "version": "1.0.0",
+            "description": "XMRT Consensus Integrator - Multi-Agent Repository Management System"
+        })
+    
     @app.route("/health", methods=["GET"])
     def health() -> Response:
         return jsonify({"status": "ok", "service": APP_NAME})
@@ -1239,6 +1253,23 @@ def create_app(db: DB, coordinator: Coordinator) -> Flask:
     @app.route("/api/status", methods=["GET"])
     def api_status() -> Response:
         return jsonify(coordinator.status())
+    
+    @app.route("/api/coordination/status", methods=["GET"])
+    def api_coordination_status() -> Response:
+        """Enhanced coordination status endpoint for monitoring."""
+        status = coordinator.status()
+        # Add additional coordination-specific metrics
+        status.update({
+            "coordination_health": "healthy" if status.get("active_agents", 0) > 0 else "degraded",
+            "last_activity": datetime.now(timezone.utc).isoformat(),
+            "system_metrics": {
+                "total_agents": len(db.list_agents()),
+                "total_repos": len(db.list_repos()),
+                "pending_tasks": len(db.list_tasks(status="PENDING")),
+                "blocked_tasks": len(db.list_tasks(status="BLOCKED"))
+            }
+        })
+        return jsonify(status)
 
     @app.route("/api/agents", methods=["GET"])
     def api_agents() -> Response:
@@ -1276,8 +1307,18 @@ def create_app(db: DB, coordinator: Coordinator) -> Flask:
 # Main Entry Point
 # --------------------------------------------------------------------------------------
 
-def main() -> None:
-    """Main entry point for the XMRT Consensus Integrator service."""
+# Global instances for gunicorn
+_db = None
+_coordinator = None
+_app = None
+
+def initialize_services():
+    """Initialize global services for production deployment."""
+    global _db, _coordinator, _app
+    
+    if _app is not None:
+        return _app
+        
     load_dotenv()
     
     logger.info("Starting %s on port %d", APP_NAME, DEFAULT_PORT)
@@ -1286,26 +1327,36 @@ def main() -> None:
     logger.info("GitHub token configured: %s", bool(GITHUB_TOKEN))
     logger.info("OpenAI configured: %s", bool(OPENAI_API_KEY))
 
-    db = DB(DB_PATH)
-    gh = XMRTGitHub(GITHUB_TOKEN, GITHUB_ORG)
-    coordinator = Coordinator(db, gh)
+    _db = DB(DB_PATH)
+    _gh = XMRTGitHub(GITHUB_TOKEN, GITHUB_ORG)
+    _coordinator = Coordinator(_db, _gh)
     
     # Start coordinator thread
-    coordinator.start()
+    _coordinator.start()
     
-    # Create and run Flask app
-    app = create_app(db, coordinator)
+    # Create Flask app
+    _app = create_app(_db, _coordinator)
+    return _app
+
+def main() -> None:
+    """Main entry point for the XMRT Consensus Integrator service."""
+    app = initialize_services()
     
     try:
         app.run(host="0.0.0.0", port=DEFAULT_PORT, debug=False)
     except KeyboardInterrupt:
         logger.info("Shutting down gracefully...")
-        coordinator.stop()
-        coordinator.join(timeout=5)
+        if _coordinator:
+            _coordinator.stop()
+            _coordinator.join(timeout=5)
     except Exception as e:
         logger.exception("Fatal error: %s", e)
-        coordinator.stop()
+        if _coordinator:
+            _coordinator.stop()
         raise
+
+# For gunicorn compatibility
+app = initialize_services()
 
 if __name__ == "__main__":
     main()
