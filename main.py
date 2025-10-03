@@ -1,27 +1,11 @@
-
 #!/usr/bin/env python3
 """
-XMRT Ecosystem Main Application - Version 6.0 "Consensus Builder"
-Render-friendly, single-process Flask app with an autonomous, one-shot innovation cycle.
-
-Key upgrades from 5.x:
-- Scans ALL public repos under the owner whose names start with "xmrt" (case-insensitive), not just a fixed list.
-- Agents analyze the discovered repos, brainstorm multiple NEW feature/utility ideas (not canned).
-- Agents hold a lightweight "discussion" (commentary + scoring), reach a decision, and document it:
-  1) Creates a GitHub Issue capturing the decision and plan.
-  2) Agents post comments on that Issue (debate & sign-off).
-  3) Implements the chosen feature by creating/committing code/artifacts in XMRT-Ecosystem.
-  4) Opens a GitHub Discussion telling the "story" of the new feature and linking the Issue/PR/files.
-- Keeps the same endpoints (/ , /health, /analytics, /agents, /api/force-ecosystem-analysis, /api/force-application-build),
-  plus a new POST /api/run-innovation-cycle to run the entire analysis→debate→decision→implementation→story flow on demand.
-- Health-friendly: fast /healthz (and /favicon.ico returns 204); uses $PORT or 10000 fallback; graceful shutdown.
-
-ENV expected (recommended):
-- GITHUB_TOKEN             (required for real GitHub actions; otherwise runs in "simulate" mode)
-- GITHUB_OWNER             (defaults to "DevGruGold")
-- OPENAI_API_KEY           (optional, enables richer ideation/discussion)
-- GEMINI_API_KEY           (optional, enables richer ideation/discussion)
-- OPENAI_MODEL             (defaults to "gpt-4o-mini")
+XMRT Ecosystem Main Application - Version 6.2 "Consensus Builder"
+- Discovers ALL repos under GITHUB_OWNER starting with 'xmrt' (case-insensitive)
+- Agents ideate, comment, score; weighted consensus picks a winner
+- Creates Issue (decision), comments, implements files, opens Discussion (story)
+- Adds /api/coordination/status (for your poller) + /webhook endpoints
+- Robust GitHub owner resolution (user OR organization), graceful simulate fallback
 """
 
 import os
@@ -29,7 +13,6 @@ import sys
 import re
 import json
 import time
-import math
 import queue
 import signal
 import random
@@ -41,38 +24,32 @@ from typing import Any, Dict, List, Optional, Tuple
 from flask import Flask, jsonify, request, render_template_string
 from flask_cors import CORS
 
-# ----------------------------- Optional integrations -----------------------------
-
-# GitHub via PyGithub
+# ---------------- Optional deps ----------------
 try:
     from github import Github, Auth, GithubException
     GITHUB_AVAILABLE = True
 except ImportError:
     GITHUB_AVAILABLE = False
 
-# OpenAI
 try:
     from openai import OpenAI
     OPENAI_AVAILABLE = True
 except ImportError:
     OPENAI_AVAILABLE = False
 
-# Gemini
 try:
     import google.generativeai as genai
     GEMINI_AVAILABLE = True
 except ImportError:
     GEMINI_AVAILABLE = False
 
-# psutil for system health (optional)
 try:
     import psutil
     PSUTIL_AVAILABLE = True
 except ImportError:
     PSUTIL_AVAILABLE = False
 
-# ----------------------------- Logging & globals ---------------------------------
-
+# ---------------- Logging / Globals -----------
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO").upper()
 logging.basicConfig(level=LOG_LEVEL, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 logger = logging.getLogger("xmrt-main")
@@ -89,12 +66,10 @@ PORT = int(os.getenv("PORT", "10000"))
 OWNER = os.getenv("GITHUB_OWNER", "DevGruGold")
 DEFAULT_OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
 
-START_TIME = datetime.now(timezone.utc)
-
 system_state: Dict[str, Any] = {
     "status": "operational",
     "startup_time": time.time(),
-    "version": "6.0.0-consensus-builder",
+    "version": "6.2.0-consensus-builder",
     "deployment": "render-free-tier",
     "mode": "XMRT_INNOVATION_CYCLE",
     "owner": OWNER,
@@ -115,13 +90,12 @@ analytics: Dict[str, Any] = {
     "system_health": {"cpu": 0.0, "mem": 0.0, "disk": 0.0},
 }
 
-# ----------------------------- Agent roster --------------------------------------
-
+# ---------------- Agents ----------------------
 AGENTS: Dict[str, Dict[str, Any]] = {
     "eliza": {
         "name": "Eliza",
         "role": "Coordinator & Governor",
-        "voice": "strategic, synthesizes viewpoints, focuses on user value and governance alignment",
+        "voice": "strategic, synthesizes viewpoints, governance-aligned",
         "weight": 1.2,
     },
     "security_guardian": {
@@ -133,19 +107,18 @@ AGENTS: Dict[str, Dict[str, Any]] = {
     "defi_specialist": {
         "name": "DeFi Specialist",
         "role": "Mining & Tokenomics",
-        "voice": "economics-driven, ROI, yield, resource efficiency",
+        "voice": "ROI, efficiency, yield",
         "weight": 1.05,
     },
     "community_manager": {
         "name": "Community Manager",
         "role": "Adoption & UX",
-        "voice": "onboarding, docs, growth loops, meme-energy",
+        "voice": "onboarding, docs, growth loops",
         "weight": 1.0,
     },
 }
 
-# ----------------------------- AI Processor --------------------------------------
-
+# ---------------- AI Processor ----------------
 class AIProcessor:
     def __init__(self, eager_probe: bool = False):
         self.openai_client = None
@@ -202,113 +175,47 @@ class AIProcessor:
                 logger.warning(f"Gemini chat error: {e}")
         return ""
 
-    # ------------------------- Ideation & discussion prompts -------------------------
-
     def ideate_features(self, repo_summaries: List[Dict[str, Any]], n_ideas: int = 7) -> List[Dict[str, Any]]:
-        """
-        Produce N novel feature/utility ideas leveraging discovered repos, topics, and gaps.
-        Returns a list of dicts: {title, description, rationale, impact, complexity, tags}
-        """
-        system_prompt = "You are an XMRT DAO product strategist focused on mobile mining, mesh networking, privacy, and real adoption."
+        system_prompt = "You are an XMRT DAO product strategist focused on mobile mining, mesh networking, privacy, and adoption."
         user_prompt = (
             "Given these repository summaries, propose diverse, HIGH-IMPACT features/utilities the ecosystem is missing.\n"
-            "Each idea must be returned as a JSON list of objects with keys:\n"
-            "title, description, rationale, impact (1-5), complexity (1-5), tags (list of strings).\n\n"
-            f"REPOS:\n{json.dumps(repo_summaries, indent=2)}\n\n"
-            f"Please produce {n_ideas} distinct ideas. Avoid duplicates and avoid vague 'dashboards' unless unique."
+            "Return a JSON list of objects with keys: title, description, rationale, impact (1-5), complexity (1-5), tags (list).\n\n"
+            "REPOS:\n" + json.dumps(repo_summaries, indent=2) + "\n\n"
+            f"Please produce {n_ideas} distinct ideas. Avoid duplicates and vague dashboards unless truly novel."
         )
         text = self._chat(system_prompt, user_prompt)
-        ideas: List[Dict[str, Any]] = []
 
-        # Robust JSON extraction
-        candidates = re.findall(r"\[[\s\S]*\]", text)
-        parsed = None
-        for c in candidates:
+        ideas: List[Dict[str, Any]] = []
+        for candidate in re.findall(r"\[[\s\S]*\]", text):
             try:
-                parsed = json.loads(c)
-                break
+                parsed = json.loads(candidate)
+                if isinstance(parsed, list):
+                    for obj in parsed:
+                        if isinstance(obj, dict) and "title" in obj:
+                            ideas.append(obj)
+                    break
             except Exception:
                 continue
 
-        if isinstance(parsed, list):
-            for obj in parsed:
-                if isinstance(obj, dict) and "title" in obj:
-                    ideas.append(obj)
-
-        # Fallback if AI unavailable
         if not ideas:
             ideas = [
-                {
-                    "title": "XMRT Mesh Health Beacons",
-                    "description": "Lightweight UDP beacons for offline mesh presence + mining coordination.",
-                    "rationale": "Strengthens mesh resilience and device discovery.",
-                    "impact": 5,
-                    "complexity": 2,
-                    "tags": ["meshnet", "offline", "mobile"],
-                },
-                {
-                    "title": "Adaptive Mobile Mining Profiles",
-                    "description": "Per-device auto-tuning profiles based on battery/thermals/network.",
-                    "rationale": "Boosts hash-per-watt and user retention.",
-                    "impact": 5,
-                    "complexity": 3,
-                    "tags": ["mining", "battery", "optimizer"],
-                },
-                {
-                    "title": "Proof-of-Participation Badges",
-                    "description": "Signed badges for sustained participation to feed DAO governance weight.",
-                    "rationale": "Aligns mining with long-term governance.",
-                    "impact": 4,
-                    "complexity": 3,
-                    "tags": ["governance", "reputation", "tokens"],
-                },
-                {
-                    "title": "XMRT Repo Cross-Indexer",
-                    "description": "Generates a unified API over all xmrt* repos (endpoints, schemas, versions).",
-                    "rationale": "Easier integrations & programmatic discovery.",
-                    "impact": 4,
-                    "complexity": 2,
-                    "tags": ["devtools", "indexing", "api"],
-                },
-                {
-                    "title": "MobileMonero One-Tap Onboarding",
-                    "description": "Single URL bootstrap that installs Termux + scripts and verifies environment.",
-                    "rationale": "Removes friction for mainstream users.",
-                    "impact": 5,
-                    "complexity": 3,
-                    "tags": ["onboarding", "mobile", "ux"],
-                },
-                {
-                    "title": "Mesh-First Wallet Alerts",
-                    "description": "Offline-first alerts delivered via mesh nodes; sync when online.",
-                    "rationale": "Trust-minimized notifications for outages.",
-                    "impact": 4,
-                    "complexity": 3,
-                    "tags": ["wallet", "meshnet", "alerts"],
-                },
-                {
-                    "title": "XMRT Edge Telemetry Pack",
-                    "description": "Unified, privacy-preserving metrics pack for mining performance.",
-                    "rationale": "Optimize with no central data hoarding.",
-                    "impact": 4,
-                    "complexity": 2,
-                    "tags": ["telemetry", "privacy", "optimizer"],
-                },
+                {"title": "XMRT Mesh Health Beacons", "description": "UDP beacons for offline mesh presence + mining coordination.", "rationale": "Mesh resilience + discovery.", "impact": 5, "complexity": 2, "tags": ["meshnet", "offline", "mobile"]},
+                {"title": "Adaptive Mobile Mining Profiles", "description": "Auto-tuning profiles by battery/thermals/network.", "rationale": "Boost hash-per-watt & retention.", "impact": 5, "complexity": 3, "tags": ["mining", "battery", "optimizer"]},
+                {"title": "Proof-of-Participation Badges", "description": "Signed badges that influence DAO voting weight.", "rationale": "Aligns mining with governance.", "impact": 4, "complexity": 3, "tags": ["governance", "reputation", "tokens"]},
+                {"title": "XMRT Repo Cross-Indexer", "description": "Unified API over all xmrt* repos (endpoints, schemas).", "rationale": "Easier integrations.", "impact": 4, "complexity": 2, "tags": ["devtools", "indexing", "api"]},
+                {"title": "MobileMonero One-Tap Onboarding", "description": "Bootstrap Termux + scripts and verify env.", "rationale": "Remove friction.", "impact": 5, "complexity": 3, "tags": ["onboarding", "mobile", "ux"]},
+                {"title": "Mesh-First Wallet Alerts", "description": "Offline-first alerts via mesh; sync later.", "rationale": "Trust-minimized notifications.", "impact": 4, "complexity": 3, "tags": ["wallet", "meshnet", "alerts"]},
+                {"title": "XMRT Edge Telemetry Pack", "description": "Privacy-preserving metrics pack for miners.", "rationale": "Optimize without data hoarding.", "impact": 4, "complexity": 2, "tags": ["telemetry", "privacy", "optimizer"]},
             ]
 
         analytics["ideas_generated"] += len(ideas)
         return ideas
 
     def agent_comments_and_scores(self, ideas: List[Dict[str, Any]]) -> Dict[str, List[Dict[str, Any]]]:
-        """
-        Each agent comments on each idea and assigns a score (0-10).
-        Returns mapping: agent_id -> list of {title, comment, score}.
-        """
         outputs: Dict[str, List[Dict[str, Any]]] = {k: [] for k in AGENTS.keys()}
         for agent_id, meta in AGENTS.items():
             for idea in ideas:
                 base = 5.0
-                # Simple heuristic scoring by tags vs agent role
                 boost = 0.0
                 tags = [t.lower() for t in idea.get("tags", [])]
                 if agent_id == "security_guardian" and any(t in tags for t in ["privacy", "security", "meshnet"]):
@@ -318,55 +225,51 @@ class AIProcessor:
                 if agent_id == "community_manager" and any(t in tags for t in ["onboarding", "ux", "alerts"]):
                     boost += 2.0
                 if agent_id == "eliza":
-                    boost += 1.5  # general strategist
+                    boost += 1.5
 
-                # Impact & complexity influence
                 impact = float(idea.get("impact", 3))
                 complexity = float(idea.get("complexity", 3))
                 score = base + (impact - complexity * 0.3) + boost
                 score = max(0.0, min(10.0, score))
 
-                comment = f"{meta['name']} ({meta['role']}): {meta['voice']}. Assessment for '{idea['title']}': " \
-                          f"impact={impact}, complexity={complexity}, provisional_score={round(score,2)}."
+                comment = (
+                    f"{meta['name']} ({meta['role']}): {meta['voice']}. "
+                    f"Assessment for '{idea['title']}': impact={impact}, complexity={complexity}, provisional_score={round(score,2)}."
+                )
 
-                outputs[agent_id].append({
-                    "title": idea["title"],
-                    "comment": comment,
-                    "score": round(score, 2),
-                })
+                outputs[agent_id].append({"title": idea["title"], "comment": comment, "score": round(score, 2)})
         return outputs
 
     def choose_winner(self, ideas: List[Dict[str, Any]], agent_scores: Dict[str, List[Dict[str, Any]]]) -> Tuple[Dict[str, Any], Dict[str, float]]:
-        """
-        Weighted consensus: sum per idea across agents (with agent weights).
-        Returns (winning_idea, per_idea_scores mapping).
-        """
         totals: Dict[str, float] = {idea["title"]: 0.0 for idea in ideas}
-        for agent_id, scored in agent_scores.items():
+        for agent_id, series in agent_scores.items():
             weight = float(AGENTS[agent_id]["weight"])
-            for s in scored:
+            for s in series:
                 totals[s["title"]] += s["score"] * weight
         winner_title = max(totals, key=lambda k: totals[k]) if totals else ideas[0]["title"]
         winning_idea = next(i for i in ideas if i["title"] == winner_title)
         return winning_idea, totals
 
-# ----------------------------- GitHub Integration -------------------------------
-
+# ---------------- GitHub Client ----------------
 class GitHubClient:
     def __init__(self, owner: str):
         self.owner = owner
         self.token = os.getenv("GITHUB_TOKEN")
         self.simulate = True
         self.gh = None
-        self.user = None
-        self.repo_ecosystem = None  # Main repo where we will write code (XMRT-Ecosystem)
+        self.owner_obj = None
+        self.repo_ecosystem = None
 
         if self.token and GITHUB_AVAILABLE:
             try:
                 auth = Auth.Token(self.token)
                 self.gh = Github(auth=auth)
-                self.user = self.gh.get_user(self.owner)
-                # Main target repo for code drops:
+                # Resolve owner robustly: try user → org
+                try:
+                    self.owner_obj = self.gh.get_user(self.owner)
+                except Exception:
+                    self.owner_obj = self.gh.get_organization(self.owner)
+                # Main target repo for code artifacts
                 self.repo_ecosystem = self.gh.get_repo(f"{self.owner}/XMRT-Ecosystem")
                 self.simulate = False
                 logger.info("GitHub connected. Real mode enabled.")
@@ -375,18 +278,14 @@ class GitHubClient:
                 self.simulate = True
 
     def list_xmrt_repos(self) -> List[Dict[str, Any]]:
-        """
-        Discover all repos under owner whose name starts with 'xmrt' (case-insensitive).
-        """
         repos: List[Dict[str, Any]] = []
         try:
-            if self.simulate:
-                # Simulated fallback
+            if self.simulate or not self.owner_obj:
                 names = ["XMRT-Ecosystem", "xmrtassistant", "xmrtcash", "xmrt-openai-agents-js", "xmrt-agno", "xmrt-signup"]
                 for n in names:
                     repos.append({"name": n, "full_name": f"{self.owner}/{n}", "language": "Python", "topics": ["xmrt", "meshnet"], "stars": 0})
             else:
-                for r in self.user.get_repos(type="public"):
+                for r in self.owner_obj.get_repos(type="public"):
                     if r.name.lower().startswith("xmrt"):
                         try:
                             topics = []
@@ -414,20 +313,14 @@ class GitHubClient:
             return repos
 
     def create_or_update_file(self, path: str, message: str, content: str) -> Dict[str, Any]:
-        """
-        Write file into XMRT-Ecosystem repo (default branch).
-        """
         if self.simulate or not self.repo_ecosystem:
             analytics["files_created"] += 1
             return {"simulated": True, "path": path, "message": message}
-
         try:
-            # Try create
             self.repo_ecosystem.create_file(path, message, content)
             analytics["files_created"] += 1
             return {"created": True, "path": path, "message": message}
-        except GithubException as ge:
-            # If file exists, update
+        except GithubException:
             try:
                 file = self.repo_ecosystem.get_contents(path)
                 self.repo_ecosystem.update_file(path, f"Update: {message}", content, file.sha)
@@ -444,7 +337,6 @@ class GitHubClient:
         if self.simulate or not self.repo_ecosystem:
             analytics["issues_created"] += 1
             return {"simulated": True, "title": title, "number": random.randint(1000, 9999)}
-
         try:
             issue = self.repo_ecosystem.create_issue(title=title, body=body, labels=labels or [])
             analytics["issues_created"] += 1
@@ -457,7 +349,6 @@ class GitHubClient:
         if self.simulate or not self.repo_ecosystem:
             analytics["comments_posted"] += 1
             return {"simulated": True, "issue": issue_number}
-
         try:
             issue = self.repo_ecosystem.get_issue(number=issue_number)
             issue.create_comment(comment)
@@ -467,12 +358,7 @@ class GitHubClient:
             logger.error(f"Issue comment failed: {e}")
             return {"error": str(e), "issue": issue_number}
 
-    # ----------------------- Discussions (REST fallback) -----------------------
-
     def _rest(self, method: str, path: str, **kwargs) -> Tuple[int, Any]:
-        """
-        Minimal REST client for endpoints not covered by PyGithub (e.g., Discussions).
-        """
         import requests
         headers = kwargs.pop("headers", {})
         headers.update({
@@ -494,7 +380,7 @@ class GitHubClient:
         status, data = self._rest("GET", f"/repos/{self.owner}/{repo}/discussions/categories")
         if status == 200 and isinstance(data, list):
             return data
-        logger.warning(f"Could not list categories ({status}): {data}")
+        logger.warning(f"Could not list discussion categories ({status}): {data}")
         return []
 
     def create_discussion(self, repo: str, title: str, body: str, category_name: str = "General") -> Dict[str, Any]:
@@ -516,8 +402,7 @@ class GitHubClient:
             return {"ok": True, "number": data.get("number"), "url": data.get("html_url")}
         return {"error": f"status={status}", "data": data}
 
-# ----------------------------- Core Pipeline -------------------------------------
-
+# --------------- Core pipeline ---------------
 ai = AIProcessor(eager_probe=False)
 gh = GitHubClient(owner=OWNER)
 
@@ -541,72 +426,61 @@ def slugify(name: str) -> str:
     return s.lower() or "feature"
 
 def implement_feature(app_name: str, idea: Dict[str, Any]) -> List[Dict[str, Any]]:
-    """
-    Write files into XMRT-Ecosystem/xmrt_apps/<slug>_* and a story stub in docs/.
-    """
     created: List[Dict[str, Any]] = []
     slug = slugify(app_name)
     base_dir = f"xmrt_apps/{slug}"
     files = {
-        f"{base_dir}/{slug}.py": f"""#!/usr/bin/env python3
-\"\"\"{app_name}
-Auto-generated by XMRT Consensus Builder.
-
-Description:
-{idea.get('description','(no description)')}
-
-Tags: {', '.join(idea.get('tags', []))}
-\"\"\"
-
-import os, time, json, random, logging
-logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
-log = logging.getLogger("{slug}")
-
-def run():
-    # TODO: replace with real logic for: {app_name}
-    log.info("Initialized {app_name}")
-    result = {{
-        "status": "ok",
-        "feature": "{app_name}",
-        "improvement": "placeholder",
-        "timestamp": time.time(),
-    }}
-    print(json.dumps(result))
-
-if __name__ == "__main__":
-    run()
-""",
-        f"{base_dir}/{slug}_config.py": f"""# Config for {app_name}
-CONFIG = {{
-    "version": "0.1.0",
-    "enabled": True,
-    "notes": "Auto-generated; fill in specific integration params."
-}}
-""",
-        f"{base_dir}/{slug}_README.md": f"""# {app_name}
-
-**Idea**: {idea.get('description','')}
-**Rationale**: {idea.get('rationale','')}
-**Tags**: {", ".join(idea.get('tags', []))}
-
-This module was created by the XMRT multi-agent consensus flow.
-Next steps:
-- Wire into MobileMonero onboarding / MeshNet / Optimizer as applicable.
-- Add tests and integration hooks.
-""",
-        f"docs/stories/{slug}.md": f"""# Story: {app_name}
-
-**What shipped?**
-- {idea.get('title')} — {idea.get('description','')}
-
-**Why does it matter?**
-- {idea.get('rationale','')}
-
-**Links**
-- (to be updated by CI) Issue, PR, commit diff, demo endpoints.
-
-*Generated {datetime.now().isoformat()} by XMRT Consensus Builder.*
-""",
+        f"{base_dir}/{slug}.py": (
+            "#!/usr/bin/env python3\n"
+            f'"""{app_name}\n'
+            "Auto-generated by XMRT Consensus Builder.\n\n"
+            "Description:\n"
+            f"{idea.get('description','(no description)')}\n\n"
+            f"Tags: {', '.join(idea.get('tags', []))}\n"
+            '"""\n\n'
+            "import time, json, logging\n"
+            'logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")\n'
+            f'log = logging.getLogger("{slug}")\n\n'
+            "def run():\n"
+            f"    log.info('Initialized {app_name}')\n"
+            "    result = {\n"
+            "        'status': 'ok',\n"
+            f"        'feature': '{app_name}',\n"
+            "        'improvement': 'placeholder',\n"
+            "        'timestamp': time.time(),\n"
+            "    }\n"
+            "    print(json.dumps(result))\n\n"
+            "if __name__ == '__main__':\n"
+            "    run()\n"
+        ),
+        f"{base_dir}/{slug}_config.py": (
+            f"# Config for {app_name}\n"
+            "CONFIG = {\n"
+            "    'version': '0.1.0',\n"
+            "    'enabled': True,\n"
+            "    'notes': 'Auto-generated; add integration params.'\n"
+            "}\n"
+        ),
+        f"{base_dir}/{slug}_README.md": (
+            f"# {app_name}\n\n"
+            f"**Idea**: {idea.get('description','')}\n\n"
+            f"**Rationale**: {idea.get('rationale','')}\n\n"
+            f"**Tags**: {', '.join(idea.get('tags', []))}\n\n"
+            "Created by the XMRT multi-agent consensus flow.\n"
+            "Next steps:\n"
+            "- Wire into MobileMonero / MeshNet / Optimizer as applicable.\n"
+            "- Add tests and integration hooks.\n"
+        ),
+        f"docs/stories/{slug}.md": (
+            f"# Story: {app_name}\n\n"
+            "**What shipped?**\n\n"
+            f"- {idea.get('title')} — {idea.get('description','')}\n\n"
+            "**Why does it matter?**\n\n"
+            f"- {idea.get('rationale','')}\n\n"
+            "**Links**\n"
+            "- (update via CI) Issue, PR, commit diff, demo endpoints.\n\n"
+            f"*Generated {datetime.now().isoformat()} by XMRT Consensus Builder.*\n"
+        ),
     }
     for path, content in files.items():
         msg = f"Add {app_name}: initialize {os.path.basename(path)}"
@@ -614,85 +488,65 @@ Next steps:
     return created
 
 def innovation_cycle() -> Dict[str, Any]:
-    """
-    1) Discover all xmrt* repos.
-    2) Summarize -> ideate multiple new features (AI-backed).
-    3) Agents comment + score -> pick winner.
-    4) Create Issue with decision & plan; agents comment on issue.
-    5) Implement feature (commit files).
-    6) Create Discussion "story" post.
-    """
     repos = gh.list_xmrt_repos()
     summaries = summarize_repos_for_ai(repos)
     ideas = ai.ideate_features(summaries, n_ideas=7)
     agent_notes = ai.agent_comments_and_scores(ideas)
     winning_idea, totals = ai.choose_winner(ideas, agent_notes)
 
-    # Compose Issue body
     title = f"[Consensus] Implement: {winning_idea['title']}"
-    body = [
-        f"# Consensus Decision: {winning_idea['title']}",
-        "",
-        "## Idea",
-        f"- **Description:** {winning_idea.get('description','')}",
-        f"- **Rationale:** {winning_idea.get('rationale','')}",
-        f"- **Tags:** {', '.join(winning_idea.get('tags', []))}",
-        f"- **Impact:** {winning_idea.get('impact', 'n/a')} / **Complexity:** {winning_idea.get('complexity', 'n/a')}",
-        "",
-        "## Agent Scores",
-    ]
+    body_lines = []
+    body_lines.append(f"# Consensus Decision: {winning_idea['title']}")
+    body_lines.append("")
+    body_lines.append("## Idea")
+    body_lines.append(f"- Description: {winning_idea.get('description','')}")
+    body_lines.append(f"- Rationale: {winning_idea.get('rationale','')}")
+    body_lines.append(f"- Tags: {', '.join(winning_idea.get('tags', []))}")
+    body_lines.append(f"- Impact: {winning_idea.get('impact', 'n/a')} / Complexity: {winning_idea.get('complexity', 'n/a')}")
+    body_lines.append("")
+    body_lines.append("## Agent Scores")
     for agent_id, series in agent_notes.items():
         agent_name = AGENTS[agent_id]["name"]
         score = next((s["score"] for s in series if s["title"] == winning_idea["title"]), None)
         if score is not None:
-            body.append(f"- **{agent_name}**: {score}")
-    body += [
-        "",
-        "## Totals",
-        *[f"- {k}: {round(v,2)}" for k, v in sorted(totals.items(), key=lambda kv: kv[1], reverse=True)],
-        "",
-        "## Implementation Plan (initial)",
-        "- Create code module(s) under `xmrt_apps/<feature_slug>/`",
-        "- Add story entry in `docs/stories/`",
-        "- Wire integration points in follow-up tasks",
-        "",
-        f"_Generated {datetime.now().isoformat()} by XMRT Consensus Builder_",
-    ]
-    issue = gh.create_issue_with_body(title, "\n".join(body), labels=["consensus", "auto", "xmrt-feature"])
+            body_lines.append(f"- {agent_name}: {score}")
+    body_lines.append("")
+    body_lines.append("## Totals")
+    for k, v in sorted(totals.items(), key=lambda kv: kv[1], reverse=True):
+        body_lines.append(f"- {k}: {round(v,2)}")
+    body_lines.append("")
+    body_lines.append("## Implementation Plan (initial)")
+    body_lines.append("- Create code module(s) under xmrt_apps/<feature_slug>/")
+    body_lines.append("- Add story entry in docs/stories/")
+    body_lines.append("- Wire integration points in follow-up tasks")
+    body_lines.append("")
+    body_lines.append(f"Generated {datetime.now().isoformat()} by XMRT Consensus Builder")
 
+    issue = gh.create_issue_with_body(title, "\n".join(body_lines), labels=["consensus", "auto", "xmrt-feature"])
     issue_number = issue.get("number") if "number" in issue else issue.get("simulated") and random.randint(1000, 9999)
-    if issue_number is None:
-        logger.warning(f"Could not retrieve issue number from response: {issue}")
 
-    # Agents comment on the issue
     if issue_number is not None:
         for agent_id, meta in AGENTS.items():
-            # Find that agent's comment about the winning idea
             comment_obj = next((s for s in agent_notes[agent_id] if s["title"] == winning_idea["title"]), None)
             text = comment_obj["comment"] if comment_obj else f"{meta['name']}: Approve."
             _ = gh.comment_issue(issue_number, text)
 
-    # Implement feature
     app_name = winning_idea["title"]
     created = implement_feature(app_name, winning_idea)
 
-    # Discussion story
     story_title = f"[Story] {app_name} shipped via Multi-Agent Consensus"
-    story_body = f"""# {app_name}
-
-This feature emerged from an autonomous, multi-agent discussion & consensus round.
-
-- Issue: {'#'+str(issue_number) if issue_number else '(simulated)'}
-- Owner: {OWNER}
-- Created: {datetime.now().isoformat()}
-
-**What & Why**
-- {winning_idea.get('description','')}
-- {winning_idea.get('rationale','')}
-
-**Artifacts**
-- {json.dumps(created, indent=2)}
-"""
+    story_body = (
+        f"# {app_name}\n\n"
+        "This feature emerged from an autonomous, multi-agent discussion and consensus round.\n\n"
+        f"- Issue: {'#'+str(issue_number) if issue_number else '(simulated)'}\n"
+        f"- Owner: {OWNER}\n"
+        f"- Created: {datetime.now().isoformat()}\n\n"
+        "**What and Why**\n\n"
+        f"- {winning_idea.get('description','')}\n"
+        f"- {winning_idea.get('rationale','')}\n\n"
+        "**Artifacts**\n"
+        f"{json.dumps(created, indent=2)}\n"
+    )
     discussion = gh.create_discussion("XMRT-Ecosystem", story_title, story_body, category_name="General")
 
     analytics["feature_cycles_completed"] += 1
@@ -708,8 +562,7 @@ This feature emerged from an autonomous, multi-agent discussion & consensus roun
         "timestamp": datetime.now().isoformat(),
     }
 
-# ----------------------------- Worker (one-shot queue) ---------------------------
-
+# --------------- Worker -----------------------
 class OneShotWorker(threading.Thread):
     def __init__(self):
         super().__init__(name="xmrt-oneshot-worker", daemon=True)
@@ -739,8 +592,7 @@ class OneShotWorker(threading.Thread):
 worker = OneShotWorker()
 worker.start()
 
-# ----------------------------- Health helpers ------------------------------------
-
+# --------------- Health helpers --------------
 def update_system_health():
     if PSUTIL_AVAILABLE:
         try:
@@ -750,20 +602,18 @@ def update_system_health():
         except Exception:
             pass
     else:
-        # Simulated
         analytics["system_health"]["cpu"] = round(random.uniform(5, 35), 1)
         analytics["system_health"]["mem"] = round(random.uniform(20, 70), 1)
         analytics["system_health"]["disk"] = round(random.uniform(10, 60), 1)
 
-# ----------------------------- Frontend ------------------------------------------
-
+# --------------- Frontend ---------------------
 FRONT = """
 <!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>XMRT Ecosystem 6.0 — Consensus Builder</title>
+<title>XMRT Ecosystem 6.2 — Consensus Builder</title>
 <style>
 body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, sans-serif;
        background: #0f172a; color: #e2e8f0; margin: 0; padding: 24px; }
@@ -780,7 +630,7 @@ pre { white-space: pre-wrap; word-wrap: break-word; background: #0b1220; padding
 </head>
 <body>
 <div class="container">
-  <h1>XMRT Ecosystem 6.0 — Consensus Builder</h1>
+  <h1>XMRT Ecosystem 6.2 — Consensus Builder</h1>
   <div class="small">Owner: {{ owner }} • Version: {{ version }} • Uptime: {{ uptime }}s</div>
 
   <div class="grid">
@@ -836,20 +686,18 @@ function refresh(){ location.reload(); }
 </html>
 """
 
-# ----------------------------- Legacy (compat) endpoints -------------------------
-
+# --------------- Legacy endpoints -------------
 def legacy_analyze():
     repos = gh.list_xmrt_repos()
     return {
         "status": "ok",
         "owner": OWNER,
         "repositories_analyzed": len(repos),
-        "repositories": summarize_repos_for_ai(repos)[-10:],  # preview last 10
+        "repositories": summarize_repos_for_ai(repos)[-10:],
         "timestamp": datetime.now().isoformat(),
     }
 
 def legacy_build():
-    # Create a tiny placeholder app to keep backward compatibility with tooling/tests.
     idea = {
         "title": "XMRT Repo Cross-Indexer",
         "description": "Unified API over all xmrt* repos (endpoints, schemas, versions).",
@@ -859,8 +707,7 @@ def legacy_build():
     created = implement_feature("XMRT Repo Cross-Indexer", idea)
     return {"status": "ok", "files": created}
 
-# ----------------------------- Flask routes --------------------------------------
-
+# --------------- Routes -----------------------
 @app.route("/", methods=["GET", "HEAD"])
 def index():
     analytics["requests_count"] += 1
@@ -877,7 +724,6 @@ def index():
 
 @app.route("/favicon.ico")
 def favicon():
-    # Avoid noisy 404 until you add /static/favicon.ico
     return ("", 204)
 
 @app.route("/healthz")
@@ -904,7 +750,7 @@ def get_agents():
     analytics["requests_count"] += 1
     return jsonify({"agents": AGENTS})
 
-# Legacy endpoints preserved
+# Compat + poller endpoints your infra expects
 @app.route("/api/force-ecosystem-analysis", methods=["POST"])
 def force_ecosystem_analysis():
     return jsonify(legacy_analyze())
@@ -913,14 +759,40 @@ def force_ecosystem_analysis():
 def force_application_build():
     return jsonify(legacy_build())
 
-# New: full cycle trigger
 @app.route("/api/run-innovation-cycle", methods=["POST"])
 def run_innovation_cycle():
     worker.schedule({"type": "innovation_cycle"})
     return jsonify({"scheduled": True, "message": "Innovation cycle enqueued"})
 
-# ----------------------------- Signals & main ------------------------------------
+@app.route("/api/coordination/status")   # <-- 404s in your logs; now implemented
+def coordination_status():
+    return jsonify({
+        "ready": READY.is_set(),
+        "feature_cycles_completed": analytics["feature_cycles_completed"],
+        "ideas_generated": analytics["ideas_generated"],
+        "repositories_discovered": analytics["repositories_discovered"],
+        "issues_created": analytics["issues_created"],
+        "discussions_created": analytics["discussions_created"],
+        "files_created": analytics["files_created"],
+        "files_updated": analytics["files_updated"],
+        "timestamp": datetime.now().isoformat(),
+    })
 
+# Lightweight webhooks so external pings don't 404
+@app.route("/webhook/github", methods=["POST"])
+def webhook_github():
+    analytics["github_operations"] += 1
+    return jsonify({"status": "received", "source": "github", "ts": datetime.now().isoformat()})
+
+@app.route("/webhook/render", methods=["POST"])
+def webhook_render():
+    return jsonify({"status": "received", "source": "render", "ts": datetime.now().isoformat()})
+
+@app.route("/webhook/discord", methods=["POST"])
+def webhook_discord():
+    return jsonify({"status": "received", "source": "discord", "ts": datetime.now().isoformat()})
+
+# --------------- Signals / main --------------
 def _signal_handler(sig, _frame):
     logger.info("Received signal %s — shutting down", sig)
     SHUTDOWN.set()
@@ -932,9 +804,6 @@ def main() -> int:
     logger.info("Agents and Coordination initialized")
     logger.info("Starting %s on port %s", APP_NAME, PORT)
     READY.set()
-
-    # Optionally kick a cycle at boot (comment out if you prefer manual):
-    # worker.schedule({"type": "innovation_cycle"})
 
     try:
         app.run(host=HOST, port=PORT, debug=False, use_reloader=False, threaded=True)
