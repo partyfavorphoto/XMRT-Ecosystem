@@ -22,9 +22,9 @@ Type: integration_bridge
 
 ## Target Repositories
 
-- assetverse-nexus
 - xmrt-test-env
-- xmrt-eliza-enhanced
+- xmrt-activepieces
+- xmrt-signup
 
 ## Open Source Components
 
