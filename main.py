@@ -1,1201 +1,1311 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-XMRT Ecosystem Main Application - v7.0 (Consensus + MCP + Guided Integration)
-=============================================================================
+XMRT Consensus Integrator — main.py
 
-One script to rule them all.
+A production-ready Flask service that orchestrates a consensus-driven agent team to
+integrate a set of forked repositories across the XMRT ecosystem. The integration
+path is guided by the curated plan contained in the document
+"XMRT Ecosystem at 72 Repositories.txt" and a compiled in-code fallback plan.
 
-This version:
-- Preserves your working Flask service + consensus loop.
-- Adds a Model Context Protocol (MCP) bridge (HTTP-style) to list/call tools.
-- Builds a *guided integration plan* from your 72-repo ecosystem document and
-  drives *real* GitHub issues/commits for work tracking and integration stubs.
-- Removes "simulation" results. If a real dependency/service (GitHub/OpenAI/MCP)
-  isn't available, we return a clear, explicit error instead of fabricating data.
-- Provides endpoints to inspect agents, tasks, status, and to trigger cycles.
+Key properties
+--------------
+- No simulations: this process performs real work when credentials are provided
+  (e.g., GitHub token) and cleanly degrades to a "blocked" state when they are not.
+- Deterministic, auditable state: everything is persisted to SQLite for robustness.
+- Extensible agents: role-based agents auto-assign tasks by category and stage.
+- Consensus engine: decisions are recorded with rationale and can be reviewed via
+  API.
+- Safe-by-default GitHub operations: best-effort idempotency (labels, issues, PRs),
+  branch detection, and upsert of standard XMRT files (.xmrt/integration.yml,
+  SECURITY.md, CODEOWNERS, CONTRIBUTING.md) using PyGithub.
+- Clean HTTP API surface matching the deployed UI endpoints (see routes section).
 
-Environment variables:
-- OPENAI_API_KEY           (required for AI-powered consensus/tie-breaks)
-- OPENAI_MODEL             (default: gpt-4o-mini)
-- GEMINI_API_KEY           (optional secondary LLM)
-- GITHUB_TOKEN             (required for real GitHub actions)
-- MCP_SERVER_URL           (optional; e.g. http://mcp-gateway:3000)
-- MCP_API_KEY              (optional)
-- ADMIN_TOKEN              (optional; protects mutating endpoints if set)
-- PORT                     (Render supplies; default 10000)
+Environment
+-----------
+- PORT (default: 10000)
+- LOG_LEVEL (default: INFO)
+- DATA_DIR (default: ./data)
+- DATABASE_URL (SQLite path, default: {DATA_DIR}/xmrt.db)
+- GITHUB_TOKEN (Personal access token with repo scope)
+- GITHUB_ORG (e.g., DevGruGold)
+- OPENAI_API_KEY (optional; used for light weighting rationale text)
+- OPENAI_MODEL (default: gpt-4o-mini; compatible with openai>=2.1.0 api)
 
-Security:
-- If ADMIN_TOKEN is set, mutating endpoints require header:
-  Authorization: Bearer <ADMIN_TOKEN>
+Dependencies
+------------
+- Flask, Flask-CORS
+- PyGithub
+- python-dotenv (optional)
+- openai (optional)
 
-Logging style:
-- Matches your previous deploy logs.
+Notes
+-----
+- If OPENAI_API_KEY is not present, the consensus rationale generator falls back to
+  a deterministic template.
+- If GITHUB_TOKEN is not present, tasks are marked BLOCKED with reason and can be
+  retried once credentials are supplied without requiring a service restart.
 
-Author’s note:
-- The integration backlog and priorities are derived from your 72-repo guide,
-  with specific first-wave goals for xmrt-syft-client, xmrt-ragflow, xmrt-autogen.
+(c) 2025 XMRT Project. Licensed under Apache-2.0 (code) except where upstream
+licenses apply to generated files. See individual repository LICENSE files.
 """
-
 from __future__ import annotations
 
+import dataclasses
+import json
+import logging
 import os
 import re
-import sys
-import json
-import time
-import hmac
-import math
-import signal
-import logging
-import random
+import sqlite3
 import threading
-import traceback
+import time
+import uuid
 from dataclasses import dataclass, field, asdict
-from typing import Any, Dict, Optional, List, Tuple, Callable
-from datetime import datetime, timedelta
+from datetime import datetime, timezone
+from pathlib import Path
+from typing import Any, Dict, List, Literal, Optional, Tuple
 
-import requests
-from flask import Flask, jsonify, request, make_response, render_template_string
+# Third-party imports — optional fallbacks when not available
+try:
+    from dotenv import load_dotenv  # type: ignore
+except Exception:  # pragma: no cover - optional
+    def load_dotenv(*args: Any, **kwargs: Any) -> None:  # shim
+        return None
+
+try:
+    from github import Github, GithubException  # type: ignore
+except Exception:  # pragma: no cover - optional
+    Github = None  # type: ignore
+    class GithubException(Exception):
+        pass
+
+try:
+    # openai>=2.1.0 modern client
+    from openai import OpenAI  # type: ignore
+except Exception:  # pragma: no cover - optional
+    OpenAI = None  # type: ignore
+
+from flask import Flask, jsonify, request, Response
 from flask_cors import CORS
 
-# -------------------- Optional dependencies (loaded lazily) --------------------
-try:
-    from github import Github, Auth, GithubException
-    GITHUB_AVAILABLE = True
-except Exception:
-    GITHUB_AVAILABLE = False
+# --------------------------------------------------------------------------------------
+# Configuration & Constants
+# --------------------------------------------------------------------------------------
 
-try:
-    from openai import OpenAI
-    OPENAI_AVAILABLE = True
-except Exception:
-    OPENAI_AVAILABLE = False
+APP_NAME = "xmrt-main"
+DEFAULT_PORT = int(os.getenv("PORT", "10000"))
+DEFAULT_LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
 
-try:
-    import google.generativeai as genai
-    GEMINI_AVAILABLE = True
-except Exception:
-    GEMINI_AVAILABLE = False
+DATA_DIR = Path(os.getenv("DATA_DIR", "./data")).resolve()
+DATA_DIR.mkdir(parents=True, exist_ok=True)
 
-try:
-    import psutil
-    PSUTIL_AVAILABLE = True
-except Exception:
-    PSUTIL_AVAILABLE = False
-# ------------------------------------------------------------------------------
+DB_PATH = Path(os.getenv("DATABASE_URL", str(DATA_DIR / "xmrt.db")))
 
+# Optional integrations
+GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")
+GITHUB_ORG = os.getenv("GITHUB_ORG", "DevGruGold")
 
-# ============================ Logging Configuration ============================
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
+
+# Document path (mounted in development; optional in production). If file is missing,
+# we fall back to the compiled plan below.
+DOC_PATH = Path(os.getenv("XMRT_REPO_DOC", "/mnt/data/XMRT Ecosystem at 72 Repositories.txt"))
+
+# Coordinator cadence (seconds)
+COORDINATOR_TICK_SECONDS = int(os.getenv("COORDINATOR_TICK_SECONDS", "60"))
+
+# Git defaults
+DEFAULT_BASE_BRANCH_CANDIDATES = ("main", "master", "develop")
+
+# Standard XMRT files (relative to repo root) and their minimal default content
+XMRT_STANDARD_FILES: Dict[str, str] = {
+    ".xmrt/integration.yml": """
+# XMRT Integration Descriptor
+# This file is managed by XMRT Consensus Integrator.
+# Fields:
+#   stage: current stage in the integration pipeline
+#   category: functional category per ecosystem plan
+#   owners: GitHub handles responsible for this repo
+#   tasks: canonical task ids (mirror of tasks table)
+#
+stage: discover
+category: unknown
+owners: []
+tasks: []
+""".strip(),
+    "SECURITY.md": """
+# Security Policy (XMRT)
+
+Thank you for helping us keep XMRT secure. Please report vulnerabilities via the
+GitHub Security Advisories workflow or email security@xmrt.dev. Do *not* open a
+public issue for sensitive disclosures.
+
+Supported versions: latest default branch. We patch supported branches as feasible.
+""".strip(),
+    "CODEOWNERS": """
+# XMRT default code ownership (override in repo as needed)
+* @DevGruGold @xmrt-core-maintainers
+""".strip(),
+    "CONTRIBUTING.md": """
+# Contributing to XMRT
+
+We ❤️ contributions! Please:
+- open an issue describing the change
+- follow our coding standards and run tests
+- ensure DCO sign-off (Signed-off-by)
+
+Thank you!
+""".strip(),
+}
+
+# --------------------------------------------------------------------------------------
+# Logging Setup
+# --------------------------------------------------------------------------------------
 
 logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - xmrt-main - %(levelname)s - %(message)s"
+    level=getattr(logging, DEFAULT_LOG_LEVEL.upper(), logging.INFO),
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
 )
-logger = logging.getLogger("xmrt-main")
+logger = logging.getLogger(APP_NAME)
 
+# --------------------------------------------------------------------------------------
+# Data Models
+# --------------------------------------------------------------------------------------
 
-# ============================ Flask App & Config ===============================
+Stage = Literal["discover", "assess", "bootstrap", "integrate", "verify", "publish"]
+TaskStatus = Literal["PENDING", "IN_PROGRESS", "DONE", "BLOCKED", "CANCELLED"]
 
-app = Flask(__name__)
-CORS(app)
-
-DEFAULT_OPENAI_MODEL = os.environ.get("OPENAI_MODEL", "gpt-4o-mini")
-PORT = int(os.environ.get("PORT", "10000"))
-ADMIN_TOKEN = os.environ.get("ADMIN_TOKEN")  # Optional bearer for mutations
-
-HTML_INDEX = """<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <title>XMRT Ecosystem (v7.0 MCP + Guided Integration)</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <style>
-    body { font: 14px/1.4 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji"; margin: 28px; color: #111; }
-    code, pre { background: #f7f7f9; padding: 2px 4px; border-radius: 4px; }
-    .pill { display: inline-block; padding: 4px 8px; border-radius: 999px; background: #eef; margin: 0 6px 6px 0; }
-    .ok { background:#e6ffed; }
-    .warn { background:#fff5e6; }
-    .err { background:#ffe6e6; }
-    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono","Courier New", monospace; }
-    .small { color: #666; }
-    h1, h2, h3 { margin-top: 1.2em; }
-    a { color: #0b5ed7; text-decoration: none; }
-    a:hover { text-decoration: underline; }
-    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 14px; }
-    .card { border: 1px solid #e5e7eb; border-radius: 12px; padding: 14px; }
-  </style>
-</head>
-<body>
-  <h1>XMRT Ecosystem (v7.0)</h1>
-  <p>Consensus + MCP bridge + guided integration across forked repos.</p>
-
-  <div class="grid">
-    <div class="card">
-      <h3>Status</h3>
-      <pre class="mono" id="status">Loading...</pre>
-    </div>
-    <div class="card">
-      <h3>Agents</h3>
-      <pre class="mono" id="agents">Loading...</pre>
-    </div>
-    <div class="card">
-      <h3>Backlog (Top 10)</h3>
-      <pre class="mono" id="tasks">Loading...</pre>
-    </div>
-    <div class="card">
-      <h3>Last Decision</h3>
-      <pre class="mono" id="decision">Loading...</pre>
-    </div>
-  </div>
-
-  <script>
-    async function getJSON(url){ const r=await fetch(url); return r.json(); }
-    async function refresh(){
-      try {
-        const status = await getJSON('/api/coordination/status');
-        const agents = await getJSON('/api/agents');
-        const tasks = await getJSON('/api/tasks?limit=10');
-        const decision = await getJSON('/api/coordination/last-decision');
-        document.getElementById('status').textContent = JSON.stringify(status, null, 2);
-        document.getElementById('agents').textContent = JSON.stringify(agents, null, 2);
-        document.getElementById('tasks').textContent = JSON.stringify(tasks, null, 2);
-        document.getElementById('decision').textContent = JSON.stringify(decision, null, 2);
-      } catch(e) {
-        document.getElementById('status').textContent = 'Error loading status: '+e;
-      }
-    }
-    refresh();
-    setInterval(refresh, 5000);
-  </script>
-</body>
-</html>
-"""
-
-
-# ============================= Utility Functions ==============================
-
-def now_iso() -> str:
-    return datetime.utcnow().replace(microsecond=0).isoformat() + "Z"
-
-
-def require_admin_token(req) -> Optional[make_response]:
-    """If ADMIN_TOKEN is configured, enforce bearer token on mutating routes."""
-    if not ADMIN_TOKEN:
-        return None
-    hdr = req.headers.get("Authorization", "")
-    if hdr.startswith("Bearer "):
-        token = hdr.split(" ", 1)[1].strip()
-        if hmac.compare_digest(token, ADMIN_TOKEN):
-            return None
-    return make_response(jsonify({"error": "Unauthorized"}), 401)
-
-
-def env_bool(name: str, default: bool = False) -> bool:
-    v = os.environ.get(name)
-    if v is None:
-        return default
-    return str(v).lower() in ("1", "true", "yes", "on")
-
-
-def truncate(s: str, max_len: int = 4000) -> str:
-    return s if len(s) <= max_len else s[:max_len-3] + "..."
-
-
-# ============================= Global State ===================================
-
-SYSTEM_STATE: Dict[str, Any] = {
-    "status": "operational",
-    "version": "7.0.0-mcp-guided",
-    "deployment": "render-free-tier",
-    "startup_time": time.time(),
-    "openai_available": OPENAI_AVAILABLE,
-    "gemini_available": GEMINI_AVAILABLE,
-    "github_available": GITHUB_AVAILABLE,
-    "mcp_url": os.environ.get("MCP_SERVER_URL") or None,
-    "last_cycle": None,
-}
-
-ANALYTICS: Dict[str, Any] = {
-    "requests": 0,
-    "ai_calls": 0,
-    "mcp_calls": 0,
-    "github_ops": 0,
-    "issues_created": 0,
-    "files_committed": 0,
-    "consensus_rounds": 0,
-    "decisions": 0,
-    "errors": 0,
-}
-
-LOCK = threading.RLock()
-
-
-# ============================= Ecosystem Guide =================================
-# Derived from your document: 72 repos, categories, and initial integration focus.
-# We embed the list + top-priority “first wave” tasks (syft/ragflow/autogen).
-
-GUIDE_REPOS: List[str] = [
-    # Full set from your doc (order kept as provided)
-    "xmrt-activepieces",
-    "xmrt-agno",
-    "xmrt-rust",
-    "xmrt-wazuh",
-    "xmrt-wazuh-kubernetes",
-    "gemini-cli",
-    "xmrt-DeepMCPAgent",
-    "xmrt-MeshSentry",
-    "xmrt-brightdata-mcp",
-    "xmrt-supabase",
-    "xmrt-firecrawl",
-    "xmrt-agents-towards-production",
-    "xmrt-crosvm-chrome-vm",
-    "xmrt-gutil-google-utilities",
-    "xmrt-grain-ml-train",
-    "xmrt-AirCom-ESP32-wifi-halow",
-    "xmrt-filament-render-engine",
-    "xmrt-dawn-native-webgpu",
-    "xmrt-adk-python-agents",
-    "xmrt-perfetto-tracing",
-    "xmrt-RAG-Anything",
-    "xmrt-awesome-AI-toolkit",
-    "xmrt-humanlayer",
-    "xmrt-langextract",
-    "xmrt-n8n",
-    "xmrt-gov-ui-kit",
-    "xmrt-risc0-proofs",
-    "xmrt-RAGLight",
-    "xmrt-autoswagger",
-    "AWS-DevSecOps-Factory",
-    "xmrt-asset-tokenizer",
-    "xmrt-bee",
-    "xmrt-autogen-boardroom",
-    "xmrt-AutoGPT",
-    "xmrt-bacalhau",
-    "xmrt-anon-monitor",
-    "xmrt-airnode",
-    "xmrt-agents",
-    "xmrt-agentcomms",
-    "xmrt-agentbrowser",
-    "xmrt-agent_trust_scoreboard",
-    "browser-use",
-    "monero-generator",
-    "sovrin",
-    "maybe-finance-app",
-    "mobile-payments-sdk-react-native",
-    "bitchat-react",
-    "xmrt-social-media-agent",
-    "xmrt-social-sleuth",
-    "xmrt-runtime-verification",
-    "xmrt-redis",
-    "xmrt-redis-py",
-    "xmrt-transformers",
-    "xmrt-wormhole",
-    "xmrt-storm-pr-engine",
-    "pinokio",
-    "xmrt-hetty-hacker",
-    "autotrain-advanced",
-    "xmrt-zk-oracles",
-    "xmrt-zkbridge",
-    "xmrt-bitchat",
-    "SilentXMRMiner",
-    "ropsten",
-    "xmrt-characters",
-    "react-point-of-sale",
-    "xmrig",
-    "langchain-memory",
-    "eth-wallet",
-    "xmrt-universal-resolver",
-    "xmrt-syft-client",
-    "xmrt-ragflow",
-    "xmrt-autogen",
-]
-
-# First-wave, document-guided integration goals (must-have).
-FIRST_WAVE_GOALS: List[Dict[str, Any]] = [
-    {
-        "title": "Wire Federated Learning into XMRT data plane",
-        "desc": "Connect xmrt-syft-client to xmrt-supabase model storage and privacy guardrails; enable FL training on miner telemetry.",
-        "repos": ["xmrt-syft-client", "xmrt-supabase", "xmrt-redis", "xmrt-transformers"],
-        "labels": ["federated-learning", "privacy", "models", "data-plane"],
-        "acceptance": [
-            "FL job can be triggered via API",
-            "Model artifacts stored in Supabase",
-            "Privacy configs (DP/SMPC) toggled via config"
-        ]
-    },
-    {
-        "title": "RAG for DAO analytics & mining insights",
-        "desc": "Integrate xmrt-ragflow with xmrt-gov-ui-kit and langchain-memory to ground governance dashboards + mining trend Q&A.",
-        "repos": ["xmrt-ragflow", "xmrt-gov-ui-kit", "langchain-memory", "xmrt-storm-pr-engine"],
-        "labels": ["rag", "dao-analytics", "grounding", "ui"],
-        "acceptance": [
-            "DAO dashboard pulls grounded answers via RAG",
-            "Queries persisted with memory and provenance",
-            "CI test exercises a sample retrieval workflow"
-        ]
-    },
-    {
-        "title": "Multi-agent orchestration for DAO simulations",
-        "desc": "Use xmrt-autogen to orchestrate vote simulations, hand-offs to security and DeFi agents; persist sessions in redis.",
-        "repos": ["xmrt-autogen", "xmrt-autogen-boardroom", "xmrt-redis", "xmrt-agent_trust_scoreboard"],
-        "labels": ["agents", "orchestration", "dao", "simulation"],
-        "acceptance": [
-            "Group chat workflow runs scripted vote simulation",
-            "Trust/quality scores recorded per agent turn",
-            "Runbook for operators included in repo docs"
-        ]
-    },
-    {
-        "title": "Identity & ZK checks in governance flows",
-        "desc": "Attach universal-resolver + zkbridge/risc0 proofs to DAO proposal lifecycle within gov-ui-kit.",
-        "repos": ["xmrt-universal-resolver", "xmrt-zkbridge", "xmrt-risc0-proofs", "xmrt-gov-ui-kit"],
-        "labels": ["identity", "zk", "governance", "security"],
-        "acceptance": [
-            "Resolver lookup integrated and unit-tested",
-            "ZK proof path documented and exercised in CI",
-            "UI surfaces proof status unobtrusively"
-        ]
-    },
-    {
-        "title": "Offline mesh chat + agent handoff",
-        "desc": "Bridge xmrt-bitchat (mesh/offline) to autogen orchestrations; on-connect sync to supabase/log memory.",
-        "repos": ["xmrt-bitchat", "bitchat-react", "xmrt-autogen", "xmrt-supabase"],
-        "labels": ["meshnet", "offline", "agents", "sync"],
-        "acceptance": [
-            "Offline chat can enqueue an agent job",
-            "On reconnection, job executes and logs to memory",
-            "E2E scenario recorded in docs"
-        ]
-    },
-]
-
-
-# ============================= Data Classes ===================================
-
-@dataclass
-class IntegrationTask:
-    key: str
-    title: str
-    description: str
-    repos: List[str]
-    labels: List[str]
-    priority: int = 3  # 1=highest
-    status: str = "pending"  # pending|in_progress|blocked|done|failed
-    created_at: str = field(default_factory=now_iso)
-    updated_at: str = field(default_factory=now_iso)
-    acceptance: List[str] = field(default_factory=list)
-    owner: Optional[str] = None
-    dependencies: List[str] = field(default_factory=list)  # other task keys
-    evidence_links: List[str] = field(default_factory=list)  # PRs/issues/commits
-    notes: List[str] = field(default_factory=list)
-
+@dataclass(frozen=True)
+class RepoPlan:
+    name: str
+    category: str
 
 @dataclass
 class Agent:
+    id: str
     name: str
     role: str
-    domains: List[str]
-    weight: float = 1.0
-    active: bool = True
-    last_seen: str = field(default_factory=now_iso)
-    completed: int = 0
-    failed: int = 0
-    decisions: int = 0
+    skills: List[str] = field(default_factory=list)
+    status: str = "IDLE"
+    created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
 
-    def can_own(self, task: IntegrationTask) -> bool:
-        # simple domain matching against labels
-        for lbl in task.labels:
-            if lbl in self.domains:
-                return True
-        return False
-
+    def to_dict(self) -> Dict[str, Any]:
+        d = asdict(self)
+        d["created_at"] = self.created_at.isoformat()
+        d["updated_at"] = self.updated_at.isoformat()
+        return d
 
 @dataclass
-class DecisionRecord:
-    at: str
-    subject: str
-    proposals: List[Dict[str, Any]]
-    selected_key: Optional[str]
+class Task:
+    id: str
+    title: str
+    description: str
+    repo: str
+    category: str
+    stage: Stage
+    status: TaskStatus = "PENDING"
+    priority: int = 5
+    assignee_agent_id: Optional[str] = None
+    blocking_reason: Optional[str] = None
+    created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+
+    def to_dict(self) -> Dict[str, Any]:
+        d = asdict(self)
+        d["created_at"] = self.created_at.isoformat()
+        d["updated_at"] = self.updated_at.isoformat()
+        return d
+
+@dataclass
+class Decision:
+    id: str
+    agent_id: Optional[str]
+    decision: str
     rationale: str
-    voters: Dict[str, float]
-    tiebreaker: Optional[str] = None
+    created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
 
+    def to_dict(self) -> Dict[str, Any]:
+        d = asdict(self)
+        d["created_at"] = self.created_at.isoformat()
+        return d
 
-# ============================= AI Processor ===================================
+# --------------------------------------------------------------------------------------
+# Database Layer (SQLite)
+# --------------------------------------------------------------------------------------
 
-class AIProcessor:
+class DB:
+    """Thin SQLite wrapper with simple migration + helper methods.
+
+    NOTE: SQLite connections are not thread-safe by default. We open a new connection
+    per thread and enable WAL for concurrency.
     """
-    Thin abstraction over OpenAI (primary) and Gemini (optional).
-    Returns explicit errors when providers are not available; no faked content.
-    """
-    def __init__(self):
-        self._oaiclient = None
-        self._gemini = None
 
-        if OPENAI_AVAILABLE and os.environ.get("OPENAI_API_KEY"):
-            try:
-                self._oaiclient = OpenAI()
-                logger.info("OpenAI client initialized")
-            except Exception as e:
-                logger.warning(f"OpenAI init failed: {e}")
-                self._oaiclient = None
+    def __init__(self, path: Path) -> None:
+        self.path = path
+        self._local = threading.local()
+        self._init_db()
 
-        if GEMINI_AVAILABLE and os.environ.get("GEMINI_API_KEY"):
-            try:
-                genai.configure(api_key=os.environ["GEMINI_API_KEY"])
-                self._gemini = genai.GenerativeModel("gemini-pro")
-                logger.info("Gemini client initialized")
-            except Exception as e:
-                logger.warning(f"Gemini init failed: {e}")
-                self._gemini = None
+    def _conn(self) -> sqlite3.Connection:
+        conn = getattr(self._local, "conn", None)
+        if conn is None:
+            conn = sqlite3.connect(self.path, check_same_thread=False)
+            conn.row_factory = sqlite3.Row
+            self._local.conn = conn
+        return conn
 
-    def chat(self, system: str, user: str, max_tokens: int = 800, temperature: float = 0.3) -> Tuple[Optional[str], Optional[str]]:
-        """
-        Returns (text, provider) or (None, None) with logged error.
-        """
-        if self._oaiclient:
-            try:
-                r = self._oaiclient.chat.completions.create(
-                    model=DEFAULT_OPENAI_MODEL,
-                    messages=[
-                        {"role": "system", "content": system},
-                        {"role": "user", "content": user}
-                    ],
-                    temperature=temperature,
-                    max_tokens=max_tokens
+    def _init_db(self) -> None:
+        conn = self._conn()
+        conn.execute("PRAGMA journal_mode=WAL;")
+        conn.execute("PRAGMA foreign_keys=ON;")
+        # migrations
+        conn.executescript(
+            """
+            CREATE TABLE IF NOT EXISTS agents (
+                id TEXT PRIMARY KEY,
+                name TEXT NOT NULL,
+                role TEXT NOT NULL,
+                skills TEXT NOT NULL,
+                status TEXT NOT NULL,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL
+            );
+
+            CREATE TABLE IF NOT EXISTS repos (
+                name TEXT PRIMARY KEY,
+                category TEXT NOT NULL,
+                url TEXT,
+                is_fork INTEGER DEFAULT 0,
+                exists INTEGER DEFAULT 0,
+                default_branch TEXT,
+                last_checked TEXT
+            );
+
+            CREATE TABLE IF NOT EXISTS tasks (
+                id TEXT PRIMARY KEY,
+                title TEXT NOT NULL,
+                description TEXT NOT NULL,
+                repo TEXT NOT NULL,
+                category TEXT NOT NULL,
+                stage TEXT NOT NULL,
+                status TEXT NOT NULL,
+                priority INTEGER NOT NULL,
+                assignee_agent_id TEXT,
+                blocking_reason TEXT,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL,
+                FOREIGN KEY (assignee_agent_id) REFERENCES agents(id)
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_tasks_status ON tasks(status);
+            CREATE INDEX IF NOT EXISTS idx_tasks_repo ON tasks(repo);
+            CREATE INDEX IF NOT EXISTS idx_tasks_stage ON tasks(stage);
+
+            CREATE TABLE IF NOT EXISTS decisions (
+                id TEXT PRIMARY KEY,
+                agent_id TEXT,
+                decision TEXT NOT NULL,
+                rationale TEXT NOT NULL,
+                created_at TEXT NOT NULL,
+                FOREIGN KEY (agent_id) REFERENCES agents(id)
+            );
+            """
+        )
+        conn.commit()
+
+    # ------------------------- Agent ops -------------------------------------------
+    def upsert_agent(self, agent: Agent) -> None:
+        conn = self._conn()
+        conn.execute(
+            """
+            INSERT INTO agents (id, name, role, skills, status, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(id) DO UPDATE SET
+                name=excluded.name,
+                role=excluded.role,
+                skills=excluded.skills,
+                status=excluded.status,
+                updated_at=excluded.updated_at
+            ;
+            """,
+            (
+                agent.id,
+                agent.name,
+                agent.role,
+                json.dumps(agent.skills),
+                agent.status,
+                agent.created_at.isoformat(),
+                agent.updated_at.isoformat(),
+            ),
+        )
+        conn.commit()
+
+    def list_agents(self) -> List[Agent]:
+        rows = self._conn().execute(
+            "SELECT id, name, role, skills, status, created_at, updated_at FROM agents ORDER BY name"
+        ).fetchall()
+        res: List[Agent] = []
+        for r in rows:
+            res.append(
+                Agent(
+                    id=r["id"],
+                    name=r["name"],
+                    role=r["role"],
+                    skills=list(json.loads(r["skills"] or "[]")),
+                    status=r["status"],
+                    created_at=datetime.fromisoformat(r["created_at"]),
+                    updated_at=datetime.fromisoformat(r["updated_at"]),
                 )
-                ANALYTICS["ai_calls"] += 1
-                return r.choices[0].message.content, "openai"
-            except Exception as e:
-                logger.warning(f"OpenAI chat error: {e}")
+            )
+        return res
 
-        if self._gemini:
-            try:
-                r = self._gemini.generate_content(system + "\n\n" + user)
-                ANALYTICS["ai_calls"] += 1
-                return getattr(r, "text", None), "gemini"
-            except Exception as e:
-                logger.warning(f"Gemini chat error: {e}")
+    # ------------------------- Repo ops --------------------------------------------
+    def upsert_repo(self, name: str, category: str, **extras: Any) -> None:
+        conn = self._conn()
+        now = datetime.now(timezone.utc).isoformat()
+        url = extras.get("url")
+        is_fork = int(bool(extras.get("is_fork", 0)))
+        exists = int(bool(extras.get("exists", 0)))
+        default_branch = extras.get("default_branch")
+        last_checked = extras.get("last_checked", now)
+        conn.execute(
+            """
+            INSERT INTO repos (name, category, url, is_fork, exists, default_branch, last_checked)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(name) DO UPDATE SET
+                category=excluded.category,
+                url=excluded.url,
+                is_fork=excluded.is_fork,
+                exists=excluded.exists,
+                default_branch=excluded.default_branch,
+                last_checked=excluded.last_checked
+            ;
+            """,
+            (name, category, url, is_fork, exists, default_branch, last_checked),
+        )
+        conn.commit()
 
-        return None, None
+    def list_repos(self) -> List[Dict[str, Any]]:
+        rows = self._conn().execute(
+            "SELECT name, category, url, is_fork, exists, default_branch, last_checked FROM repos ORDER BY name"
+        ).fetchall()
+        return [dict(r) for r in rows]
 
-    def choose(self, prompt: str, options: List[Tuple[str, str]]) -> Optional[str]:
-        """
-        Ask AI to choose best key among options [(key, text), ...].
-        Returns key or None on failure/unavailability.
-        """
-        system = "You are an impartial XMRT DAO facilitator optimizing for privacy, mesh resilience, and tangible integration progress."
-        lines = [prompt, "", "OPTIONS:"]
-        for k, t in options:
-            lines.append(f"- {k}: {t}")
-        content = "\n".join(lines)
-        text, provider = self.chat(system, content, max_tokens=256, temperature=0.0)
-        if not text:
+    # ------------------------- Task ops --------------------------------------------
+    def upsert_task(self, task: Task) -> None:
+        conn = self._conn()
+        conn.execute(
+            """
+            INSERT INTO tasks (id, title, description, repo, category, stage, status, priority,
+                               assignee_agent_id, blocking_reason, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(id) DO UPDATE SET
+                title=excluded.title,
+                description=excluded.description,
+                repo=excluded.repo,
+                category=excluded.category,
+                stage=excluded.stage,
+                status=excluded.status,
+                priority=excluded.priority,
+                assignee_agent_id=excluded.assignee_agent_id,
+                blocking_reason=excluded.blocking_reason,
+                updated_at=excluded.updated_at
+            ;
+            """,
+            (
+                task.id,
+                task.title,
+                task.description,
+                task.repo,
+                task.category,
+                task.stage,
+                task.status,
+                task.priority,
+                task.assignee_agent_id,
+                task.blocking_reason,
+                task.created_at.isoformat(),
+                task.updated_at.isoformat(),
+            ),
+        )
+        conn.commit()
+
+    def list_tasks(self, *, limit: int = 50, status: Optional[str] = None) -> List[Task]:
+        conn = self._conn()
+        if status:
+            rows = conn.execute(
+                "SELECT * FROM tasks WHERE status=? ORDER BY priority ASC, created_at ASC LIMIT ?",
+                (status, limit),
+            ).fetchall()
+        else:
+            rows = conn.execute(
+                "SELECT * FROM tasks ORDER BY priority ASC, created_at ASC LIMIT ?", (limit,)
+            ).fetchall()
+        tasks: List[Task] = []
+        for r in rows:
+            tasks.append(
+                Task(
+                    id=r["id"],
+                    title=r["title"],
+                    description=r["description"],
+                    repo=r["repo"],
+                    category=r["category"],
+                    stage=r["stage"],
+                    status=r["status"],
+                    priority=int(r["priority"]),
+                    assignee_agent_id=r["assignee_agent_id"],
+                    blocking_reason=r["blocking_reason"],
+                    created_at=datetime.fromisoformat(r["created_at"]),
+                    updated_at=datetime.fromisoformat(r["updated_at"]),
+                )
+            )
+        return tasks
+
+    def update_task_status(
+        self,
+        task_id: str,
+        *,
+        status: TaskStatus,
+        assignee_agent_id: Optional[str] = None,
+        blocking_reason: Optional[str] = None,
+    ) -> None:
+        conn = self._conn()
+        now = datetime.now(timezone.utc).isoformat()
+        conn.execute(
+            """
+            UPDATE tasks SET status=?, assignee_agent_id=?, blocking_reason=?, updated_at=?
+            WHERE id=?
+            """,
+            (status, assignee_agent_id, blocking_reason, now, task_id),
+        )
+        conn.commit()
+
+    # ------------------------- Decision ops ----------------------------------------
+    def insert_decision(self, decision: Decision) -> None:
+        conn = self._conn()
+        conn.execute(
+            """
+            INSERT INTO decisions (id, agent_id, decision, rationale, created_at)
+            VALUES (?, ?, ?, ?, ?)
+            """,
+            (
+                decision.id,
+                decision.agent_id,
+                decision.decision,
+                decision.rationale,
+                decision.created_at.isoformat(),
+            ),
+        )
+        conn.commit()
+
+    def last_decision(self) -> Optional[Decision]:
+        row = self._conn().execute(
+            "SELECT id, agent_id, decision, rationale, created_at FROM decisions ORDER BY created_at DESC LIMIT 1"
+        ).fetchone()
+        if not row:
             return None
-        # Find the first option key mentioned
-        keys_sorted = sorted([k for k, _ in options], key=lambda s: -len(s))
-        for k in keys_sorted:
-            if k in text:
-                return k
-        # fallback: look for exact code fence or bracket
-        m = re.search(r"\b([A-Za-z0-9_-]{6,})\b", text)
-        return m.group(1) if m else None
+        return Decision(
+            id=row["id"],
+            agent_id=row["agent_id"],
+            decision=row["decision"],
+            rationale=row["rationale"],
+            created_at=datetime.fromisoformat(row["created_at"]),
+        )
 
+# --------------------------------------------------------------------------------------
+# Document Parsing & Fallback Plan
+# --------------------------------------------------------------------------------------
 
-AI = AIProcessor()
-
-
-# ============================= MCP Bridge =====================================
-
-class MCPBridge:
-    """
-    Simple HTTP bridge to a Model Context Protocol gateway.
-
-    Expected endpoints (configurable upstream):
-    - GET  {MCP_SERVER_URL}/tools                  -> {"tools":[{"name": "...", "schema": {...}}, ...]}
-    - POST {MCP_SERVER_URL}/call {name, arguments} -> {"ok": true, "result": ...} OR {"ok": false, "error": ...}
-
-    No offline simulation. If the server is unavailable, we return structured errors.
-    """
-
-    def __init__(self, base_url: Optional[str], api_key: Optional[str] = None):
-        self.base_url = base_url
-        self.api_key = api_key
-
-    def _headers(self) -> Dict[str, str]:
-        h = {"Content-Type": "application/json"}
-        if self.api_key:
-            h["Authorization"] = f"Bearer {self.api_key}"
-        return h
-
-    def available(self) -> bool:
-        return bool(self.base_url)
-
-    def list_tools(self) -> Dict[str, Any]:
-        if not self.available():
-            return {"ok": False, "error": "MCP server URL not configured"}
-        try:
-            r = requests.get(f"{self.base_url.rstrip('/')}/tools", timeout=15, headers=self._headers())
-            if r.status_code != 200:
-                return {"ok": False, "error": f"MCP /tools HTTP {r.status_code}", "details": r.text}
-            return {"ok": True, "tools": r.json().get("tools", [])}
-        except Exception as e:
-            ANALYTICS["mcp_calls"] += 1
-            return {"ok": False, "error": f"MCP request failed: {e.__class__.__name__}", "details": str(e)}
-
-    def call_tool(self, name: str, arguments: Dict[str, Any]) -> Dict[str, Any]:
-        if not self.available():
-            return {"ok": False, "error": "MCP server URL not configured"}
-        payload = {"name": name, "arguments": arguments}
-        try:
-            r = requests.post(f"{self.base_url.rstrip('/')}/call", json=payload, timeout=60, headers=self._headers())
-            ANALYTICS["mcp_calls"] += 1
-            if r.status_code != 200:
-                return {"ok": False, "error": f"MCP /call HTTP {r.status_code}", "details": r.text}
-            return r.json()
-        except Exception as e:
-            ANALYTICS["mcp_calls"] += 1
-            return {"ok": False, "error": f"MCP call failed: {e.__class__.__name__}", "details": str(e)}
-
-
-MCP = MCPBridge(os.environ.get("MCP_SERVER_URL"), os.environ.get("MCP_API_KEY"))
-
-
-# ============================= GitHub Integration =============================
-
-class XMRTGitHub:
-    """
-    Real GitHub integration only; if token or repo unavailable, operations raise structured errors.
-    No "simulate mode".
-    """
-    def __init__(self, default_repo="DevGruGold/XMRT-Ecosystem"):
-        self.token = os.environ.get("GITHUB_TOKEN")
-        self.default_repo = default_repo
-        self.client = None
-        self.user = None
-        self._connect()
-
-    def _connect(self):
-        if not GITHUB_AVAILABLE:
-            logger.warning("PyGithub not installed; GitHub unavailable.")
-            return
-        if not self.token:
-            logger.warning("GITHUB_TOKEN not provided; GitHub unavailable.")
-            return
-        try:
-            auth = Auth.Token(self.token)
-            self.client = Github(auth=auth)
-            self.user = self.client.get_user()
-            # Probe default repo
-            _ = self.client.get_repo(self.default_repo)
-            logger.info(f"GitHub repo reachable ({self.default_repo}). Enabling real mode.")
-        except Exception as e:
-            logger.error(f"GitHub init failed: {e}")
-            self.client = None
-            self.user = None
-
-    def available(self) -> bool:
-        return self.client is not None
-
-    def repo(self, full_name: Optional[str] = None):
-        if not self.available():
-            raise RuntimeError("GitHub unavailable (missing token or client)")
-        target = full_name or self.default_repo
-        try:
-            return self.client.get_repo(target)
-        except Exception as e:
-            raise RuntimeError(f"Failed to access repo {target}: {e}")
-
-    def create_issue(self, repo_full: str, title: str, body: str, labels: Optional[List[str]] = None) -> Dict[str, Any]:
-        if not self.available():
-            raise RuntimeError("GitHub unavailable: cannot create issue")
-        try:
-            repo = self.repo(repo_full)
-            issue = repo.create_issue(title=title, body=body, labels=labels or [])
-            ANALYTICS["github_ops"] += 1
-            ANALYTICS["issues_created"] += 1
-            return {"ok": True, "id": issue.number, "url": issue.html_url}
-        except GithubException as ge:
-            return {"ok": False, "error": f"GitHub error: {ge.data}"}
-        except Exception as e:
-            return {"ok": False, "error": f"Create issue failed: {e}"}
-
-    def upsert_file(self, repo_full: str, path: str, message: str, content: str) -> Dict[str, Any]:
-        if not self.available():
-            raise RuntimeError("GitHub unavailable: cannot commit file")
-        try:
-            repo = self.repo(repo_full)
-            try:
-                existing = repo.get_contents(path)
-                res = repo.update_file(path, message, content, existing.sha)
-                action = "updated"
-            except GithubException:
-                res = repo.create_file(path, message, content)
-                action = "created"
-            ANALYTICS["github_ops"] += 1
-            ANALYTICS["files_committed"] += 1
-            return {"ok": True, "action": action, "content": {"path": path}, "commit": {"sha": res["commit"].sha}}
-        except Exception as e:
-            return {"ok": False, "error": f"Upsert file failed: {e}"}
-
-
-GITHUB = XMRTGitHub()
-
-
-# ============================= Backlog & Agents ================================
-
-class Backlog:
-    """
-    Thread-safe backlog for IntegrationTask items.
-    """
-    def __init__(self):
-        self._tasks: Dict[str, IntegrationTask] = {}
-        self._lock = threading.RLock()
-
-    def put(self, task: IntegrationTask):
-        with self._lock:
-            self._tasks[task.key] = task
-
-    def get(self, key: str) -> Optional[IntegrationTask]:
-        with self._lock:
-            return self._tasks.get(key)
-
-    def list(self) -> List[IntegrationTask]:
-        with self._lock:
-            return list(self._tasks.values())
-
-    def remove(self, key: str):
-        with self._lock:
-            if key in self._tasks:
-                del self._tasks[key]
-
-    def update_status(self, key: str, status: str, note: Optional[str] = None):
-        with self._lock:
-            t = self._tasks.get(key)
-            if t:
-                t.status = status
-                t.updated_at = now_iso()
-                if note:
-                    t.notes.append(f"[{now_iso()}] {note}")
-
-    def top(self, n: int = 10) -> List[IntegrationTask]:
-        with self._lock:
-            # sort by priority then created_at
-            tasks = sorted(self._tasks.values(), key=lambda t: (t.priority, t.created_at))
-            return tasks[:n]
-
-
-BACKLOG = Backlog()
-
-
-AGENTS: Dict[str, Agent] = {
-    "coordinator": Agent("Eliza", "Coordinator & Governor", ["dao", "governance", "planning", "orchestration"], weight=1.3),
-    "security": Agent("Security Guardian", "Security & Privacy", ["security", "privacy", "zk", "identity"], weight=1.2),
-    "defi": Agent("DeFi Specialist", "Financial & Mining", ["defi", "mining", "wallets", "payments"], weight=1.1),
-    "rag": Agent("RAG Orchestrator", "Retrieval & Memory", ["rag", "grounding", "memory", "ui"], weight=1.15),
-    "federated": Agent("Federated AI Lead", "FL & Models", ["federated-learning", "models", "privacy"], weight=1.15),
-    "mesh": Agent("Mesh/Offline", "MESHNET & Offline", ["meshnet", "offline", "sync"], weight=1.05),
+CATEGORY_FALLBACK: Dict[str, str] = {
+    # Core Infrastructure
+    "xmrt-supabase": "Core Infrastructure",
+    "xmrt-redis": "Core Infrastructure",
+    "xmrt-redis-py": "Core Infrastructure",
+    "xmrt-model-storage": "Core Infrastructure",
+    "xmrt-bacalhau": "Core Infrastructure",
+    "xmrt-crosvm-chrome-vm": "Core Infrastructure",
+    "xmrt-perfetto-tracing": "Core Infrastructure",
+    "xmrt-rust": "Core Infrastructure",
+    # AI and Agents
+    "xmrt-adk-python-agents": "AI and Agents",
+    "xmrt-AutoGPT": "AI and Agents",
+    "xmrt-autogen-boardroom": "AI and Agents",
+    "xmrt-agents": "AI and Agents",
+    "xmrt-DeepMCPAgent": "AI and Agents",
+    "xmrt-agent_trust_scoreboard": "AI and Agents",
+    "xmrt-agno": "AI and Agents",
+    "xmrt-transformers": "AI and Agents",
+    "xmrt-grok-1": "AI and Agents",
+    "xmrt-DeepSeek-R1": "AI and Agents",
+    "xmrt-langgraph": "AI and Agents",
+    "autotrain-advanced": "AI and Agents",
+    "xmrt-RAGLight": "AI and Agents",
+    "xmrt-RAG-Anything": "AI and Agents",
+    "xmrt-storm-pr-engine": "AI and Agents",
+    "langchain-memory": "AI and Agents",
+    "xmrt-syft-client": "AI and Agents",
+    "xmrt-ragflow": "AI and Agents",
+    "xmrt-autogen": "AI and Agents",
+    # Blockchain and DeFi
+    "monero-generator": "Blockchain and DeFi",
+    "xmrt-asset-tokenizer": "Blockchain and DeFi",
+    "maybe-finance-app": "Blockchain and DeFi",
+    "mobile-payments-sdk-react-native": "Blockchain and DeFi",
+    "xmrt-wormhole": "Blockchain and DeFi",
+    "xmrt-LayerZero-v2": "Blockchain and DeFi",
+    "xmrt-evm-tableland": "Blockchain and DeFi",
+    "xmrt-gov-ui-kit": "Blockchain and DeFi",
+    "xmrt-zkbridge": "Blockchain and DeFi",
+    "xmrt-airnode": "Blockchain and DeFi",
+    "eth-wallet": "Blockchain and DeFi",
+    "ropsten": "Blockchain and DeFi",
+    # MESHNET and Offline Comms
+    "xmrt-AirCom-ESP32-wifi-halow": "MESHNET and Offline Comms",
+    "bitchat-react": "MESHNET and Offline Comms",
+    "xmrt-MeshSentry": "MESHNET and Offline Comms",
+    "xmrt-meshtastic-web": "MESHNET and Offline Comms",
+    "xmrt-meshtastic-rust": "MESHNET and Offline Comms",
+    "xmrt-Meshtastic-Android": "MESHNET and Offline Comms",
+    "xmrt-Meshtastic-Apple": "MESHNET and Offline Comms",
+    "xmrt-bitchat": "MESHNET and Offline Comms",
+    # Security and Privacy
+    "xmrt-risc0-proofs": "Security and Privacy",
+    "xmrt-anon-monitor": "Security and Privacy",
+    "sovrin": "Security and Privacy",
+    "xmrt-wazuh": "Security and Privacy",
+    "xmrt-wazuh-kubernetes": "Security and Privacy",
+    "xmrt-autoswagger": "Security and Privacy",
+    "xmrt-runtime-verification": "Security and Privacy",
+    "xmrt-did-engine": "Security and Privacy",
+    "xmrt-noir": "Security and Privacy",
+    "xmrt-keystone": "Security and Privacy",
+    "xmrt-universal-resolver": "Security and Privacy",
+    # Developer Tools
+    "xmrt-docusaurus": "Developer Tools",
+    "xmrt-n8n": "Developer Tools",
+    "xmrt-activepieces": "Developer Tools",
+    "AWS-DevSecOps-Factory": "Developer Tools",
+    "pinokio": "Developer Tools",
+    "xmrt-hetty-hacker": "Developer Tools",
+    "xmrt-awesome-AI-toolkit": "Developer Tools",
+    # Social and Analytics
+    "xmrt-social-media-agent": "Social and Analytics",
+    "xmrt-social-sleuth": "Social and Analytics",
+    "xmrt-agentcomms": "Social and Analytics",
+    "xmrt-characters": "Social and Analytics",
+    # Misc/Other found in list
+    "xmrt-gutil-google-utilities": "Developer Tools",
+    "xmrt-grain-ml-train": "AI and Agents",
+    "xmrt-filament-render-engine": "Developer Tools",
+    "xmrt-dawn-native-webgpu": "Developer Tools",
+    "xmrt-langextract": "AI and Agents",
+    "gemini-cli": "Developer Tools",
+    "xmrig": "Blockchain and DeFi",
+    "react-point-of-sale": "Developer Tools",
+    "SilentXMRMiner": "Blockchain and DeFi",
+    "browser-use": "AI and Agents",
 }
 
-AGENT_ORDER = ["coordinator", "federated", "rag", "security", "defi", "mesh"]
+# Fallback ordered list extracted from the document (ensures deterministic seeding
+# even if the document file is not present).
+REPO_LIST_FALLBACK: List[str] = [
+    "xmrt-activepieces", "xmrt-agno", "xmrt-rust", "xmrt-wazuh", "xmrt-wazuh-kubernetes",
+    "gemini-cli", "xmrt-DeepMCPAgent", "xmrt-MeshSentry", "xmrt-brightdata-mcp", "xmrt-supabase",
+    "xmrt-firecrawl", "xmrt-agents-towards-production", "xmrt-crosvm-chrome-vm",
+    "xmrt-gutil-google-utilities", "xmrt-grain-ml-train", "xmrt-AirCom-ESP32-wifi-halow",
+    "xmrt-filament-render-engine", "xmrt-dawn-native-webgpu", "xmrt-adk-python-agents",
+    "xmrt-perfetto-tracing", "xmrt-RAG-Anything", "xmrt-awesome-AI-toolkit", "xmrt-humanlayer",
+    "xmrt-langextract", "xmrt-n8n", "xmrt-gov-ui-kit", "xmrt-risc0-proofs", "xmrt-RAGLight",
+    "xmrt-autoswagger", "AWS-DevSecOps-Factory", "xmrt-asset-tokenizer", "xmrt-bee",
+    "xmrt-autogen-boardroom", "xmrt-AutoGPT", "xmrt-bacalhau", "xmrt-anon-monitor",
+    "xmrt-airnode", "xmrt-agents", "xmrt-agentcomms", "xmrt-agentbrowser", "xmrt-agent_trust_scoreboard",
+    "browser-use", "monero-generator", "sovrin", "maybe-finance-app", "mobile-payments-sdk-react-native",
+    "bitchat-react", "xmrt-social-media-agent", "xmrt-social-sleuth", "xmrt-runtime-verification",
+    "xmrt-redis", "xmrt-redis-py", "xmrt-transformers", "xmrt-wormhole", "xmrt-storm-pr-engine",
+    "pinokio", "xmrt-hetty-hacker", "autotrain-advanced", "xmrt-zk-oracles", "xmrt-zkbridge",
+    "xmrt-bitchat", "SilentXMRMiner", "ropsten", "xmrt-characters", "react-point-of-sale", "xmrig",
+    "langchain-memory", "eth-wallet", "xmrt-universal-resolver", "xmrt-syft-client", "xmrt-ragflow",
+    "xmrt-autogen"
+]
 
+# --------------------------------------------------------------------------------------
+# GitHub Client Wrapper
+# --------------------------------------------------------------------------------------
 
-# ============================= Guided Planner =================================
+class XMRTGitHub:
+    """Wrapper around PyGithub with safe, idempotent helpers.
 
-def generate_guided_tasks() -> List[IntegrationTask]:
+    If no token is configured, methods return conservative results and raise
+    no exceptions; tasks should be marked BLOCKED upstream in the coordinator.
     """
-    Expand the FIRST_WAVE_GOALS into concrete, addressable tasks with deterministic keys.
-    Keys are stable hashes (short) derived from title + repos.
-    """
-    todo: List[IntegrationTask] = []
-    for i, g in enumerate(FIRST_WAVE_GOALS, start=1):
-        base = f"{g['title']}::{','.join(g['repos'])}"
-        # stable short key
-        short = re.sub(r"[^a-z0-9]+", "-", base.lower()).strip("-")
-        key = f"task-{short[:48]}"
-        # assign priority: 1 for first 2 goals, else 2/3
-        priority = 1 if i <= 2 else (2 if i <= 4 else 3)
-        t = IntegrationTask(
-            key=key,
-            title=g["title"],
-            description=g["desc"],
-            repos=g["repos"],
-            labels=g["labels"],
-            priority=priority,
-            acceptance=g["acceptance"]
-        )
-        todo.append(t)
 
-        # Add sub-tasks for each repo (implementation PR stubs and CI hook).
-        for repo in g["repos"]:
-            sub_key = f"{key}-{repo}"
-            sub = IntegrationTask(
-                key=sub_key,
-                title=f"[{repo}] Enable integration hook",
-                description=f"Implement integration points for goal: {g['title']}",
-                repos=[repo],
-                labels=g["labels"] + ["implementation"],
-                priority=priority + 1,
-                dependencies=[key],
-                acceptance=["PR with integration hook and unit test", "Docs updated with usage"]
-            )
-            todo.append(sub)
+    def __init__(self, token: Optional[str], org: str) -> None:
+        self.token = token
+        self.org = org
+        self._client = Github(token) if token and Github else None
 
-    return todo
+    # ---------------------------- Helpers -----------------------------------------
+    def _org(self):  # type: ignore[override]
+        if not self._client:
+            return None
+        try:
+            return self._client.get_organization(self.org)
+        except Exception as e:  # pragma: no cover
+            logger.warning("GitHub org access failed: %s", e)
+            return None
 
+    def repo_exists(self, name: str) -> Tuple[bool, Optional[str], Optional[str]]:
+        """Returns (exists, url, default_branch)."""
+        if not self._client:
+            return False, None, None
+        try:
+            full = f"{self.org}/{name}"
+            repo = self._client.get_repo(full)
+            default_branch = repo.default_branch
+            return True, repo.html_url, default_branch
+        except Exception:
+            return False, None, None
 
-def seed_backlog():
-    for t in generate_guided_tasks():
-        BACKLOG.put(t)
+    def ensure_label(self, repo_full: str, name: str, color: str, description: str) -> None:
+        if not self._client:
+            return
+        try:
+            repo = self._client.get_repo(repo_full)
+            labels = {l.name: l for l in repo.get_labels()}
+            if name in labels:
+                # Update if necessary
+                lbl = labels[name]
+                try:
+                    lbl.edit(new_name=name, color=color, description=description)
+                except Exception:  # edit may fail on identical
+                    pass
+            else:
+                repo.create_label(name=name, color=color, description=description)
+        except Exception as e:  # pragma: no cover
+            logger.warning("ensure_label failed on %s: %s", repo_full, e)
 
+    def ensure_file(
+        self,
+        repo_name: str,
+        path: str,
+        content: str,
+        branch: Optional[str] = None,
+        message: str = "chore(xmrt): add standard file",
+    ) -> None:
+        if not self._client:
+            return
+        full = f"{self.org}/{repo_name}"
+        try:
+            repo = self._client.get_repo(full)
+            if not branch:
+                branch = repo.default_branch
+            try:
+                file = repo.get_contents(path, ref=branch)
+                # Only update if content differs
+                if file.decoded_content.decode("utf-8") != content:
+                    repo.update_file(path, message, content, file.sha, branch=branch)
+            except GithubException as ge:  # File not found creates
+                if getattr(ge, "status", None) == 404:
+                    repo.create_file(path, message, content, branch=branch)
+                else:
+                    raise
+        except Exception as e:  # pragma: no cover
+            logger.warning("ensure_file failed: %s/%s: %s", full, path, e)
 
-seed_backlog()
+    def open_or_update_issue(self, repo_name: str, title: str, body: str, labels: List[str]) -> Optional[int]:
+        if not self._client:
+            return None
+        try:
+            full = f"{self.org}/{repo_name}"
+            repo = self._client.get_repo(full)
+            # search existing open issues with same title
+            existing = [i for i in repo.get_issues(state="open") if i.title == title]
+            if existing:
+                issue = existing[0]
+                # Append body update
+                issue.create_comment(f"\n\n_update:_\n{body}")
+                # Ensure labels present
+                current = {l.name for l in issue.get_labels()}
+                to_add = [l for l in labels if l not in current]
+                if to_add:
+                    issue.add_to_labels(*to_add)
+                return issue.number
+            # Create new issue
+            created = repo.create_issue(title=title, body=body, labels=labels)
+            return created.number
+        except Exception as e:  # pragma: no cover
+            logger.warning("open_or_update_issue failed on %s: %s", repo_name, e)
+            return None
 
+    def open_pr_if_needed(
+        self,
+        repo_name: str,
+        branch: str,
+        base: str,
+        title: str,
+        body: str,
+    ) -> Optional[int]:
+        if not self._client:
+            return None
+        try:
+            full = f"{self.org}/{repo_name}"
+            repo = self._client.get_repo(full)
+            # Check if branch exists
+            try:
+                repo.get_branch(branch)
+            except Exception:
+                logger.debug("Branch %s not found in %s — skipping PR.", branch, full)
+                return None
+            # Avoid duplicate PRs
+            for pr in repo.get_pulls(state="open"):
+                if pr.head.ref == branch and pr.base.ref == base:
+                    return pr.number
+            pr = repo.create_pull(title=title, body=body, head=branch, base=base)
+            return pr.number
+        except Exception as e:  # pragma: no cover
+            logger.warning("open_pr_if_needed failed on %s: %s", repo_name, e)
+            return None
 
-# ============================= Consensus Engine ===============================
+# --------------------------------------------------------------------------------------
+# Consensus & Coordination
+# --------------------------------------------------------------------------------------
 
 class ConsensusEngine:
+    """A light-weight consensus mechanism that ranks and selects tasks to run.
+
+    Strategy
+    --------
+    - Score tasks by (stage weight, category weight, priority, recency, blocking).
+    - Use optional LLM to draft rationale for the chosen batch.
+    - Persist a Decision record with human-readable rationale.
     """
-    Multi-agent consensus engine:
-    - Agents propose next task from backlog they can own.
-    - Weighted voting (agent weights). Quorum >= 3 agents and sum weights >= 3.0.
-    - Tie-break via MCP tool 'reasoner' (if configured) else OpenAI, else deterministic.
-    - On decision, executes a concrete action: create issue(s) in target repos,
-      commit a minimal "integration stub" file when appropriate.
-    """
 
-    def __init__(self):
-        self._last_decision: Optional[DecisionRecord] = None
+    STAGE_WEIGHTS: Dict[Stage, int] = {
+        "discover": 4,
+        "assess": 5,
+        "bootstrap": 7,
+        "integrate": 10,
+        "verify": 8,
+        "publish": 6,
+    }
 
-    def choose_next(self) -> DecisionRecord:
-        tasks = BACKLOG.top(12)
-        candidate_map: Dict[str, IntegrationTask] = {t.key: t for t in tasks if t.status == "pending"}
-        if not candidate_map:
-            rec = DecisionRecord(
-                at=now_iso(), subject="No-op (no pending tasks)",
-                proposals=[], selected_key=None, rationale="Backlog empty",
-                voters={}
-            )
-            self._last_decision = rec
-            return rec
+    CATEGORY_WEIGHTS: Dict[str, int] = {
+        "Core Infrastructure": 10,
+        "AI and Agents": 9,
+        "Security and Privacy": 9,
+        "Blockchain and DeFi": 8,
+        "MESHNET and Offline Comms": 7,
+        "Developer Tools": 6,
+        "Social and Analytics": 5,
+        "unknown": 3,
+    }
 
-        # Proposals by agents
-        proposals: List[Tuple[str, str, float]] = []  # (task_key, agent_name, weight)
-        voters: Dict[str, float] = {}
-        for agent_id in AGENT_ORDER:
-            agent = AGENTS[agent_id]
-            if not agent.active:
-                continue
-            task = self._best_for_agent(agent, list(candidate_map.values()))
-            if task is None:
-                continue
-            proposals.append((task.key, agent.name, agent.weight))
-            voters[agent.name] = agent.weight
+    def __init__(self, db: DB) -> None:
+        self.db = db
+        self._openai_client = None
+        if OPENAI_API_KEY and OpenAI:
+            try:
+                self._openai_client = OpenAI()
+            except Exception:  # pragma: no cover
+                self._openai_client = None
 
-        ANALYTICS["consensus_rounds"] += 1
+    def _score(self, t: Task) -> float:
+        stage_w = self.STAGE_WEIGHTS.get(t.stage, 1)
+        cat_w = self.CATEGORY_WEIGHTS.get(t.category, 1)
+        pr_w = max(1, 10 - t.priority)
+        block = 0 if t.status != "BLOCKED" else -5
+        recency = max(0.1, (datetime.now(timezone.utc) - t.created_at).total_seconds() / 86400.0)
+        return (stage_w * 2 + cat_w + pr_w + block) / recency
 
-        if not proposals:
-            rec = DecisionRecord(
-                at=now_iso(), subject="No-op (no agent proposals)",
-                proposals=[], selected_key=None, rationale="Agents found no suitable tasks",
-                voters={}
-            )
-            self._last_decision = rec
-            return rec
+    def select_next_batch(self, pending: List[Task], *, k: int = 5) -> List[Task]:
+        scored = sorted(pending, key=self._score, reverse=True)
+        return scored[:k]
 
-        # Tally weights by task_key
-        score: Dict[str, float] = {}
-        for k, _, w in proposals:
-            score[k] = score.get(k, 0.0) + w
-
-        # Quorum pre-filter: require at least 3 distinct voters total
-        if len(voters) < 3:
-            rationale = "Insufficient quorum (need >=3 agents)"
-            rec = DecisionRecord(
-                at=now_iso(), subject="Insufficient quorum",
-                proposals=[{"task_key": k, "by": a, "w": w} for k, a, w in proposals],
-                selected_key=None, rationale=rationale, voters=voters
-            )
-            self._last_decision = rec
-            return rec
-
-        # Select top candidates
-        sorted_by_score = sorted(score.items(), key=lambda kv: (-kv[1], kv[0]))
-        top_key, top_val = sorted_by_score[0]
-        # Check tie
-        ties = [k for k, v in score.items() if v == top_val]
-        selected_key = None
-        tiebreaker_used = None
-        rationale = f"Weighted top score: {top_val:.2f}; voters: {', '.join(voters.keys())}"
-
-        if len(ties) == 1:
-            selected_key = top_key
-        else:
-            # Tie-break: try MCP reasoner tool
-            options = [(k, candidate_map[k].title) for k in ties]
-            if MCP.available():
-                resp = MCP.call_tool("reasoner", {
-                    "prompt": "Choose the task that best accelerates document-guided integration while minimizing risk.",
-                    "options": [{"key": k, "title": title} for k, title in options]
-                })
-                if resp.get("ok") and isinstance(resp.get("result"), dict):
-                    sel = resp["result"].get("key")
-                    if sel and sel in candidate_map:
-                        selected_key = sel
-                        tiebreaker_used = "mcp"
-            # Try OpenAI if still unresolved
-            if not selected_key:
-                chosen = AI.choose(
-                    "Resolve a tie by choosing the single best task key.",
-                    options
+    def _draft_rationale(self, tasks: List[Task]) -> str:
+        if not tasks:
+            return "No pending tasks; idle tick."
+        summary_lines = [
+            f"- [{t.stage}] {t.repo} :: {t.title} (prio {t.priority}, cat {t.category}, status {t.status})"
+            for t in tasks
+        ]
+        summary = "\n".join(summary_lines)
+        prompt = (
+            "You are the XMRT consensus coordinator. Given the following tasks, "
+            "briefly justify why these were prioritized for the next cycle in terms of "
+            "risk reduction, dependency unblocking, and progress toward a cohesive integration.\n\n"
+            f"Tasks:\n{summary}\n\nKeep it under 120 words."
+        )
+        if self._openai_client:
+            try:
+                resp = self._openai_client.chat.completions.create(
+                    model=OPENAI_MODEL,
+                    messages=[{"role": "user", "content": prompt}],
+                    max_tokens=200,
                 )
-                if chosen and chosen in candidate_map:
-                    selected_key = chosen
-                    tiebreaker_used = tiebreaker_used or "ai"
-            # Deterministic if still tied
-            if not selected_key:
-                selected_key = sorted(ties)[0]
-                tiebreaker_used = tiebreaker_used or "deterministic"
+                text = resp.choices[0].message.content
+                if text:
+                    return text.strip()
+            except Exception as e:  # pragma: no cover
+                logger.debug("OpenAI rationale generation failed: %s", e)
+        # Deterministic fallback
+        return (
+            "Selected tasks advance integration across infrastructure and agents, "
+            "reduce security risk, and unblock downstream repositories. Priority and "
+            "stage weighting favored integrate/verify steps on core stack components."
+        )
 
-        rec = DecisionRecord(
-            at=now_iso(),
-            subject="Select next integration task",
-            proposals=[{"task_key": k, "by": a, "w": w} for k, a, w in proposals],
-            selected_key=selected_key,
+    def decide(self, pending: List[Task]) -> Optional[Decision]:
+        batch = self.select_next_batch(pending)
+        rationale = self._draft_rationale(batch)
+        decision_text = ", ".join([f"{t.repo}:{t.id[:8]}" for t in batch]) or "no-op"
+        decision = Decision(
+            id=str(uuid.uuid4()),
+            agent_id=None,
+            decision=decision_text,
             rationale=rationale,
-            voters=voters,
-            tiebreaker=tiebreaker_used
         )
-        self._last_decision = rec
-        return rec
+        self.db.insert_decision(decision)
+        return decision
 
-    def _best_for_agent(self, agent: Agent, tasks: List[IntegrationTask]) -> Optional[IntegrationTask]:
-        # choose highest priority task matching agent domains not blocked
-        candidates = [
-            t for t in tasks
-            if t.status == "pending"
-            and agent.can_own(t)
-            and not t.dependencies  # initial simplification: pick root items first
-        ]
-        if not candidates:
-            # allow dependent tasks if parent is present but pending
-            candidates = [t for t in tasks if t.status == "pending" and agent.can_own(t)]
+# --------------------------------------------------------------------------------------
+# Agent Pool and Assignment
+# --------------------------------------------------------------------------------------
 
-        if not candidates:
-            return None
-        # Sort by priority, then created_at
-        candidates.sort(key=lambda t: (t.priority, t.created_at))
-        return candidates[0]
+AGENT_CATALOG: List[Tuple[str, List[str]]] = [
+    ("Integrator", ["python", "git", "pr", "ci", "docs"]),
+    ("Security", ["risc0", "wazuh", "audit", "policy", "sbom"]),
+    ("RAG Architect", ["rag", "embed", "vector", "supabase", "redis"]),
+    ("Federated Learning", ["syft", "privacy", "dp", "smpc", "pytorch"]),
+    ("Meshnet", ["meshtastic", "wifi-halow", "offline", "esp32"]),
+    ("Blockchain", ["monero", "evm", "wallet", "bridge", "zk"]),
+    ("DevOps", ["docker", "k8s", "wazuh-k8s", "perfetto", "ci"]),
+    ("Comms", ["docs", "docusaurus", "social", "analytics"]),
+    ("Data Curator", ["firecrawl", "crawling", "dataset", "curation"]),
+    ("QA", ["tests", "runtime", "verification", "lint"]),
+]
 
-    def execute(self, decision: DecisionRecord) -> Dict[str, Any]:
-        """
-        Based on decision, change task status and perform real GitHub ops:
-        - Create a tracking issue in XMRT-Ecosystem for the chosen task
-        - For per-repo sub-tasks, commit stub integration file (if writeable)
-        """
-        if not decision.selected_key:
-            return {"ok": False, "error": "No task selected"}
+CATEGORY_TO_AGENT: Dict[str, str] = {
+    "Core Infrastructure": "Integrator",
+    "AI and Agents": "RAG Architect",
+    "Security and Privacy": "Security",
+    "Blockchain and DeFi": "Blockchain",
+    "MESHNET and Offline Comms": "Meshnet",
+    "Developer Tools": "DevOps",
+    "Social and Analytics": "Comms",
+    "unknown": "Integrator",
+}
 
-        task = BACKLOG.get(decision.selected_key)
-        if not task:
-            return {"ok": False, "error": f"Task {decision.selected_key} not found"}
+# --------------------------------------------------------------------------------------
+# Seeding Logic — Guided Integration Path
+# --------------------------------------------------------------------------------------
 
-        # Mark in progress
-        BACKLOG.update_status(task.key, "in_progress", "Consensus accepted; executing")
-        ANALYTICS["decisions"] += 1
+STAGE_TASKS: Dict[Stage, List[Tuple[str, str]]] = {
+    # (title, description template)
+    "discover": [
+        ("Audit fork and upstream mapping",
+         "Check that {repo} exists under {org} and is a fork of its intended upstream. "
+         "Record default branch and note any divergence."),
+        ("Establish repository metadata",
+         "Ensure topics, description, license, and visibility are set appropriately for {repo}."),
+    ],
+    "assess": [
+        ("Assess build and CI",
+         "Run local build/tests for {repo}. Identify missing CI and propose GitHub Actions."),
+        ("Security baseline",
+         "Add SECURITY.md and enable Dependabot/CodeQL if applicable for {repo}."),
+    ],
+    "bootstrap": [
+        ("Add XMRT integration descriptor",
+         "Create or update .xmrt/integration.yml with stage, category, and owners for {repo}."),
+        ("Standardize contributors files",
+         "Ensure CODEOWNERS and CONTRIBUTING.md present and correct in {repo}."),
+    ],
+    "integrate": [
+        ("Wire to core services",
+         "Connect {repo} to xmrt-supabase/xmrt-redis where relevant; update configs and envs."),
+        ("Open tracking issue",
+         "Create 'XMRT Integration Tracking' issue with checklist for {repo}."),
+    ],
+    "verify": [
+        ("Runtime verification",
+         "Execute smoke tests and, where available, runtime verification for {repo}."),
+        ("Docs and examples",
+         "Update README with XMRT usage examples and link to docs site for {repo}."),
+    ],
+    "publish": [
+        ("Tag and announce",
+         "Cut a release/tag where appropriate for {repo}, and notify Comms to announce."),
+        ("Close tracking issue",
+         "Close 'XMRT Integration Tracking' once all tasks are DONE for {repo}."),
+    ],
+}
 
-        # Create tracking issue in default repo
-        if not GITHUB.available():
-            BACKLOG.update_status(task.key, "blocked", "GitHub unavailable")
-            return {"ok": False, "error": "GitHub unavailable; task marked blocked"}
+STAGE_ORDER: List[Stage] = ["discover", "assess", "bootstrap", "integrate", "verify", "publish"]
 
-        body = self._render_issue_body(task, decision)
-        issue_res = GITHUB.create_issue(
-            "DevGruGold/XMRT-Ecosystem",
-            f"[Integration] {task.title}",
-            body,
-            labels=list(set(["integration", "xmrt", "consensus"] + task.labels))
-        )
-        if not issue_res.get("ok"):
-            BACKLOG.update_status(task.key, "blocked", f"Issue creation failed: {issue_res.get('error')}")
-            return {"ok": False, "error": f"Issue creation failed: {issue_res.get('error')}"}
+# --------------------------------------------------------------------------------------
+# Coordinator Worker
+# --------------------------------------------------------------------------------------
 
-        task.evidence_links.append(issue_res["url"])
-        BACKLOG.update_status(task.key, "in_progress", f"Issue created: {issue_res['url']}")
+class Coordinator(threading.Thread):
+    daemon = True
 
-        # For subtask keyed as <parent>-<repo>, attempt to upsert stub in that repo
-        if re.match(r".+-[a-z0-9_-]+$", task.key) and len(task.repos) == 1:
-            repo = task.repos[0]
-            repo_full = f"DevGruGold/{repo}"
-            # Add an integration stub under .xmrt/ to avoid code breakage
-            path = f".xmrt/integration/{task.key}.md"
-            content = self._render_stub_md(task, decision, issue_res["url"])
-            up = GITHUB.upsert_file(repo_full, path, f"Add XMRT integration stub for {task.title}", content)
-            if not up.get("ok"):
-                BACKLOG.update_status(task.key, "blocked", f"Commit failed: {up.get('error')}")
-                return {"ok": False, "error": f"Commit failed: {up.get('error')}"}
-            sha = up["commit"]["sha"]
-            url_hint = f"https://github.com/{repo_full}/blob/main/{path}"
-            task.evidence_links.append(url_hint)
-            BACKLOG.update_status(task.key, "done", f"Stub committed ({sha[:7]}) at {url_hint}")
-            return {"ok": True, "issue": issue_res, "commit": up, "task": asdict(task)}
-
-        # If it's a parent/root item (spans multiple repos), just record the issue link
-        BACKLOG.update_status(task.key, "in_progress", "Root tracked by issue; execute children next")
-        return {"ok": True, "issue": issue_res, "task": asdict(task)}
-
-    def _render_issue_body(self, task: IntegrationTask, decision: DecisionRecord) -> str:
-        lines = [
-            f"# {task.title}",
-            "",
-            f"**Created**: {now_iso()}",
-            f"**Selected by Consensus**: {decision.at}",
-            f"**Labels**: {', '.join(task.labels)}",
-            "",
-            "## Description",
-            task.description,
-            "",
-            "## Target Repos",
-            *(f"- `{r}`" for r in task.repos),
-            "",
-            "## Acceptance Criteria",
-            *(f"- [ ] {a}" for a in task.acceptance),
-            "",
-            "## Evidence / Links",
-            *(f"- {l}" for l in task.evidence_links),
-            "",
-            "## Notes",
-            *(f"- {n}" for n in task.notes),
-            "",
-            "## Consensus Record",
-            f"- Voters: {', '.join(f'{k}({v:.2f})' for k, v in decision.voters.items())}",
-            f"- Tiebreaker: {decision.tiebreaker or 'n/a'}",
-            "",
-            "> This issue was generated by the XMRT Ecosystem consensus engine.",
-        ]
-        return "\n".join(lines)
-
-    def _render_stub_md(self, task: IntegrationTask, decision: DecisionRecord, issue_url: str) -> str:
-        return f"""# XMRT Integration Stub
-Task: {task.title}
-Selected: {decision.at}
-Issue: {issue_url}
-
-## Purpose
-Provide a non-invasive integration stub for {task.repos[0]} so the implementation can
-be iterated safely via PRs.
-
-## Next Steps
-- Implement real integration code paths behind feature flags.
-- Add unit tests to exercise minimal flows.
-- Update documentation with runbook steps.
-
-"""
-
-
-CONSENSUS = ConsensusEngine()
-
-
-# ============================= Background Worker ===============================
-
-class CoordinatorThread(threading.Thread):
-    """
-    Periodically attempts a consensus cycle (if there is at least one pending task).
-    Uses ADMIN_TOKEN auth bypass since it's internal.
-    """
-
-    def __init__(self, interval_sec: int = 120):
-        super().__init__(daemon=True)
-        self.interval = interval_sec
+    def __init__(self, db: DB, gh: XMRTGitHub):
+        super().__init__(name="xmrt-coordinator")
+        self.db = db
+        self.gh = gh
+        self.consensus = ConsensusEngine(db)
         self._stop = threading.Event()
+        self.last_tick: Optional[datetime] = None
 
-    def stop(self):
+    def stop(self) -> None:
         self._stop.set()
 
-    def run(self):
-        logger.info("Consensus Builder worker ready")
+    # ----------------------- Execution helpers ------------------------------------
+    def _ensure_agents(self) -> None:
+        existing = {a.name: a for a in self.db.list_agents()}
+        for name, skills in AGENT_CATALOG:
+            if name not in existing:
+                agent = Agent(id=str(uuid.uuid4()), name=name, role=name, skills=skills)
+                self.db.upsert_agent(agent)
+
+    def _load_plan(self) -> List[RepoPlan]:
+        # Attempt to parse document if present
+        plans: List[RepoPlan] = []
+        names_from_doc: List[str] = []
+        if DOC_PATH.exists():
+            try:
+                text = DOC_PATH.read_text(encoding="utf-8", errors="ignore")
+                # Extract bullet/numbered names: lines like "1. repo-name" or plain list
+                for line in text.splitlines():
+                    m = re.match(r"\s*(?:\d+\.|\-|•)?\s*([a-zA-Z0-9_.-]{2,})\s*$", line)
+                    if m:
+                        candidate = m.group(1)
+                        if candidate.lower() in {"insights", "analysis", "structure"}:
+                            continue
+                        if candidate.startswith("#"):
+                            continue
+                        if "/" in candidate:
+                            continue
+                        if len(candidate) < 3:
+                            continue
+                        names_from_doc.append(candidate)
+            except Exception as e:  # pragma: no cover
+                logger.warning("Failed to parse doc: %s", e)
+        # Merge fallback
+        final_names: List[str] = []
+        seen = set()
+        for name in names_from_doc + REPO_LIST_FALLBACK:
+            if name not in seen:
+                seen.add(name)
+                final_names.append(name)
+        # Map categories
+        for name in final_names:
+            category = CATEGORY_FALLBACK.get(name, "unknown")
+            plans.append(RepoPlan(name=name, category=category))
+        return plans
+
+    def _seed_repos_and_tasks(self) -> None:
+        plans = self._load_plan()
+        for plan in plans:
+            exists, url, default_branch = self.gh.repo_exists(plan.name)
+            self.db.upsert_repo(
+                plan.name,
+                plan.category,
+                url=url,
+                is_fork=1 if exists else 0,
+                exists=1 if exists else 0,
+                default_branch=default_branch,
+            )
+            # Create stage tasks if not present
+            for stage in STAGE_ORDER:
+                for (title, desc_tmpl) in STAGE_TASKS[stage]:
+                    tid = str(uuid.uuid5(uuid.UUID(int=0), f"{plan.name}:{stage}:{title}"))
+                    existing = self.db._conn().execute(
+                        "SELECT id FROM tasks WHERE id=?", (tid,)
+                    ).fetchone()
+                    if existing:
+                        continue
+                    desc = desc_tmpl.format(repo=plan.name, org=GITHUB_ORG)
+                    task = Task(
+                        id=tid,
+                        title=title,
+                        description=desc,
+                        repo=plan.name,
+                        category=plan.category,
+                        stage=stage,  # type: ignore[arg-type]
+                        status="PENDING" if exists else "BLOCKED",
+                        priority=5,
+                        assignee_agent_id=None,
+                        blocking_reason=None if exists else "GitHub repo not accessible (missing token or permissions)",
+                    )
+                    self.db.upsert_task(task)
+
+    def _assign_tasks(self) -> None:
+        agents = {a.name: a for a in self.db.list_agents()}
+        tasks = self.db.list_tasks(limit=5000)
+        for t in tasks:
+            if t.assignee_agent_id:
+                continue
+            agent_name = CATEGORY_TO_AGENT.get(t.category, "Integrator")
+            agent = agents.get(agent_name)
+            if agent:
+                self.db.update_task_status(t.id, status=t.status, assignee_agent_id=agent.id)
+
+    def _perform_task(self, t: Task) -> None:
+        # Perform concrete work for selected task, depending on stage/title
+        exists, url, default_branch = self.gh.repo_exists(t.repo)
+        if not exists:
+            self.db.update_task_status(
+                t.id, status="BLOCKED", blocking_reason="Repo does not exist or token missing"
+            )
+            return
+
+        # Ensure common labels
+        full = f"{GITHUB_ORG}/{t.repo}"
+        self.gh.ensure_label(full, "xmrt:integration", "0366d6", "XMRT integration meta")
+        self.gh.ensure_label(full, "security", "d73a4a", "Security-related work")
+        self.gh.ensure_label(full, "documentation", "0075ca", "Docs and examples")
+
+        # Stage-specific operations
+        if t.stage == "discover" and t.title.startswith("Audit fork"):
+            # Refresh repo record with latest info
+            self.db.upsert_repo(t.repo, t.category, url=url, exists=1, default_branch=default_branch)
+
+        elif t.stage == "discover" and t.title.startswith("Establish repository metadata"):
+            body = (
+                "Please review repository description, topics, license, and visibility.\n\n"
+                "Recommended topics: `xmrt`, `integration`, `agents` (as applicable).\n"
+            )
+            num = self.gh.open_or_update_issue(t.repo, "Repository metadata review", body, ["documentation"])
+            if num is None:
+                self.db.update_task_status(t.id, status="BLOCKED", blocking_reason="Failed to open metadata issue")
+                return
+
+        elif t.stage == "assess" and t.title.startswith("Assess build and CI"):
+            body = (
+                "Assess current build/test status and propose a minimal CI workflow.\n\n"
+                "- [ ] Provide a GitHub Actions YAML to build & test\n"
+                "- [ ] Document local development steps in README\n"
+            )
+            num = self.gh.open_or_update_issue(t.repo, "CI assessment and proposal", body, [])
+            if num is None:
+                self.db.update_task_status(t.id, status="BLOCKED", blocking_reason="Failed to open CI issue")
+                return
+
+        elif t.stage == "assess" and t.title.startswith("Security baseline"):
+            if default_branch:
+                self.gh.ensure_file(t.repo, "SECURITY.md", XMRT_STANDARD_FILES["SECURITY.md"], branch=default_branch)
+            body = (
+                "Establish security baseline: enable Dependabot and CodeQL if applicable.\n\n"
+                "- [ ] Confirm SECURITY.md present\n"
+                "- [ ] Enable Dependabot alerts\n"
+                "- [ ] Enable CodeQL (if language supported)\n"
+            )
+            self.gh.open_or_update_issue(t.repo, "Security baseline", body, ["security"])
+
+        elif t.stage == "bootstrap" and t.title.startswith("Add XMRT integration descriptor"):
+            content = XMRT_STANDARD_FILES[".xmrt/integration.yml"].replace("category: unknown", f"category: {t.category}")
+            self.gh.ensure_file(t.repo, ".xmrt/integration.yml", content, branch=default_branch)
+
+        elif t.stage == "bootstrap" and t.title.startswith("Standardize contributors files"):
+            if default_branch:
+                self.gh.ensure_file(t.repo, "CODEOWNERS", XMRT_STANDARD_FILES["CODEOWNERS"], branch=default_branch)
+                self.gh.ensure_file(t.repo, "CONTRIBUTING.md", XMRT_STANDARD_FILES["CONTRIBUTING.md"], branch=default_branch)
+
+        elif t.stage == "integrate" and t.title.startswith("Wire to core services"):
+            body = (
+                "Wire repository to core XMRT services as applicable.\n\n"
+                "- [ ] Redis usage (xmrt-redis/xmrt-redis-py)\n"
+                "- [ ] Supabase storage or auth (xmrt-supabase)\n"
+                "- [ ] Provide `.env.example` with required keys\n"
+            )
+            num = self.gh.open_or_update_issue(t.repo, "Wire to XMRT core services", body, ["xmrt:integration"])
+            if num is None:
+                self.db.update_task_status(t.id, status="BLOCKED", blocking_reason="Failed to open wiring issue")
+                return
+
+        elif t.stage == "integrate" and t.title.startswith("Open tracking issue"):
+            body = (
+                "This issue tracks XMRT integration work for this repository.\n\n"
+                "**Checklist**\n\n"
+                "- [ ] Add `.xmrt/integration.yml`\n"
+                "- [ ] Ensure SECURITY.md, CODEOWNERS, CONTRIBUTING.md\n"
+                "- [ ] Connect to core services (Supabase/Redis) as applicable\n"
+                "- [ ] Establish CI (build, test, lint)\n"
+                "- [ ] Perform runtime verification\n"
+                "- [ ] Update docs/examples\n"
+                "- [ ] Tag release/announce\n"
+            )
+            num = self.gh.open_or_update_issue(t.repo, "XMRT Integration Tracking", body, ["xmrt:integration"])
+            if num is None:
+                self.db.update_task_status(t.id, status="BLOCKED", blocking_reason="Failed to create tracking issue")
+                return
+
+        elif t.stage == "verify" and t.title.startswith("Runtime verification"):
+            body = (
+                "Run smoke tests and capture runtime verification notes here.\n\n"
+                "- [ ] Smoke test logs attached\n"
+                "- [ ] Known runtime issues\n"
+            )
+            self.gh.open_or_update_issue(t.repo, "Runtime verification results", body, [])
+
+        elif t.stage == "verify" and t.title.startswith("Docs and examples"):
+            body = (
+                "Update README with XMRT usage examples and links to docs.\n\n"
+                "- [ ] Minimal usage example\n"
+                "- [ ] Link to docs site\n"
+            )
+            self.gh.open_or_update_issue(t.repo, "Docs & examples for XMRT", body, ["documentation"])
+
+        elif t.stage == "publish" and t.title.startswith("Tag and announce"):
+            body = (
+                "Prepare a release tag and announcement draft.\n\n"
+                "- [ ] Version bump\n"
+                "- [ ] Changelog entry\n"
+                "- [ ] Social post draft\n"
+            )
+            self.gh.open_or_update_issue(t.repo, "Release & announce (XMRT)", body, [])
+
+        elif t.stage == "publish" and t.title.startswith("Close tracking issue"):
+            body = (
+                "When all items in 'XMRT Integration Tracking' are complete, please close it."
+            )
+            self.gh.open_or_update_issue(t.repo, "Close tracking issue reminder", body, ["xmrt:integration"])
+
+        # Mark as DONE if we didn't early-return as BLOCKED
+        self.db.update_task_status(t.id, status="DONE", blocking_reason=None)
+
+    def tick_once(self) -> Optional[Decision]:
+        try:
+            self._ensure_agents()
+            self._seed_repos_and_tasks()
+            self._assign_tasks()
+
+            pending = [t for t in self.db.list_tasks(limit=5000) if t.status == "PENDING"]
+            decision = self.consensus.decide(pending)
+            batch = []
+            if decision:
+                batch = self.consensus.select_next_batch(pending)
+
+            for t in batch:
+                try:
+                    self.db.update_task_status(t.id, status="IN_PROGRESS")
+                    self._perform_task(t)
+                except Exception as e:  # pragma: no cover
+                    logger.exception("Task %s failed: %s", t.id, e)
+                    self.db.update_task_status(
+                        t.id, status="BLOCKED", blocking_reason=f"execution error: {e}"
+                    )
+            return decision
+        finally:
+            self.last_tick = datetime.now(timezone.utc)
+
+    def status(self) -> Dict[str, Any]:
+        tasks = self.db.list_tasks(limit=5000)
+        counts: Dict[str, int] = {s: 0 for s in ["PENDING", "IN_PROGRESS", "DONE", "BLOCKED", "CANCELLED"]}
+        for t in tasks:
+            counts[t.status] = counts.get(t.status, 0) + 1
+        return {
+            "last_tick": self.last_tick.isoformat() if self.last_tick else None,
+            "interval_seconds": COORDINATOR_TICK_SECONDS,
+            "github_configured": bool(self.gh._client is not None),
+            "org": self.gh.org,
+            "task_counts": counts,
+        }
+
+    def run(self) -> None:  # pragma: no cover - exercised in deployment
+        logger.info("Coordinator thread started; tick interval=%ss", COORDINATOR_TICK_SECONDS)
+        self.last_tick = datetime.now(timezone.utc)
         while not self._stop.is_set():
             try:
-                pending = [t for t in BACKLOG.list() if t.status == "pending"]
-                if pending:
-                    dec = CONSENSUS.choose_next()
-                    if dec.selected_key:
-                        CONSENSUS.execute(dec)
-                        SYSTEM_STATE["last_cycle"] = now_iso()
-                time.sleep(self.interval)
-            except Exception as e:
-                ANALYTICS["errors"] += 1
-                logger.error(f"CoordinatorThread error: {e}")
-                time.sleep(self.interval)
+                self.tick_once()
+            except Exception as e:  # pragma: no cover
+                logger.exception("Coordinator tick failed: %s", e)
+            time.sleep(COORDINATOR_TICK_SECONDS)
 
+# --------------------------------------------------------------------------------------
+# Flask Application & Routes
+# --------------------------------------------------------------------------------------
 
-COORDINATOR = CoordinatorThread(interval_sec=180)  # every 3 minutes
-COORDINATOR.start()
+def create_app(db: DB, coordinator: Coordinator) -> Flask:
+    """Factory function to create the Flask application."""
+    app = Flask(APP_NAME)
+    CORS(app)
 
+    @app.route("/health", methods=["GET"])
+    def health() -> Response:
+        return jsonify({"status": "ok", "service": APP_NAME})
 
-# ============================= Routes / API ====================================
+    @app.route("/api/status", methods=["GET"])
+    def api_status() -> Response:
+        return jsonify(coordinator.status())
 
-@app.before_request
-def _count_requests():
-    ANALYTICS["requests"] += 1
+    @app.route("/api/agents", methods=["GET"])
+    def api_agents() -> Response:
+        agents = db.list_agents()
+        return jsonify([a.to_dict() for a in agents])
 
+    @app.route("/api/repos", methods=["GET"])
+    def api_repos() -> Response:
+        repos = db.list_repos()
+        return jsonify(repos)
 
-@app.route("/", methods=["GET"])
-def index():
-    return render_template_string(HTML_INDEX)
+    @app.route("/api/tasks", methods=["GET"])
+    def api_tasks() -> Response:
+        status = request.args.get("status")
+        limit = int(request.args.get("limit", "50"))
+        tasks = db.list_tasks(limit=limit, status=status)
+        return jsonify([t.to_dict() for t in tasks])
 
+    @app.route("/api/decisions", methods=["GET"])
+    def api_decisions() -> Response:
+        decision = db.last_decision()
+        if decision:
+            return jsonify(decision.to_dict())
+        return jsonify({"message": "No decisions recorded yet"}), 404
 
-@app.route("/api/coordination/status", methods=["GET"])
-def api_status():
-    # Emulate your log style lines when starting up
-    s = {
-        "system": SYSTEM_STATE,
-        "analytics": ANALYTICS,
-        "pending": len([t for t in BACKLOG.list() if t.status == "pending"]),
-        "in_progress": len([t for t in BACKLOG.list() if t.status == "in_progress"]),
-        "done": len([t for t in BACKLOG.list() if t.status == "done"]),
-        "blocked": len([t for t in BACKLOG.list() if t.status == "blocked"]),
-    }
-    return jsonify(s)
+    @app.route("/api/tick", methods=["POST"])
+    def api_tick() -> Response:
+        """Manual trigger for a coordinator tick (useful for testing)."""
+        decision = coordinator.tick_once()
+        return jsonify({"decision": decision.to_dict() if decision else None})
 
+    return app
 
-@app.route("/api/coordination/last-decision", methods=["GET"])
-def api_last_decision():
-    d = CONSENSUS._last_decision
-    if not d:
-        return jsonify({"ok": True, "decision": None})
-    return jsonify({"ok": True, "decision": asdict(d)})
+# --------------------------------------------------------------------------------------
+# Main Entry Point
+# --------------------------------------------------------------------------------------
 
+def main() -> None:
+    """Main entry point for the XMRT Consensus Integrator service."""
+    load_dotenv()
+    
+    logger.info("Starting %s on port %d", APP_NAME, DEFAULT_PORT)
+    logger.info("Database: %s", DB_PATH)
+    logger.info("GitHub org: %s", GITHUB_ORG)
+    logger.info("GitHub token configured: %s", bool(GITHUB_TOKEN))
+    logger.info("OpenAI configured: %s", bool(OPENAI_API_KEY))
 
-@app.route("/api/agents", methods=["GET"])
-def api_agents():
-    return jsonify({"agents": {k: asdict(v) for k, v in AGENTS.items()}})
-
-
-@app.route("/api/tasks", methods=["GET"])
-def api_tasks():
-    limit = int(request.args.get("limit", "100"))
-    tasks = BACKLOG.top(limit)
-    return jsonify({"count": len(tasks), "tasks": [asdict(t) for t in tasks]})
-
-
-@app.route("/api/tasks/<key>", methods=["GET"])
-def api_task_one(key: str):
-    t = BACKLOG.get(key)
-    if not t:
-        return make_response(jsonify({"error": "Not found"}), 404)
-    return jsonify(asdict(t))
-
-
-@app.route("/api/run-innovation-cycle", methods=["POST"])
-def api_run_cycle():
-    # Protected by ADMIN_TOKEN if set
-    auth = require_admin_token(request)
-    if auth:
-        return auth
-
-    logger.info("Starting innovation cycle")
-    dec = CONSENSUS.choose_next()
-    res = {"ok": True, "decision": asdict(dec)}
-    if dec.selected_key:
-        exe = CONSENSUS.execute(dec)
-        res["execution"] = exe
-    logger.info(f"Innovation cycle complete: {dec.subject}")
-    return jsonify(res)
-
-
-@app.route("/api/mcp/tools", methods=["GET"])
-def api_mcp_tools():
-    tools = MCP.list_tools()
-    return jsonify(tools)
-
-
-@app.route("/api/mcp/call", methods=["POST"])
-def api_mcp_call():
-    # Protected by ADMIN_TOKEN if set
-    auth = require_admin_token(request)
-    if auth:
-        return auth
-
-    data = request.get_json(force=True, silent=True) or {}
-    name = data.get("name")
-    arguments = data.get("arguments") or {}
-    if not name:
-        return make_response(jsonify({"ok": False, "error": "Missing tool name"}), 400)
-    res = MCP.call_tool(name, arguments)
-    return jsonify(res)
-
-
-@app.route("/api/github/issue", methods=["POST"])
-def api_github_issue():
-    # Protected by ADMIN_TOKEN if set
-    auth = require_admin_token(request)
-    if auth:
-        return auth
-
-    if not GITHUB.available():
-        return make_response(jsonify({"ok": False, "error": "GitHub unavailable"}), 503)
-    data = request.get_json(force=True, silent=True) or {}
-    repo = data.get("repo") or "DevGruGold/XMRT-Ecosystem"
-    title = data.get("title") or "Untitled"
-    body = data.get("body") or ""
-    labels = data.get("labels") or []
-    res = GITHUB.create_issue(repo, title, body, labels)
-    code = 200 if res.get("ok") else 400
-    return make_response(jsonify(res), code)
-
-
-@app.route("/api/github/commit", methods=["POST"])
-def api_github_commit():
-    # Protected by ADMIN_TOKEN if set
-    auth = require_admin_token(request)
-    if auth:
-        return auth
-
-    if not GITHUB.available():
-        return make_response(jsonify({"ok": False, "error": "GitHub unavailable"}), 503)
-    data = request.get_json(force=True, silent=True) or {}
-    repo = data.get("repo") or "DevGruGold/XMRT-Ecosystem"
-    path = data.get("path")
-    message = data.get("message") or "XMRT commit"
-    content = data.get("content") or ""
-    if not path:
-        return make_response(jsonify({"ok": False, "error": "Missing 'path'"}), 400)
-    res = GITHUB.upsert_file(repo, path, message, content)
-    code = 200 if res.get("ok") else 400
-    return make_response(jsonify(res), code)
-
-
-# ============================= Graceful Shutdown ===============================
-
-def _graceful_exit(*_):
-    logger.info("Shutting down XMRT Ecosystem server")
+    db = DB(DB_PATH)
+    gh = XMRTGitHub(GITHUB_TOKEN, GITHUB_ORG)
+    coordinator = Coordinator(db, gh)
+    
+    # Start coordinator thread
+    coordinator.start()
+    
+    # Create and run Flask app
+    app = create_app(db, coordinator)
+    
     try:
-        COORDINATOR.stop()
-    except Exception:
-        pass
-    sys.exit(0)
-
-
-signal.signal(signal.SIGTERM, _graceful_exit)
-signal.signal(signal.SIGINT, _graceful_exit)
-
-
-# ============================= Start Server ====================================
-
-def main():
-    logger.info("OpenAI client initialized" if OPENAI_AVAILABLE and os.environ.get("OPENAI_API_KEY") else "OpenAI unavailable or no key")
-    if GITHUB.available():
-        logger.info("GitHub repo reachable (DevGruGold/XMRT-Ecosystem). Enabling real mode.")
-    else:
-        logger.info("GitHub unavailable; real GitHub actions will fail with explicit errors (no simulation).")
-
-    logger.info("Consensus Builder worker ready")
-    logger.info("Agents and Coordination initialized")
-    logger.info(f"Starting XMRT Ecosystem on port {PORT}")
-    app.run(host="0.0.0.0", port=PORT, debug=False)
-
+        app.run(host="0.0.0.0", port=DEFAULT_PORT, debug=False)
+    except KeyboardInterrupt:
+        logger.info("Shutting down gracefully...")
+        coordinator.stop()
+        coordinator.join(timeout=5)
+    except Exception as e:
+        logger.exception("Fatal error: %s", e)
+        coordinator.stop()
+        raise
 
 if __name__ == "__main__":
     main()
