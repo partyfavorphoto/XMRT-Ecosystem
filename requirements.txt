@@ -6,4 +6,4 @@ psutil
 python-dotenv
 gunicorn
 flask_cors
-
+supabase
