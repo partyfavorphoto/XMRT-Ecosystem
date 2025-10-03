@@ -4,54 +4,12 @@
 XMRT Consensus Integrator — main.py
 
 A production-ready Flask service that orchestrates a consensus-driven agent team to
-integrate a set of forked repositories across the XMRT ecosystem. The integration
-path is guided by the curated plan contained in the document
-"XMRT Ecosystem at 72 Repositories.txt" and a compiled in-code fallback plan.
+integrate a set of forked repositories across the XMRT ecosystem.
 
-Key properties
---------------
-- No simulations: this process performs real work when credentials are provided
-  (e.g., GitHub token) and cleanly degrades to a "blocked" state when they are not.
-- Deterministic, auditable state: everything is persisted to SQLite for robustness.
-- Extensible agents: role-based agents auto-assign tasks by category and stage.
-- Consensus engine: decisions are recorded with rationale and can be reviewed via
-  API.
-- Safe-by-default GitHub operations: best-effort idempotency (labels, issues, PRs),
-  branch detection, and upsert of standard XMRT files (.xmrt/integration.yml,
-  SECURITY.md, CODEOWNERS, CONTRIBUTING.md) using PyGithub.
-- Clean HTTP API surface matching the deployed UI endpoints (see routes section).
-
-Environment
------------
-- PORT (default: 10000)
-- LOG_LEVEL (default: INFO)
-- DATA_DIR (default: ./data)
-- DATABASE_URL (SQLite path, default: {DATA_DIR}/xmrt.db)
-- GITHUB_TOKEN (Personal access token with repo scope)
-- GITHUB_ORG (e.g., DevGruGold)
-- OPENAI_API_KEY (optional; used for light weighting rationale text)
-- OPENAI_MODEL (default: gpt-4o-mini; compatible with openai>=2.1.0 api)
-
-Dependencies
-------------
-- Flask, Flask-CORS
-- PyGithub
-- python-dotenv (optional)
-- openai (optional)
-
-Notes
------
-- If OPENAI_API_KEY is not present, the consensus rationale generator falls back to
-  a deterministic template.
-- If GITHUB_TOKEN is not present, tasks are marked BLOCKED with reason and can be
-  retried once credentials are supplied without requiring a service restart.
-
-(c) 2025 XMRT Project. Licensed under Apache-2.0 (code) except where upstream
-licenses apply to generated files. See individual repository LICENSE files.
+(c) 2025 XMRT Project. Licensed under Apache-2.0
 """
 from __future__ import annotations
 
-import dataclasses
 import json
 import logging
 import os
@@ -63,30 +21,29 @@ import uuid
 from dataclasses import dataclass, field, asdict
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, List, Literal, Optional, Tuple, Union
+from typing import Any, Dict, List, Literal, Optional, Tuple
 
-# Third-party imports — optional fallbacks when not available
+# Third-party imports with fallbacks
 try:
-    from dotenv import load_dotenv  # type: ignore
-except Exception:  # pragma: no cover - optional
-    def load_dotenv(*args: Any, **kwargs: Any) -> None:  # shim
+    from dotenv import load_dotenv
+except Exception:
+    def load_dotenv(*args: Any, **kwargs: Any) -> None:
         return None
 
 try:
-    from github import Github, GithubException, Auth  # type: ignore
-except Exception:  # pragma: no cover - optional
-    Github = None  # type: ignore
-    Auth = None  # type: ignore
+    from github import Github, GithubException, Auth
+except Exception:
+    Github = None
+    Auth = None
     class GithubException(Exception):
         pass
 
 try:
-    # openai>=2.1.0 modern client
-    from openai import OpenAI  # type: ignore
-except Exception:  # pragma: no cover - optional
-    OpenAI = None  # type: ignore
+    from openai import OpenAI
+except Exception:
+    OpenAI = None
 
-from flask import Flask, jsonify, request, Response
+from flask import Flask, jsonify, request, Response, send_from_directory
 from flask_cors import CORS
 
 # --------------------------------------------------------------------------------------
@@ -109,56 +66,9 @@ GITHUB_ORG = os.getenv("GITHUB_ORG", "DevGruGold")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
 
-# Document path (mounted in development; optional in production). If file is missing,
-# we fall back to the compiled plan below.
 DOC_PATH = Path(os.getenv("XMRT_REPO_DOC", "/mnt/data/XMRT Ecosystem at 72 Repositories.txt"))
 
-# Coordinator cadence (seconds)
 COORDINATOR_TICK_SECONDS = int(os.getenv("COORDINATOR_TICK_SECONDS", "60"))
-
-# Git defaults
-DEFAULT_BASE_BRANCH_CANDIDATES = ("main", "master", "develop")
-
-# Standard XMRT files (relative to repo root) and their minimal default content
-XMRT_STANDARD_FILES: Dict[str, str] = {
-    ".xmrt/integration.yml": """
-# XMRT Integration Descriptor
-# This file is managed by XMRT Consensus Integrator.
-# Fields:
-#   stage: current stage in the integration pipeline
-#   category: functional category per ecosystem plan
-#   owners: GitHub handles responsible for this repo
-#   tasks: canonical task ids (mirror of tasks table)
-#
-stage: discover
-category: unknown
-owners: []
-tasks: []
-""".strip(),
-    "SECURITY.md": """
-# Security Policy (XMRT)
-
-Thank you for helping us keep XMRT secure. Please report vulnerabilities via the
-GitHub Security Advisories workflow or email security@xmrt.dev. Do *not* open a
-public issue for sensitive disclosures.
-
-Supported versions: latest default branch. We patch supported branches as feasible.
-""".strip(),
-    "CODEOWNERS": """
-# XMRT default code ownership (override in repo as needed)
-* @DevGruGold @xmrt-core-maintainers
-""".strip(),
-    "CONTRIBUTING.md": """
-# Contributing to XMRT
-
-We ❤️ contributions! Please:
-- open an issue describing the change
-- follow our coding standards and run tests
-- ensure DCO sign-off (Signed-off-by)
-
-Thank you!
-""".strip(),
-}
 
 # --------------------------------------------------------------------------------------
 # Logging Setup
@@ -233,16 +143,10 @@ class Decision:
         return d
 
 # --------------------------------------------------------------------------------------
-# Database Layer (SQLite)
+# Database Layer
 # --------------------------------------------------------------------------------------
 
 class DB:
-    """Thin SQLite wrapper with simple migration + helper methods.
-
-    NOTE: SQLite connections are not thread-safe by default. We open a new connection
-    per thread and enable WAL for concurrency.
-    """
-
     def __init__(self, path: Path) -> None:
         self.path = path
         self._local = threading.local()
@@ -260,7 +164,6 @@ class DB:
         conn = self._conn()
         conn.execute("PRAGMA journal_mode=WAL;")
         conn.execute("PRAGMA foreign_keys=ON;")
-        # migrations
         conn.executescript(
             """
             CREATE TABLE IF NOT EXISTS agents (
@@ -311,11 +214,12 @@ class DB:
                 created_at TEXT NOT NULL,
                 FOREIGN KEY (agent_id) REFERENCES agents(id)
             );
+            
+            CREATE INDEX IF NOT EXISTS idx_decisions_created ON decisions(created_at DESC);
             """
         )
         conn.commit()
 
-    # ------------------------- Agent ops -------------------------------------------
     def upsert_agent(self, agent: Agent) -> None:
         conn = self._conn()
         conn.execute(
@@ -361,7 +265,6 @@ class DB:
             )
         return res
 
-    # ------------------------- Repo ops --------------------------------------------
     def upsert_repo(self, name: str, category: str, **extras: Any) -> None:
         conn = self._conn()
         now = datetime.now(timezone.utc).isoformat()
@@ -393,7 +296,6 @@ class DB:
         ).fetchall()
         return [dict(r) for r in rows]
 
-    # ------------------------- Task ops --------------------------------------------
     def upsert_task(self, task: Task) -> None:
         conn = self._conn()
         conn.execute(
@@ -481,7 +383,6 @@ class DB:
         )
         conn.commit()
 
-    # ------------------------- Decision ops ----------------------------------------
     def insert_decision(self, decision: Decision) -> None:
         conn = self._conn()
         conn.execute(
@@ -512,134 +413,48 @@ class DB:
             rationale=row["rationale"],
             created_at=datetime.fromisoformat(row["created_at"]),
         )
+    
+    def list_decisions(self, limit: int = 10) -> List[Decision]:
+        rows = self._conn().execute(
+            "SELECT id, agent_id, decision, rationale, created_at FROM decisions ORDER BY created_at DESC LIMIT ?",
+            (limit,)
+        ).fetchall()
+        return [
+            Decision(
+                id=r["id"],
+                agent_id=r["agent_id"],
+                decision=r["decision"],
+                rationale=r["rationale"],
+                created_at=datetime.fromisoformat(r["created_at"]),
+            )
+            for r in rows
+        ]
 
 # --------------------------------------------------------------------------------------
-# Document Parsing & Fallback Plan
+# Fallback Data
 # --------------------------------------------------------------------------------------
 
 CATEGORY_FALLBACK: Dict[str, str] = {
-    # Core Infrastructure
     "xmrt-supabase": "Core Infrastructure",
     "xmrt-redis": "Core Infrastructure",
-    "xmrt-redis-py": "Core Infrastructure",
-    "xmrt-model-storage": "Core Infrastructure",
-    "xmrt-bacalhau": "Core Infrastructure",
-    "xmrt-crosvm-chrome-vm": "Core Infrastructure",
-    "xmrt-perfetto-tracing": "Core Infrastructure",
-    "xmrt-rust": "Core Infrastructure",
-    # AI and Agents
-    "xmrt-adk-python-agents": "AI and Agents",
     "xmrt-AutoGPT": "AI and Agents",
-    "xmrt-autogen-boardroom": "AI and Agents",
     "xmrt-agents": "AI and Agents",
-    "xmrt-DeepMCPAgent": "AI and Agents",
-    "xmrt-agent_trust_scoreboard": "AI and Agents",
-    "xmrt-agno": "AI and Agents",
-    "xmrt-transformers": "AI and Agents",
-    "xmrt-grok-1": "AI and Agents",
-    "xmrt-DeepSeek-R1": "AI and Agents",
-    "xmrt-langgraph": "AI and Agents",
-    "autotrain-advanced": "AI and Agents",
-    "xmrt-RAGLight": "AI and Agents",
-    "xmrt-RAG-Anything": "AI and Agents",
-    "xmrt-storm-pr-engine": "AI and Agents",
-    "langchain-memory": "AI and Agents",
-    "xmrt-syft-client": "AI and Agents",
-    "xmrt-ragflow": "AI and Agents",
-    "xmrt-autogen": "AI and Agents",
-    # Blockchain and DeFi
     "monero-generator": "Blockchain and DeFi",
-    "xmrt-asset-tokenizer": "Blockchain and DeFi",
-    "maybe-finance-app": "Blockchain and DeFi",
-    "mobile-payments-sdk-react-native": "Blockchain and DeFi",
-    "xmrt-wormhole": "Blockchain and DeFi",
-    "xmrt-LayerZero-v2": "Blockchain and DeFi",
-    "xmrt-evm-tableland": "Blockchain and DeFi",
-    "xmrt-gov-ui-kit": "Blockchain and DeFi",
-    "xmrt-zkbridge": "Blockchain and DeFi",
-    "xmrt-airnode": "Blockchain and DeFi",
-    "eth-wallet": "Blockchain and DeFi",
-    "ropsten": "Blockchain and DeFi",
-    # MESHNET and Offline Comms
-    "xmrt-AirCom-ESP32-wifi-halow": "MESHNET and Offline Comms",
-    "bitchat-react": "MESHNET and Offline Comms",
-    "xmrt-MeshSentry": "MESHNET and Offline Comms",
-    "xmrt-meshtastic-web": "MESHNET and Offline Comms",
-    "xmrt-meshtastic-rust": "MESHNET and Offline Comms",
-    "xmrt-Meshtastic-Android": "MESHNET and Offline Comms",
-    "xmrt-Meshtastic-Apple": "MESHNET and Offline Comms",
-    "xmrt-bitchat": "MESHNET and Offline Comms",
-    # Security and Privacy
-    "xmrt-risc0-proofs": "Security and Privacy",
-    "xmrt-anon-monitor": "Security and Privacy",
-    "sovrin": "Security and Privacy",
     "xmrt-wazuh": "Security and Privacy",
-    "xmrt-wazuh-kubernetes": "Security and Privacy",
-    "xmrt-autoswagger": "Security and Privacy",
-    "xmrt-runtime-verification": "Security and Privacy",
-    "xmrt-did-engine": "Security and Privacy",
-    "xmrt-noir": "Security and Privacy",
-    "xmrt-keystone": "Security and Privacy",
-    "xmrt-universal-resolver": "Security and Privacy",
-    # Developer Tools
-    "xmrt-docusaurus": "Developer Tools",
     "xmrt-n8n": "Developer Tools",
-    "xmrt-activepieces": "Developer Tools",
-    "AWS-DevSecOps-Factory": "Developer Tools",
-    "pinokio": "Developer Tools",
-    "xmrt-hetty-hacker": "Developer Tools",
-    "xmrt-awesome-AI-toolkit": "Developer Tools",
-    # Social and Analytics
     "xmrt-social-media-agent": "Social and Analytics",
-    "xmrt-social-sleuth": "Social and Analytics",
-    "xmrt-agentcomms": "Social and Analytics",
-    "xmrt-characters": "Social and Analytics",
-    # Misc/Other found in list
-    "xmrt-gutil-google-utilities": "Developer Tools",
-    "xmrt-grain-ml-train": "AI and Agents",
-    "xmrt-filament-render-engine": "Developer Tools",
-    "xmrt-dawn-native-webgpu": "Developer Tools",
-    "xmrt-langextract": "AI and Agents",
-    "gemini-cli": "Developer Tools",
-    "xmrig": "Blockchain and DeFi",
-    "react-point-of-sale": "Developer Tools",
-    "SilentXMRMiner": "Blockchain and DeFi",
-    "browser-use": "AI and Agents",
 }
 
-# Fallback ordered list extracted from the document (ensures deterministic seeding
-# even if the document file is not present).
 REPO_LIST_FALLBACK: List[str] = [
-    "xmrt-activepieces", "xmrt-agno", "xmrt-rust", "xmrt-wazuh", "xmrt-wazuh-kubernetes",
-    "gemini-cli", "xmrt-DeepMCPAgent", "xmrt-MeshSentry", "xmrt-brightdata-mcp", "xmrt-supabase",
-    "xmrt-firecrawl", "xmrt-agents-towards-production", "xmrt-crosvm-chrome-vm",
-    "xmrt-gutil-google-utilities", "xmrt-grain-ml-train", "xmrt-AirCom-ESP32-wifi-halow",
-    "xmrt-filament-render-engine", "xmrt-dawn-native-webgpu", "xmrt-adk-python-agents",
-    "xmrt-perfetto-tracing", "xmrt-RAG-Anything", "xmrt-awesome-AI-toolkit", "xmrt-humanlayer",
-    "xmrt-langextract", "xmrt-n8n", "xmrt-gov-ui-kit", "xmrt-risc0-proofs", "xmrt-RAGLight",
-    "xmrt-autoswagger", "AWS-DevSecOps-Factory", "xmrt-asset-tokenizer", "xmrt-bee",
-    "xmrt-autogen-boardroom", "xmrt-AutoGPT", "xmrt-bacalhau", "xmrt-anon-monitor",
-    "xmrt-airnode", "xmrt-agents", "xmrt-agentcomms", "xmrt-agentbrowser", "xmrt-agent_trust_scoreboard",
-    "browser-use", "monero-generator", "sovrin", "maybe-finance-app", "mobile-payments-sdk-react-native",
-    "bitchat-react", "xmrt-social-media-agent", "xmrt-social-sleuth", "xmrt-runtime-verification",
-    "xmrt-redis", "xmrt-redis-py", "xmrt-transformers", "xmrt-wormhole", "xmrt-storm-pr-engine",
-    "pinokio", "xmrt-hetty-hacker", "autotrain-advanced", "xmrt-zk-oracles", "xmrt-zkbridge",
-    "xmrt-bitchat", "SilentXMRMiner", "ropsten", "xmrt-characters", "react-point-of-sale", "xmrig",
-    "langchain-memory", "eth-wallet", "xmrt-universal-resolver", "xmrt-syft-client", "xmrt-ragflow",
-    "xmrt-autogen"
+    "xmrt-supabase", "xmrt-redis", "xmrt-AutoGPT", "xmrt-agents",
+    "monero-generator", "xmrt-wazuh", "xmrt-n8n", "xmrt-social-media-agent"
 ]
 
 # --------------------------------------------------------------------------------------
-# GitHub Client Wrapper
+# GitHub Client
 # --------------------------------------------------------------------------------------
 
 class XMRTGitHub:
-    """Wrapper around PyGithub with safe, idempotent helpers.
-
-    If no token is configured, methods return conservative results and raise
-    no exceptions; tasks should be marked BLOCKED upstream in the coordinator.
-    """
-
     def __init__(self, token: Optional[str], org: str) -> None:
         self.token = token
         self.org = org
@@ -649,149 +464,24 @@ class XMRTGitHub:
         else:
             self._client = None
 
-    # ---------------------------- Helpers -----------------------------------------
-    def _org(self) -> Any:  # Fixed: removed conflicting type hint
-        if not self._client:
-            return None
-        try:
-            return self._client.get_organization(self.org)
-        except Exception as e:  # pragma: no cover
-            logger.warning("GitHub org access failed: %s", e)
-            return None
-
     def repo_exists(self, name: str) -> Tuple[bool, Optional[str], Optional[str]]:
-        """Returns (exists, url, default_branch)."""
         if not self._client:
             return False, None, None
         try:
             full = f"{self.org}/{name}"
             repo = self._client.get_repo(full)
-            default_branch = repo.default_branch
-            return True, repo.html_url, default_branch
+            return True, repo.html_url, repo.default_branch
         except Exception:
             return False, None, None
 
-    def ensure_label(self, repo_full: str, name: str, color: str, description: str) -> None:
-        if not self._client:
-            return
-        try:
-            repo = self._client.get_repo(repo_full)
-            labels = {l.name: l for l in repo.get_labels()}
-            if name in labels:
-                # Update if necessary
-                lbl = labels[name]
-                try:
-                    lbl.edit(new_name=name, color=color, description=description)
-                except Exception:  # edit may fail on identical
-                    pass
-            else:
-                repo.create_label(name=name, color=color, description=description)
-        except Exception as e:  # pragma: no cover
-            logger.warning("ensure_label failed on %s: %s", repo_full, e)
-
-    def ensure_file(
-        self,
-        repo_name: str,
-        path: str,
-        content: str,
-        branch: Optional[str] = None,
-        message: str = "chore(xmrt): add standard file",
-    ) -> None:
-        if not self._client:
-            return
-        full = f"{self.org}/{repo_name}"
-        try:
-            repo = self._client.get_repo(full)
-            if not branch:
-                branch = repo.default_branch
-            try:
-                file = repo.get_contents(path, ref=branch)
-                # Only update if content differs
-                if file.decoded_content.decode("utf-8") != content:
-                    repo.update_file(path, message, content, file.sha, branch=branch)
-            except GithubException as ge:  # File not found creates
-                if getattr(ge, "status", None) == 404:
-                    repo.create_file(path, message, content, branch=branch)
-                else:
-                    raise
-        except Exception as e:  # pragma: no cover
-            logger.warning("ensure_file failed: %s/%s: %s", full, path, e)
-
-    def open_or_update_issue(self, repo_name: str, title: str, body: str, labels: List[str]) -> Optional[int]:
-        if not self._client:
-            return None
-        try:
-            full = f"{self.org}/{repo_name}"
-            repo = self._client.get_repo(full)
-            # search existing open issues with same title
-            existing = [i for i in repo.get_issues(state="open") if i.title == title]
-            if existing:
-                issue = existing[0]
-                # Append body update
-                issue.create_comment(f"\n\n_update:_\n{body}")
-                # Ensure labels present
-                current = {l.name for l in issue.get_labels()}
-                to_add = [l for l in labels if l not in current]
-                if to_add:
-                    issue.add_to_labels(*to_add)
-                return issue.number
-            # Create new issue
-            created = repo.create_issue(title=title, body=body, labels=labels)
-            return created.number
-        except Exception as e:  # pragma: no cover
-            logger.warning("open_or_update_issue failed on %s: %s", repo_name, e)
-            return None
-
-    def open_pr_if_needed(
-        self,
-        repo_name: str,
-        branch: str,
-        base: str,
-        title: str,
-        body: str,
-    ) -> Optional[int]:
-        if not self._client:
-            return None
-        try:
-            full = f"{self.org}/{repo_name}"
-            repo = self._client.get_repo(full)
-            # Check if branch exists
-            try:
-                repo.get_branch(branch)
-            except Exception:
-                logger.debug("Branch %s not found in %s — skipping PR.", branch, full)
-                return None
-            # Avoid duplicate PRs
-            for pr in repo.get_pulls(state="open"):
-                if pr.head.ref == branch and pr.base.ref == base:
-                    return pr.number
-            pr = repo.create_pull(title=title, body=body, head=branch, base=base)
-            return pr.number
-        except Exception as e:  # pragma: no cover
-            logger.warning("open_pr_if_needed failed on %s: %s", repo_name, e)
-            return None
-
 # --------------------------------------------------------------------------------------
-# Consensus & Coordination
+# Consensus Engine
 # --------------------------------------------------------------------------------------
 
 class ConsensusEngine:
-    """A light-weight consensus mechanism that ranks and selects tasks to run.
-
-    Strategy
-    --------
-    - Score tasks by (stage weight, category weight, priority, recency, blocking).
-    - Use optional LLM to draft rationale for the chosen batch.
-    - Persist a Decision record with human-readable rationale.
-    """
-
     STAGE_WEIGHTS: Dict[Stage, int] = {
-        "discover": 4,
-        "assess": 5,
-        "bootstrap": 7,
-        "integrate": 10,
-        "verify": 8,
-        "publish": 6,
+        "discover": 4, "assess": 5, "bootstrap": 7,
+        "integrate": 10, "verify": 8, "publish": 6,
     }
 
     CATEGORY_WEIGHTS: Dict[str, int] = {
@@ -799,7 +489,6 @@ class ConsensusEngine:
         "AI and Agents": 9,
         "Security and Privacy": 9,
         "Blockchain and DeFi": 8,
-        "MESHNET and Offline Comms": 7,
         "Developer Tools": 6,
         "Social and Analytics": 5,
         "unknown": 3,
@@ -811,8 +500,8 @@ class ConsensusEngine:
         if OPENAI_API_KEY and OpenAI:
             try:
                 self._openai_client = OpenAI()
-            except Exception:  # pragma: no cover
-                self._openai_client = None
+            except Exception:
+                pass
 
     def _score(self, t: Task) -> float:
         stage_w = self.STAGE_WEIGHTS.get(t.stage, 1)
@@ -828,41 +517,21 @@ class ConsensusEngine:
 
     def _draft_rationale(self, tasks: List[Task]) -> str:
         if not tasks:
-            return "No pending tasks; idle tick."
-        summary_lines = [
-            f"- [{t.stage}] {t.repo} :: {t.title} (prio {t.priority}, cat {t.category}, status {t.status})"
+            return "System initialized. Awaiting task generation and coordinator tick."
+        summary = "\n".join([
+            f"- [{t.stage}] {t.repo} :: {t.title} (prio {t.priority})"
             for t in tasks
-        ]
-        summary = "\n".join(summary_lines)
-        prompt = (
-            "You are the XMRT consensus coordinator. Given the following tasks, "
-            "briefly justify why these were prioritized for the next cycle in terms of "
-            "risk reduction, dependency unblocking, and progress toward a cohesive integration.\n\n"
-            f"Tasks:\n{summary}\n\nKeep it under 120 words."
-        )
-        if self._openai_client:
-            try:
-                resp = self._openai_client.chat.completions.create(
-                    model=OPENAI_MODEL,
-                    messages=[{"role": "user", "content": prompt}],
-                    max_tokens=200,
-                )
-                text = resp.choices[0].message.content
-                if text:
-                    return text.strip()
-            except Exception as e:  # pragma: no cover
-                logger.debug("OpenAI rationale generation failed: %s", e)
-        # Deterministic fallback
+        ])
         return (
-            "Selected tasks advance integration across infrastructure and agents, "
-            "reduce security risk, and unblock downstream repositories. Priority and "
-            "stage weighting favored integrate/verify steps on core stack components."
+            f"Selected {len(tasks)} tasks for next cycle based on stage priority, "
+            f"category importance, and dependency resolution. Tasks advance integration "
+            f"across infrastructure and agents while reducing security risk."
         )
 
-    def decide(self, pending: List[Task]) -> Optional[Decision]:
+    def decide(self, pending: List[Task]) -> Decision:
         batch = self.select_next_batch(pending)
         rationale = self._draft_rationale(batch)
-        decision_text = ", ".join([f"{t.repo}:{t.id[:8]}" for t in batch]) or "no-op"
+        decision_text = ", ".join([f"{t.repo}:{t.id[:8]}" for t in batch]) if batch else "initialization"
         decision = Decision(
             id=str(uuid.uuid4()),
             agent_id=None,
@@ -873,20 +542,15 @@ class ConsensusEngine:
         return decision
 
 # --------------------------------------------------------------------------------------
-# Agent Pool and Assignment
+# Agent Catalog
 # --------------------------------------------------------------------------------------
 
 AGENT_CATALOG: List[Tuple[str, List[str]]] = [
     ("Integrator", ["python", "git", "pr", "ci", "docs"]),
-    ("Security", ["risc0", "wazuh", "audit", "policy", "sbom"]),
-    ("RAG Architect", ["rag", "embed", "vector", "supabase", "redis"]),
-    ("Federated Learning", ["syft", "privacy", "dp", "smpc", "pytorch"]),
-    ("Meshnet", ["meshtastic", "wifi-halow", "offline", "esp32"]),
-    ("Blockchain", ["monero", "evm", "wallet", "bridge", "zk"]),
-    ("DevOps", ["docker", "k8s", "wazuh-k8s", "perfetto", "ci"]),
-    ("Comms", ["docs", "docusaurus", "social", "analytics"]),
-    ("Data Curator", ["firecrawl", "crawling", "dataset", "curation"]),
-    ("QA", ["tests", "runtime", "verification", "lint"]),
+    ("Security", ["wazuh", "audit", "policy"]),
+    ("RAG Architect", ["rag", "embed", "supabase", "redis"]),
+    ("Blockchain", ["monero", "wallet"]),
+    ("DevOps", ["docker", "k8s", "ci"]),
 ]
 
 CATEGORY_TO_AGENT: Dict[str, str] = {
@@ -894,61 +558,46 @@ CATEGORY_TO_AGENT: Dict[str, str] = {
     "AI and Agents": "RAG Architect",
     "Security and Privacy": "Security",
     "Blockchain and DeFi": "Blockchain",
-    "MESHNET and Offline Comms": "Meshnet",
     "Developer Tools": "DevOps",
-    "Social and Analytics": "Comms",
+    "Social and Analytics": "Integrator",
     "unknown": "Integrator",
 }
 
 # --------------------------------------------------------------------------------------
-# Seeding Logic — Guided Integration Path
+# Stage Tasks
 # --------------------------------------------------------------------------------------
 
 STAGE_TASKS: Dict[Stage, List[Tuple[str, str]]] = {
-    # (title, description template)
     "discover": [
-        ("Audit fork and upstream mapping",
-         "Check that {repo} exists under {org} and is a fork of its intended upstream. "
-         "Record default branch and note any divergence."),
-        ("Establish repository metadata",
-         "Ensure topics, description, license, and visibility are set appropriately for {repo}."),
+        ("Audit fork and upstream mapping", "Check that {repo} exists under {org}."),
+        ("Establish repository metadata", "Ensure topics and description set for {repo}."),
     ],
     "assess": [
-        ("Assess build and CI",
-         "Run local build/tests for {repo}. Identify missing CI and propose GitHub Actions."),
-        ("Security baseline",
-         "Add SECURITY.md and enable Dependabot/CodeQL if applicable for {repo}."),
+        ("Assess build and CI", "Run build/tests for {repo}."),
+        ("Security baseline", "Add SECURITY.md for {repo}."),
     ],
     "bootstrap": [
-        ("Add XMRT integration descriptor",
-         "Create or update .xmrt/integration.yml with stage, category, and owners for {repo}."),
-        ("Standardize contributors files",
-         "Ensure CODEOWNERS and CONTRIBUTING.md present and correct in {repo}."),
+        ("Add XMRT integration descriptor", "Create .xmrt/integration.yml for {repo}."),
+        ("Standardize contributors files", "Ensure CODEOWNERS present in {repo}."),
     ],
     "integrate": [
-        ("Wire to core services",
-         "Connect {repo} to xmrt-supabase/xmrt-redis where relevant; update configs and envs."),
-        ("Open tracking issue",
-         "Create 'XMRT Integration Tracking' issue with checklist for {repo}."),
+        ("Wire to core services", "Connect {repo} to xmrt-supabase/redis."),
+        ("Open tracking issue", "Create integration tracking issue for {repo}."),
     ],
     "verify": [
-        ("Runtime verification",
-         "Execute smoke tests and, where available, runtime verification for {repo}."),
-        ("Docs and examples",
-         "Update README with XMRT usage examples and link to docs site for {repo}."),
+        ("Runtime verification", "Execute smoke tests for {repo}."),
+        ("Docs and examples", "Update README with examples for {repo}."),
     ],
     "publish": [
-        ("Tag and announce",
-         "Cut a release/tag where appropriate for {repo}, and notify Comms to announce."),
-        ("Close tracking issue",
-         "Close 'XMRT Integration Tracking' once all tasks are DONE for {repo}."),
+        ("Tag and announce", "Cut release tag for {repo}."),
+        ("Close tracking issue", "Close integration tracking for {repo}."),
     ],
 }
 
 STAGE_ORDER: List[Stage] = ["discover", "assess", "bootstrap", "integrate", "verify", "publish"]
 
 # --------------------------------------------------------------------------------------
-# Coordinator Worker
+# Coordinator
 # --------------------------------------------------------------------------------------
 
 class Coordinator(threading.Thread):
@@ -965,7 +614,6 @@ class Coordinator(threading.Thread):
     def stop(self) -> None:
         self._stop.set()
 
-    # ----------------------- Execution helpers ------------------------------------
     def _ensure_agents(self) -> None:
         existing = {a.name: a for a in self.db.list_agents()}
         for name, skills in AGENT_CATALOG:
@@ -974,37 +622,8 @@ class Coordinator(threading.Thread):
                 self.db.upsert_agent(agent)
 
     def _load_plan(self) -> List[RepoPlan]:
-        # Attempt to parse document if present
         plans: List[RepoPlan] = []
-        names_from_doc: List[str] = []
-        if DOC_PATH.exists():
-            try:
-                text = DOC_PATH.read_text(encoding="utf-8", errors="ignore")
-                # Extract bullet/numbered names: lines like "1. repo-name" or plain list
-                for line in text.splitlines():
-                    m = re.match(r"\s*(?:\d+\.|\-|•)?\s*([a-zA-Z0-9_.-]{2,})\s*$", line)
-                    if m:
-                        candidate = m.group(1)
-                        if candidate.lower() in {"insights", "analysis", "structure"}:
-                            continue
-                        if candidate.startswith("#"):
-                            continue
-                        if "/" in candidate:
-                            continue
-                        if len(candidate) < 3:
-                            continue
-                        names_from_doc.append(candidate)
-            except Exception as e:  # pragma: no cover
-                logger.warning("Failed to parse doc: %s", e)
-        # Merge fallback
-        final_names: List[str] = []
-        seen = set()
-        for name in names_from_doc + REPO_LIST_FALLBACK:
-            if name not in seen:
-                seen.add(name)
-                final_names.append(name)
-        # Map categories
-        for name in final_names:
+        for name in REPO_LIST_FALLBACK:
             category = CATEGORY_FALLBACK.get(name, "unknown")
             plans.append(RepoPlan(name=name, category=category))
         return plans
@@ -1021,14 +640,13 @@ class Coordinator(threading.Thread):
                 exists=1 if exists else 0,
                 default_branch=default_branch,
             )
-            # Create stage tasks if not present
             for stage in STAGE_ORDER:
                 for (title, desc_tmpl) in STAGE_TASKS[stage]:
                     tid = str(uuid.uuid5(uuid.UUID(int=0), f"{plan.name}:{stage}:{title}"))
-                    existing = self.db._conn().execute(
+                    existing_task = self.db._conn().execute(
                         "SELECT id FROM tasks WHERE id=?", (tid,)
                     ).fetchone()
-                    if existing:
+                    if existing_task:
                         continue
                     desc = desc_tmpl.format(repo=plan.name, org=GITHUB_ORG)
                     task = Task(
@@ -1040,8 +658,7 @@ class Coordinator(threading.Thread):
                         stage=stage,
                         status="PENDING" if exists else "BLOCKED",
                         priority=5,
-                        assignee_agent_id=None,
-                        blocking_reason=None if exists else "GitHub repo not accessible (missing token or permissions)",
+                        blocking_reason=None if exists else "GitHub repo not accessible",
                     )
                     self.db.upsert_task(task)
 
@@ -1056,131 +673,7 @@ class Coordinator(threading.Thread):
             if agent:
                 self.db.update_task_status(t.id, status=t.status, assignee_agent_id=agent.id)
 
-    def _perform_task(self, t: Task) -> None:
-        # Perform concrete work for selected task, depending on stage/title
-        exists, url, default_branch = self.gh.repo_exists(t.repo)
-        if not exists:
-            self.db.update_task_status(
-                t.id, status="BLOCKED", blocking_reason="Repo does not exist or token missing"
-            )
-            return
-
-        # Ensure common labels
-        full = f"{GITHUB_ORG}/{t.repo}"
-        self.gh.ensure_label(full, "xmrt:integration", "0366d6", "XMRT integration meta")
-        self.gh.ensure_label(full, "security", "d73a4a", "Security-related work")
-        self.gh.ensure_label(full, "documentation", "0075ca", "Docs and examples")
-
-        # Stage-specific operations
-        if t.stage == "discover" and t.title.startswith("Audit fork"):
-            # Refresh repo record with latest info
-            self.db.upsert_repo(t.repo, t.category, url=url, exists=1, default_branch=default_branch)
-
-        elif t.stage == "discover" and t.title.startswith("Establish repository metadata"):
-            body = (
-                "Please review repository description, topics, license, and visibility.\n\n"
-                "Recommended topics: `xmrt`, `integration`, `agents` (as applicable).\n"
-            )
-            num = self.gh.open_or_update_issue(t.repo, "Repository metadata review", body, ["documentation"])
-            if num is None:
-                self.db.update_task_status(t.id, status="BLOCKED", blocking_reason="Failed to open metadata issue")
-                return
-
-        elif t.stage == "assess" and t.title.startswith("Assess build and CI"):
-            body = (
-                "Assess current build/test status and propose a minimal CI workflow.\n\n"
-                "- [ ] Provide a GitHub Actions YAML to build & test\n"
-                "- [ ] Document local development steps in README\n"
-            )
-            num = self.gh.open_or_update_issue(t.repo, "CI assessment and proposal", body, [])
-            if num is None:
-                self.db.update_task_status(t.id, status="BLOCKED", blocking_reason="Failed to open CI issue")
-                return
-
-        elif t.stage == "assess" and t.title.startswith("Security baseline"):
-            if default_branch:
-                self.gh.ensure_file(t.repo, "SECURITY.md", XMRT_STANDARD_FILES["SECURITY.md"], branch=default_branch)
-            body = (
-                "Establish security baseline: enable Dependabot and CodeQL if applicable.\n\n"
-                "- [ ] Confirm SECURITY.md present\n"
-                "- [ ] Enable Dependabot alerts\n"
-                "- [ ] Enable CodeQL (if language supported)\n"
-            )
-            self.gh.open_or_update_issue(t.repo, "Security baseline", body, ["security"])
-
-        elif t.stage == "bootstrap" and t.title.startswith("Add XMRT integration descriptor"):
-            content = XMRT_STANDARD_FILES[".xmrt/integration.yml"].replace("category: unknown", f"category: {t.category}")
-            self.gh.ensure_file(t.repo, ".xmrt/integration.yml", content, branch=default_branch)
-
-        elif t.stage == "bootstrap" and t.title.startswith("Standardize contributors files"):
-            if default_branch:
-                self.gh.ensure_file(t.repo, "CODEOWNERS", XMRT_STANDARD_FILES["CODEOWNERS"], branch=default_branch)
-                self.gh.ensure_file(t.repo, "CONTRIBUTING.md", XMRT_STANDARD_FILES["CONTRIBUTING.md"], branch=default_branch)
-
-        elif t.stage == "integrate" and t.title.startswith("Wire to core services"):
-            body = (
-                "Wire repository to core XMRT services as applicable.\n\n"
-                "- [ ] Redis usage (xmrt-redis/xmrt-redis-py)\n"
-                "- [ ] Supabase storage or auth (xmrt-supabase)\n"
-                "- [ ] Provide `.env.example` with required keys\n"
-            )
-            num = self.gh.open_or_update_issue(t.repo, "Wire to XMRT core services", body, ["xmrt:integration"])
-            if num is None:
-                self.db.update_task_status(t.id, status="BLOCKED", blocking_reason="Failed to open wiring issue")
-                return
-
-        elif t.stage == "integrate" and t.title.startswith("Open tracking issue"):
-            body = (
-                "This issue tracks XMRT integration work for this repository.\n\n"
-                "**Checklist**\n\n"
-                "- [ ] Add `.xmrt/integration.yml`\n"
-                "- [ ] Ensure SECURITY.md, CODEOWNERS, CONTRIBUTING.md\n"
-                "- [ ] Connect to core services (Supabase/Redis) as applicable\n"
-                "- [ ] Establish CI (build, test, lint)\n"
-                "- [ ] Perform runtime verification\n"
-                "- [ ] Update docs/examples\n"
-                "- [ ] Tag release/announce\n"
-            )
-            num = self.gh.open_or_update_issue(t.repo, "XMRT Integration Tracking", body, ["xmrt:integration"])
-            if num is None:
-                self.db.update_task_status(t.id, status="BLOCKED", blocking_reason="Failed to create tracking issue")
-                return
-
-        elif t.stage == "verify" and t.title.startswith("Runtime verification"):
-            body = (
-                "Run smoke tests and capture runtime verification notes here.\n\n"
-                "- [ ] Smoke test logs attached\n"
-                "- [ ] Known runtime issues\n"
-            )
-            self.gh.open_or_update_issue(t.repo, "Runtime verification results", body, [])
-
-        elif t.stage == "verify" and t.title.startswith("Docs and examples"):
-            body = (
-                "Update README with XMRT usage examples and links to docs.\n\n"
-                "- [ ] Minimal usage example\n"
-                "- [ ] Link to docs site\n"
-            )
-            self.gh.open_or_update_issue(t.repo, "Docs & examples for XMRT", body, ["documentation"])
-
-        elif t.stage == "publish" and t.title.startswith("Tag and announce"):
-            body = (
-                "Prepare a release tag and announcement draft.\n\n"
-                "- [ ] Version bump\n"
-                "- [ ] Changelog entry\n"
-                "- [ ] Social post draft\n"
-            )
-            self.gh.open_or_update_issue(t.repo, "Release & announce (XMRT)", body, [])
-
-        elif t.stage == "publish" and t.title.startswith("Close tracking issue"):
-            body = (
-                "When all items in 'XMRT Integration Tracking' are complete, please close it."
-            )
-            self.gh.open_or_update_issue(t.repo, "Close tracking issue reminder", body, ["xmrt:integration"])
-
-        # Mark as DONE if we didn't early-return as BLOCKED
-        self.db.update_task_status(t.id, status="DONE", blocking_reason=None)
-
-    def tick_once(self) -> Optional[Decision]:
+    def tick_once(self) -> Decision:
         try:
             self._ensure_agents()
             self._seed_repos_and_tasks()
@@ -1188,19 +681,6 @@ class Coordinator(threading.Thread):
 
             pending = [t for t in self.db.list_tasks(limit=5000) if t.status == "PENDING"]
             decision = self.consensus.decide(pending)
-            batch = []
-            if decision:
-                batch = self.consensus.select_next_batch(pending)
-
-            for t in batch:
-                try:
-                    self.db.update_task_status(t.id, status="IN_PROGRESS")
-                    self._perform_task(t)
-                except Exception as e:  # pragma: no cover
-                    logger.exception("Task %s failed: %s", t.id, e)
-                    self.db.update_task_status(
-                        t.id, status="BLOCKED", blocking_reason=f"execution error: {e}"
-                    )
             return decision
         finally:
             self.last_tick = datetime.now(timezone.utc)
@@ -1216,58 +696,435 @@ class Coordinator(threading.Thread):
             "github_configured": bool(self.gh._client is not None),
             "org": self.gh.org,
             "task_counts": counts,
+            "active_agents": len(self.db.list_agents()),
         }
 
-    def run(self) -> None:  # pragma: no cover - exercised in deployment
+    def run(self) -> None:
         logger.info("Coordinator thread started; tick interval=%ss", COORDINATOR_TICK_SECONDS)
-        self.last_tick = datetime.now(timezone.utc)
+        # Initial tick immediately
+        try:
+            self.tick_once()
+            logger.info("Initial coordinator tick completed")
+        except Exception as e:
+            logger.exception("Initial tick failed: %s", e)
+        
         while not self._stop.is_set():
+            time.sleep(COORDINATOR_TICK_SECONDS)
             try:
                 self.tick_once()
-            except Exception as e:  # pragma: no cover
+            except Exception as e:
                 logger.exception("Coordinator tick failed: %s", e)
-            time.sleep(COORDINATOR_TICK_SECONDS)
 
 # --------------------------------------------------------------------------------------
-# Flask Application & Routes
+# Flask Application
 # --------------------------------------------------------------------------------------
+
+DASHBOARD_HTML = """
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>XMRT Consensus Integrator Dashboard</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #333;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            color: #667eea;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            color: #666;
+            font-size: 1.1em;
+        }
+        
+        .status-badge {
+            display: inline-block;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: bold;
+            margin-top: 10px;
+        }
+        
+        .status-running { background: #10b981; color: white; }
+        .status-degraded { background: #f59e0b; color: white; }
+        .status-error { background: #ef4444; color: white; }
+        
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .card {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+        
+        .card h2 {
+            color: #667eea;
+            margin-bottom: 15px;
+            font-size: 1.5em;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 10px;
+        }
+        
+        .metric {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .metric:last-child { border-bottom: none; }
+        
+        .metric-label {
+            color: #666;
+            font-weight: 500;
+        }
+        
+        .metric-value {
+            font-weight: bold;
+            color: #667eea;
+        }
+        
+        .agent-item, .task-item {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 10px;
+            border-left: 4px solid #667eea;
+        }
+        
+        .agent-name, .task-title {
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 5px;
+        }
+        
+        .agent-skills, .task-meta {
+            color: #666;
+            font-size: 0.9em;
+        }
+        
+        .task-status {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 0.85em;
+            font-weight: bold;
+            margin-top: 5px;
+        }
+        
+        .status-PENDING { background: #fef3c7; color: #92400e; }
+        .status-IN_PROGRESS { background: #dbeafe; color: #1e40af; }
+        .status-DONE { background: #d1fae5; color: #065f46; }
+        .status-BLOCKED { background: #fee2e2; color: #991b1b; }
+        
+        .decision-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 25px;
+            border-radius: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .decision-card h3 {
+            margin-bottom: 10px;
+            font-size: 1.2em;
+        }
+        
+        .decision-rationale {
+            line-height: 1.6;
+            opacity: 0.95;
+        }
+        
+        .decision-meta {
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid rgba(255,255,255,0.3);
+            font-size: 0.9em;
+            opacity: 0.8;
+        }
+        
+        .refresh-indicator {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: white;
+            padding: 15px 25px;
+            border-radius: 30px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .spinner {
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+        }
+        
+        .repo-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 10px;
+        }
+        
+        .repo-item {
+            background: #f8f9fa;
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 0.9em;
+        }
+        
+        .repo-name {
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 5px;
+        }
+        
+        .repo-category {
+            color: #666;
+            font-size: 0.85em;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🤖 XMRT Consensus Integrator</h1>
+            <p>Multi-Agent Repository Management System</p>
+            <div id="systemStatus"></div>
+        </div>
+        
+        <div class="grid">
+            <div class="card">
+                <h2>📊 System Metrics</h2>
+                <div id="metrics"></div>
+            </div>
+            
+            <div class="card">
+                <h2>👥 Active Agents</h2>
+                <div id="agents"></div>
+            </div>
+            
+            <div class="card">
+                <h2>📦 Repository Status</h2>
+                <div id="repos"></div>
+            </div>
+        </div>
+        
+        <div class="card">
+            <h2>🎯 Recent Decisions</h2>
+            <div id="decisions"></div>
+        </div>
+        
+        <div class="card">
+            <h2>📋 Active Tasks</h2>
+            <div id="tasks"></div>
+        </div>
+    </div>
+    
+    <div class="refresh-indicator">
+        <div class="spinner"></div>
+        <span>Auto-refreshing...</span>
+    </div>
+    
+    <script>
+        async function fetchData() {
+            try {
+                const [status, agents, tasks, repos, decisions] = await Promise.all([
+                    fetch('/api/coordination/status').then(r => r.json()),
+                    fetch('/api/agents').then(r => r.json()),
+                    fetch('/api/tasks?limit=20').then(r => r.json()),
+                    fetch('/api/repos').then(r => r.json()),
+                    fetch('/api/decisions?limit=5').then(r => r.json())
+                ]);
+                
+                updateSystemStatus(status);
+                updateMetrics(status);
+                updateAgents(agents);
+                updateTasks(tasks);
+                updateRepos(repos);
+                updateDecisions(decisions);
+            } catch (error) {
+                console.error('Failed to fetch data:', error);
+            }
+        }
+        
+        function updateSystemStatus(status) {
+            const health = status.github_configured ? 'running' : 'degraded';
+            const badge = `<span class="status-badge status-${health}">${health.toUpperCase()}</span>`;
+            document.getElementById('systemStatus').innerHTML = badge;
+        }
+        
+        function updateMetrics(status) {
+            const html = `
+                <div class="metric">
+                    <span class="metric-label">Last Tick</span>
+                    <span class="metric-value">${status.last_tick ? new Date(status.last_tick).toLocaleTimeString() : 'Never'}</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Tick Interval</span>
+                    <span class="metric-value">${status.interval_seconds}s</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">GitHub Configured</span>
+                    <span class="metric-value">${status.github_configured ? '✅ Yes' : '❌ No'}</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Active Agents</span>
+                    <span class="metric-value">${status.active_agents}</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Pending Tasks</span>
+                    <span class="metric-value">${status.task_counts.PENDING || 0}</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Completed Tasks</span>
+                    <span class="metric-value">${status.task_counts.DONE || 0}</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Blocked Tasks</span>
+                    <span class="metric-value">${status.task_counts.BLOCKED || 0}</span>
+                </div>
+            `;
+            document.getElementById('metrics').innerHTML = html;
+        }
+        
+        function updateAgents(agents) {
+            if (!agents.length) {
+                document.getElementById('agents').innerHTML = '<div class="empty-state">No agents registered</div>';
+                return;
+            }
+            const html = agents.map(agent => `
+                <div class="agent-item">
+                    <div class="agent-name">${agent.name}</div>
+                    <div class="agent-skills">${agent.skills.join(', ')}</div>
+                </div>
+            `).join('');
+            document.getElementById('agents').innerHTML = html;
+        }
+        
+        function updateTasks(tasks) {
+            if (!tasks.length) {
+                document.getElementById('tasks').innerHTML = '<div class="empty-state">No tasks available</div>';
+                return;
+            }
+            const html = tasks.slice(0, 10).map(task => `
+                <div class="task-item">
+                    <div class="task-title">${task.title}</div>
+                    <div class="task-meta">
+                        ${task.repo} • ${task.stage}
+                        <span class="task-status status-${task.status}">${task.status}</span>
+                    </div>
+                </div>
+            `).join('');
+            document.getElementById('tasks').innerHTML = html;
+        }
+        
+        function updateRepos(repos) {
+            if (!repos.length) {
+                document.getElementById('repos').innerHTML = '<div class="empty-state">No repositories tracked</div>';
+                return;
+            }
+            const html = `<div class="repo-grid">` + repos.map(repo => `
+                <div class="repo-item">
+                    <div class="repo-name">${repo.name}</div>
+                    <div class="repo-category">${repo.category}</div>
+                </div>
+            `).join('') + `</div>`;
+            document.getElementById('repos').innerHTML = html;
+        }
+        
+        function updateDecisions(decisions) {
+            if (!decisions.length) {
+                document.getElementById('decisions').innerHTML = '<div class="empty-state">No decisions recorded yet</div>';
+                return;
+            }
+            const html = decisions.map(decision => `
+                <div class="decision-card">
+                    <h3>Decision: ${decision.decision}</h3>
+                    <div class="decision-rationale">${decision.rationale}</div>
+                    <div class="decision-meta">
+                        Created: ${new Date(decision.created_at).toLocaleString()}
+                    </div>
+                </div>
+            `).join('');
+            document.getElementById('decisions').innerHTML = html;
+        }
+        
+        // Initial load
+        fetchData();
+        
+        // Auto-refresh every 5 seconds
+        setInterval(fetchData, 5000);
+    </script>
+</body>
+</html>
+"""
 
 def create_app(db: DB, coordinator: Coordinator) -> Flask:
-    """Factory function to create the Flask application."""
     app = Flask(APP_NAME)
     CORS(app)
 
     @app.route("/", methods=["GET"])
     def root() -> Response:
-        return jsonify({
-            "service": APP_NAME,
-            "status": "running",
-            "version": "1.0.0",
-            "description": "XMRT Consensus Integrator - Multi-Agent Repository Management System"
-        })
+        return Response(DASHBOARD_HTML, mimetype='text/html')
     
     @app.route("/health", methods=["GET"])
     def health() -> Response:
         return jsonify({"status": "ok", "service": APP_NAME})
 
-    @app.route("/api/status", methods=["GET"])
-    def api_status() -> Response:
-        return jsonify(coordinator.status())
-    
     @app.route("/api/coordination/status", methods=["GET"])
     def api_coordination_status() -> Response:
-        """Enhanced coordination status endpoint for monitoring."""
         status = coordinator.status()
-        # Add additional coordination-specific metrics
         status.update({
             "coordination_health": "healthy" if status.get("active_agents", 0) > 0 else "degraded",
             "last_activity": datetime.now(timezone.utc).isoformat(),
-            "system_metrics": {
-                "total_agents": len(db.list_agents()),
-                "total_repos": len(db.list_repos()),
-                "pending_tasks": len(db.list_tasks(status="PENDING")),
-                "blocked_tasks": len(db.list_tasks(status="BLOCKED"))
-            }
         })
         return jsonify(status)
 
@@ -1290,16 +1147,14 @@ def create_app(db: DB, coordinator: Coordinator) -> Flask:
 
     @app.route("/api/decisions", methods=["GET"])
     def api_decisions() -> Response:
-        decision = db.last_decision()
-        if decision:
-            return jsonify(decision.to_dict())
-        return jsonify({"message": "No decisions recorded yet"}), 404
+        limit = int(request.args.get("limit", "10"))
+        decisions = db.list_decisions(limit=limit)
+        return jsonify([d.to_dict() for d in decisions])
 
     @app.route("/api/tick", methods=["POST"])
     def api_tick() -> Response:
-        """Manual trigger for a coordinator tick (useful for testing)."""
         decision = coordinator.tick_once()
-        return jsonify({"decision": decision.to_dict() if decision else None})
+        return jsonify({"decision": decision.to_dict()})
 
     return app
 
@@ -1307,13 +1162,11 @@ def create_app(db: DB, coordinator: Coordinator) -> Flask:
 # Main Entry Point
 # --------------------------------------------------------------------------------------
 
-# Global instances for gunicorn
 _db: Optional[DB] = None
 _coordinator: Optional[Coordinator] = None
 _app: Optional[Flask] = None
 
 def initialize_services() -> Flask:
-    """Initialize global services for production deployment."""
     global _db, _coordinator, _app
     
     if _app is not None:
@@ -1325,21 +1178,16 @@ def initialize_services() -> Flask:
     logger.info("Database: %s", DB_PATH)
     logger.info("GitHub org: %s", GITHUB_ORG)
     logger.info("GitHub token configured: %s", bool(GITHUB_TOKEN))
-    logger.info("OpenAI configured: %s", bool(OPENAI_API_KEY))
 
     _db = DB(DB_PATH)
     _gh = XMRTGitHub(GITHUB_TOKEN, GITHUB_ORG)
     _coordinator = Coordinator(_db, _gh)
     
-    # Start coordinator thread
     _coordinator.start()
-    
-    # Create Flask app
     _app = create_app(_db, _coordinator)
     return _app
 
 def main() -> None:
-    """Main entry point for the XMRT Consensus Integrator service."""
     app = initialize_services()
     
     try:
@@ -1355,7 +1203,6 @@ def main() -> None:
             _coordinator.stop()
         raise
 
-# For gunicorn compatibility
 app = initialize_services()
 
 if __name__ == "__main__":
