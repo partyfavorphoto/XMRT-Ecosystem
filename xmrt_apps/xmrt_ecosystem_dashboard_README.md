@@ -13,8 +13,8 @@ This application is part of the **XMRT DAO Ecosystem** - a decentralized economi
 
 This application integrates with the following XMRT repositories:
 - **xmrt-eliza-enhanced**
-- **xmrt-signup**
-- **xmrtcash**
+- **xmrtassistant**
+- **XMRT-Ecosystem**
 
 ## ✨ Features
 
