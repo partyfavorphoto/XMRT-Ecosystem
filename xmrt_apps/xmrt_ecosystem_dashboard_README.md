@@ -13,7 +13,7 @@ This application is part of the **XMRT DAO Ecosystem** - a decentralized economi
 
 This application integrates with the following XMRT repositories:
 - **xmrt-openai-agents-js**
-- **xmrtassistant**
+- **xmrt-eliza-enhanced**
 - **xmrt-activepieces**
 
 ## ✨ Features
