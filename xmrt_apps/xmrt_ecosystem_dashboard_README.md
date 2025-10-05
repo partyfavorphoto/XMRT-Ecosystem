@@ -12,7 +12,7 @@ This application is part of the **XMRT DAO Ecosystem** - a decentralized economi
 ### 🔗 XMRT Ecosystem Integration
 
 This application integrates with the following XMRT repositories:
-- **xmrtassistant**
+- **xmrtcash**
 - **XMRT-Ecosystem**
 - **xmrt-rayhunter**
 
