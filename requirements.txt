@@ -1,9 +1,3 @@
-requests
 Flask
-flask-cors
-PyGithub
-openai
-google-generativeai
-psutil
+Flask-Cors
 redis
-Redis
