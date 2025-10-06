@@ -5,3 +5,5 @@ PyGithub
 openai
 google-generativeai
 psutil
+redis
+Redis
