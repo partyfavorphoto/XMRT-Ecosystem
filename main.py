@@ -758,6 +758,177 @@ def webhook_render():
 def webhook_discord():
     return jsonify({"status": "received", "source": "discord", "ts": datetime.now().isoformat()})
 
+
+# ---------- Enhanced API Endpoints ----------
+@app.route("/api/analytics")
+def api_analytics():
+    """Enhanced analytics endpoint with more detailed information."""
+    analytics["requests_count"] += 1
+    return jsonify({
+        **analytics,
+        "uptime": round(time.time() - system_state["startup_time"], 2),
+        "status": system_state["status"],
+        "mode": system_state["mode"],
+        "timestamp": datetime.now().isoformat(),
+    })
+
+@app.route("/api/system/info")
+def system_info():
+    """Detailed system information."""
+    return jsonify({
+        "version": system_state["version"],
+        "owner": OWNER,
+        "repo": REPO_ECOSYSTEM,
+        "mode": system_state["mode"],
+        "status": system_state["status"],
+        "startup_time": system_state["startup_time"],
+        "uptime": round(time.time() - system_state["startup_time"], 2),
+        "ready": READY.is_set(),
+        "python_version": sys.version,
+        "platform": sys.platform,
+    })
+
+@app.route("/api/agents/detailed")
+def agents_detailed():
+    """Detailed agent information with statistics."""
+    analytics["requests_count"] += 1
+    agent_details = {}
+    
+    for agent_id, agent_data in AGENTS.items():
+        agent_details[agent_id] = {
+            **agent_data,
+            "id": agent_id,
+            "status": "active",
+            "last_activity": datetime.now().isoformat(),
+        }
+    
+    return jsonify({
+        "agents": agent_details,
+        "total_agents": len(AGENTS),
+        "timestamp": datetime.now().isoformat(),
+    })
+
+@app.route("/api/activity/recent")
+def recent_activity():
+    """Get recent system activity."""
+    # This would ideally pull from a database or log file
+    # For now, we'll return a summary based on analytics
+    activities = []
+    
+    if analytics["issues_created"] > 0:
+        activities.append({
+            "type": "issue",
+            "count": analytics["issues_created"],
+            "description": f"{analytics['issues_created']} issues created",
+            "timestamp": datetime.now().isoformat(),
+        })
+    
+    if analytics["discussions_created"] > 0:
+        activities.append({
+            "type": "discussion",
+            "count": analytics["discussions_created"],
+            "description": f"{analytics['discussions_created']} discussions created",
+            "timestamp": datetime.now().isoformat(),
+        })
+    
+    if analytics["files_created"] > 0:
+        activities.append({
+            "type": "file",
+            "count": analytics["files_created"],
+            "description": f"{analytics['files_created']} files created",
+            "timestamp": datetime.now().isoformat(),
+        })
+    
+    if analytics["feature_cycles_completed"] > 0:
+        activities.append({
+            "type": "cycle",
+            "count": analytics["feature_cycles_completed"],
+            "description": f"{analytics['feature_cycles_completed']} innovation cycles completed",
+            "timestamp": datetime.now().isoformat(),
+        })
+    
+    return jsonify({
+        "activities": activities,
+        "total": len(activities),
+        "timestamp": datetime.now().isoformat(),
+    })
+
+@app.route("/api/stats/summary")
+def stats_summary():
+    """Comprehensive statistics summary."""
+    return jsonify({
+        "repositories": {
+            "discovered": analytics["repositories_discovered"],
+        },
+        "content": {
+            "ideas_generated": analytics["ideas_generated"],
+            "issues_created": analytics["issues_created"],
+            "discussions_created": analytics["discussions_created"],
+            "story_issues_created": analytics["story_issues_created"],
+            "files_created": analytics["files_created"],
+            "files_updated": analytics["files_updated"],
+        },
+        "operations": {
+            "feature_cycles_completed": analytics["feature_cycles_completed"],
+            "ai_operations": analytics["ai_operations"],
+            "github_operations": analytics["github_operations"],
+            "requests_count": analytics["requests_count"],
+        },
+        "system": analytics["system_health"],
+        "timestamp": datetime.now().isoformat(),
+    })
+
+@app.route("/run-cycle", methods=["POST"])
+def run_cycle_endpoint():
+    """Trigger an innovation cycle (compatible with existing UI)."""
+    try:
+        worker.schedule({"type": "innovation_cycle"})
+        return jsonify({
+            "status": "scheduled",
+            "message": "Innovation cycle scheduled successfully",
+            "timestamp": datetime.now().isoformat(),
+        })
+    except Exception as e:
+        return jsonify({
+            "status": "error",
+            "message": str(e),
+            "timestamp": datetime.now().isoformat(),
+        }), 500
+
+@app.route("/api/health/detailed")
+def detailed_health():
+    """Detailed health check with all system metrics."""
+    update_health()
+    return jsonify({
+        "ok": True,
+        "ready": READY.is_set(),
+        "version": system_state["version"],
+        "owner": OWNER,
+        "repo": REPO_ECOSYSTEM,
+        "uptime": round(time.time() - system_state["startup_time"], 2),
+        "system": analytics["system_health"],
+        "analytics": {
+            "requests": analytics["requests_count"],
+            "ai_ops": analytics["ai_operations"],
+            "github_ops": analytics["github_operations"],
+            "cycles": analytics["feature_cycles_completed"],
+        },
+        "agents": {
+            "total": len(AGENTS),
+            "active": len(AGENTS),  # All agents are always active in current implementation
+        },
+        "timestamp": datetime.now().isoformat(),
+    })
+
+# Add CORS headers to all responses for better API access
+@app.after_request
+def after_request(response):
+    response.headers.add('Access-Control-Allow-Origin', '*')
+    response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+    response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
+    return response
+
+
 # ---------- Signals / Main ----------
 def _sig(sig, _frm):
     log.info("Signal %s -> shutdown", sig)
