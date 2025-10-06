@@ -1,7 +1,7 @@
+requests
 Flask
-Flask-Cors
+flask-cors
 PyGithub
 openai
 google-generativeai
 psutil
-requests
