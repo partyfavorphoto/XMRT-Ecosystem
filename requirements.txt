@@ -1,12 +1,7 @@
-flask
-requests
+Flask
+Flask-Cors
 PyGithub
 openai
+google-generativeai
 psutil
-python-dotenv
-gunicorn
-flask_cors
-supabase
-flask-sock
-prometheus-client
-websocket-client
+requests
