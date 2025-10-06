@@ -3,840 +3,926 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>XMRT DAO Hub - Enhanced Multi-Agent System</title>
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <title>XMRT Ecosystem 6.3 — Enhanced Dashboard</title>
     <style>
-        :root {
-            --primary-color: #667eea;
-            --secondary-color: #764ba2;
-            --accent-color: #ffd700;
-            --success-color: #10b981;
-            --error-color: #ef4444;
-            --warning-color: #f59e0b;
-            --info-color: #3b82f6;
-            --dark-bg: #1f2937;
-            --light-bg: #f8fafc;
-            --card-bg: rgba(255, 255, 255, 0.95);
-            --border-radius: 12px;
-            --shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
-        }
-
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
         }
 
+        :root {
+            --primary: #667eea;
+            --secondary: #764ba2;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --info: #3b82f6;
+            --dark: #1a202c;
+            --darker: #0f1419;
+            --card-bg: #2d3748;
+            --card-hover: #374151;
+            --text-primary: #ffffff;
+            --text-secondary: #a0aec0;
+            --border: #4a5568;
+        }
+
         body {
-            font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, var(--darker) 0%, var(--dark) 100%);
+            color: var(--text-primary);
             line-height: 1.6;
-            color: #333;
-            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
             min-height: 100vh;
         }
 
         .container {
-            max-width: 1600px;
+            max-width: 1800px;
             margin: 0 auto;
-            padding: 0 15px;
+            padding: 20px;
         }
 
-        /* Enhanced Header */
+        /* Header */
         header {
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(15px);
+            background: rgba(45, 55, 72, 0.95);
+            backdrop-filter: blur(10px);
             padding: 1rem 0;
+            border-bottom: 2px solid var(--primary);
+            margin-bottom: 20px;
             position: sticky;
             top: 0;
             z-index: 1000;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
         }
 
-        nav {
+        .header-content {
+            max-width: 1800px;
+            margin: 0 auto;
+            padding: 0 20px;
             display: flex;
             justify-content: space-between;
             align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
         }
 
         .logo {
-            font-size: 1.8rem;
-            font-weight: 800;
-            color: white;
-            text-decoration: none;
+            font-size: 1.5rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .system-info {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        .system-info span {
             display: flex;
             align-items: center;
-            gap: 10px;
-            cursor: pointer;
+            gap: 5px;
         }
 
-        /* Mobile Navigation */
-        .mobile-nav-toggle {
-            display: block;
-            background: none;
-            border: none;
-            color: white;
-            font-size: 1.5rem;
-            cursor: pointer;
-            padding: 8px;
-            border-radius: 4px;
-            transition: background 0.3s ease;
-        }
-
-        .mobile-nav-toggle:hover {
-            background: rgba(255, 255, 255, 0.1);
-        }
-
-        .nav-links {
-            position: fixed;
-            top: 80px;
-            left: -100%;
-            width: 100%;
-            height: calc(100vh - 80px);
-            background: rgba(31, 41, 55, 0.95);
-            backdrop-filter: blur(15px);
-            flex-direction: column;
-            padding: 20px;
-            transition: left 0.3s ease;
-            z-index: 999;
-            list-style: none;
-        }
-
-        .nav-links.active {
-            left: 0;
-        }
-
-        .nav-links a {
-            color: white;
-            text-decoration: none;
-            font-weight: 500;
-            transition: all 0.3s ease;
-            padding: 15px 20px;
-            margin-bottom: 10px;
-            border-radius: 8px;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            font-size: 1.1rem;
-            display: block;
-            cursor: pointer;
-        }
-
-        .nav-links a:hover, .nav-links a.active {
-            background: rgba(255, 255, 255, 0.2);
-            color: var(--accent-color);
-        }
-
-        .nav-links a.active {
+        .status-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 0.75rem;
             font-weight: 600;
-            border-left: 3px solid var(--accent-color);
+            background: var(--success);
+            color: white;
         }
 
-        /* Main Layout - Mobile First */
-        .main-layout {
-            display: block;
-            padding: 15px 0;
+        /* Main Grid Layout */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
             gap: 20px;
-        }
-
-        .content-section {
-            display: none;
             margin-bottom: 20px;
-        }
-
-        .content-section.active {
-            display: block;
         }
 
         /* Cards */
         .card {
             background: var(--card-bg);
-            border-radius: var(--border-radius);
-            box-shadow: var(--shadow);
-            overflow: hidden;
-            margin-bottom: 20px;
+            border-radius: 12px;
+            padding: 20px;
+            border: 1px solid var(--border);
+            transition: all 0.3s ease;
+        }
+
+        .card:hover {
+            background: var(--card-hover);
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
         }
 
         .card-header {
-            background: linear-gradient(45deg, var(--primary-color), var(--secondary-color));
-            color: white;
-            padding: 20px;
-            text-align: center;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--border);
         }
 
-        .card-header h3 {
-            margin: 0;
-            font-size: 1.2rem;
+        .card-title {
+            font-size: 1.1rem;
             font-weight: 600;
-        }
-
-        .card-content {
-            padding: 15px;
-        }
-
-        /* Status Grid */
-        .status-grid {
-            display: grid;
-            grid-template-columns: 1fr;
-            gap: 12px;
-            margin-bottom: 20px;
-        }
-
-        .status-item {
             display: flex;
             align-items: center;
-            gap: 10px;
-            padding: 15px;
-            background: var(--light-bg);
-            border-radius: 8px;
-            transition: transform 0.2s ease;
+            gap: 8px;
         }
 
-        .status-item:hover {
-            transform: translateY(-2px);
-        }
-
-        .status-icon {
-            width: 32px;
-            height: 32px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 16px;
-        }
-
-        .status-icon.success { background: var(--success-color); color: white; }
-        .status-icon.warning { background: var(--warning-color); color: white; }
-        .status-icon.info { background: var(--info-color); color: white; }
-
-        .status-info h4 {
-            font-size: 0.9rem;
-            margin-bottom: 2px;
-        }
-
-        .status-info p {
-            font-size: 0.8rem;
-            color: #666;
+        .card-icon {
+            font-size: 1.3rem;
         }
 
         /* Action Buttons */
-        .action-buttons {
+        .action-section {
+            grid-column: 1 / -1;
+        }
+
+        .button-group {
             display: flex;
-            gap: 10px;
-            margin-top: 15px;
+            gap: 15px;
             flex-wrap: wrap;
         }
 
-        .action-btn {
-            flex: 1;
-            min-height: 48px;
-            padding: 15px 25px;
-            background: linear-gradient(45deg, var(--success-color), #059669);
-            color: white;
+        .btn {
+            padding: 15px 30px;
             border: none;
             border-radius: 8px;
-            cursor: pointer;
-            font-size: 14px;
+            font-size: 1rem;
             font-weight: 600;
-            transition: transform 0.2s ease;
-            touch-action: manipulation;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex: 1;
+            min-width: 200px;
+            justify-content: center;
         }
 
-        .action-btn:hover {
+        .btn-primary {
+            background: linear-gradient(135deg, var(--success), #059669);
+            color: white;
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, var(--info), #2563eb);
+            color: white;
+        }
+
+        .btn-warning {
+            background: linear-gradient(135deg, var(--warning), #d97706);
+            color: white;
+        }
+
+        .btn:hover {
             transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.3);
         }
 
-        .action-btn.secondary {
-            background: linear-gradient(45deg, var(--warning-color), #d97706);
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
         }
 
-        /* Demo Features Grid */
-        .features-grid {
+        /* Stats Display */
+        .stats-grid {
             display: grid;
-            grid-template-columns: 1fr;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
             gap: 15px;
-            margin: 20px 0;
         }
 
-        .feature-card {
-            padding: 20px 15px;
-            background: #f8f9fa;
+        .stat-item {
+            text-align: center;
+            padding: 15px;
+            background: rgba(102, 126, 234, 0.1);
             border-radius: 8px;
-            border-left: 4px solid var(--primary-color);
+            border: 1px solid rgba(102, 126, 234, 0.2);
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--primary);
+            display: block;
+        }
+
+        .stat-label {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            margin-top: 5px;
+        }
+
+        /* Agent Cards */
+        .agent-grid {
+            display: grid;
+            gap: 15px;
+        }
+
+        .agent-card {
+            background: rgba(102, 126, 234, 0.05);
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid var(--primary);
+            transition: all 0.3s ease;
+        }
+
+        .agent-card:hover {
+            background: rgba(102, 126, 234, 0.1);
+            border-left-width: 6px;
+        }
+
+        .agent-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .agent-name {
+            font-weight: 600;
+            font-size: 1.05rem;
+        }
+
+        .agent-weight {
+            background: var(--primary);
+            color: white;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .agent-role {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            margin-bottom: 5px;
+        }
+
+        .agent-voice {
+            color: var(--info);
+            font-size: 0.85rem;
+            font-style: italic;
+        }
+
+        /* System Resources */
+        .resource-bar {
+            margin-bottom: 15px;
+        }
+
+        .resource-label {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
+            font-size: 0.9rem;
+        }
+
+        .progress-bar {
+            height: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            border-radius: 4px;
+            transition: width 0.5s ease;
+        }
+
+        .progress-fill.low {
+            background: var(--success);
+        }
+
+        .progress-fill.medium {
+            background: var(--warning);
+        }
+
+        .progress-fill.high {
+            background: var(--danger);
+        }
+
+        /* Activity Log */
+        .activity-log {
+            max-height: 400px;
+            overflow-y: auto;
+            padding-right: 10px;
+        }
+
+        .activity-log::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .activity-log::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 3px;
+        }
+
+        .activity-log::-webkit-scrollbar-thumb {
+            background: var(--primary);
+            border-radius: 3px;
+        }
+
+        .log-entry {
+            padding: 10px;
+            margin-bottom: 8px;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 6px;
+            border-left: 3px solid var(--info);
+            font-size: 0.9rem;
+        }
+
+        .log-time {
+            color: var(--text-secondary);
+            font-size: 0.8rem;
+            margin-bottom: 3px;
+        }
+
+        .log-message {
+            color: var(--text-primary);
+        }
+
+        /* Recent Items */
+        .recent-list {
+            list-style: none;
+        }
+
+        .recent-item {
+            padding: 12px;
+            margin-bottom: 8px;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 6px;
+            border-left: 3px solid var(--success);
             transition: all 0.2s ease;
             cursor: pointer;
         }
 
-        .feature-card:hover {
-            background: #e3f2fd;
-            transform: translateY(-2px);
+        .recent-item:hover {
+            background: rgba(255, 255, 255, 0.06);
+            transform: translateX(5px);
         }
 
-        .feature-header {
-            display: flex;
-            align-items: center;
-            margin-bottom: 8px;
-        }
-
-        .feature-name {
+        .recent-item-title {
             font-weight: 600;
-            color: #333;
-            margin-left: 10px;
+            margin-bottom: 4px;
+            color: var(--text-primary);
         }
 
-        .feature-description {
-            font-size: 0.85rem;
-            color: #666;
-            margin-bottom: 8px;
+        .recent-item-meta {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
         }
 
-        .feature-tags {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 4px;
-        }
-
-        .feature-tag {
-            font-size: 0.7rem;
-            padding: 2px 6px;
-            background: rgba(102, 126, 234, 0.1);
-            border: 1px solid rgba(102, 126, 234, 0.3);
-            border-radius: 8px;
-            color: var(--primary-color);
-        }
-
-        /* Connection Status */
-        .connection-status {
-            position: fixed;
-            top: 90px;
-            right: 20px;
-            padding: 8px 15px;
-            border-radius: 20px;
-            font-size: 12px;
-            font-weight: 600;
-            z-index: 1001;
-            transition: all 0.3s ease;
-            background: var(--info-color);
-            color: white;
-        }
-
-        /* Demo Chat Interface */
-        .demo-chat {
-            background: #f8f9fa;
-            border-radius: 8px;
-            padding: 20px;
-            margin: 20px 0;
-        }
-
-        .demo-message {
-            margin-bottom: 15px;
-            padding: 12px 15px;
-            border-radius: 12px;
-            max-width: 85%;
-            background: linear-gradient(135deg, #e3f2fd, #bbdefb);
-            border-left: 4px solid var(--info-color);
-        }
-
-        .message-header {
-            display: flex;
-            align-items: center;
-            margin-bottom: 5px;
-            font-size: 12px;
-            color: #666;
-        }
-
-        .message-avatar {
-            font-size: 16px;
-            margin-right: 8px;
-        }
-
-        .message-name {
-            font-weight: 600;
-            margin-right: 10px;
-        }
-
-        .message-time {
-            margin-left: auto;
-            font-size: 11px;
-            opacity: 0.7;
-        }
-
-        .message-content {
-            font-size: 14px;
-            line-height: 1.4;
-        }
-
-        /* Tablet Styles */
-        @media (min-width: 768px) {
-            .container {
-                padding: 0 20px;
-            }
-
-            .main-layout {
-                display: grid;
-                grid-template-columns: 1fr;
-                gap: 20px;
-                padding: 20px 0;
-            }
-
-            .mobile-nav-toggle {
-                display: none;
-            }
-
-            .nav-links {
-                position: static;
-                top: auto;
-                left: auto;
-                width: auto;
-                height: auto;
-                background: none;
-                backdrop-filter: none;
-                flex-direction: row;
-                padding: 0;
-                gap: 2rem;
-            }
-
-            .nav-links a {
-                padding: 8px 16px;
-                margin-bottom: 0;
-                border: none;
-                font-size: 1rem;
-            }
-
-            .status-grid {
-                grid-template-columns: repeat(2, 1fr);
-                gap: 15px;
-            }
-
-            .features-grid {
-                grid-template-columns: repeat(2, 1fr);
-            }
-        }
-
-        /* Desktop Styles */
-        @media (min-width: 1024px) {
-            .main-layout {
-                grid-template-columns: 350px 1fr;
-                gap: 20px;
-            }
-
-            .features-grid {
-                grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            }
-        }
-
-        /* Large Desktop Styles */
-        @media (min-width: 1200px) {
-            .main-layout {
-                grid-template-columns: 350px 1fr 400px;
-            }
-        }
-
-        /* Loading States */
-        .loading {
+        /* Loading Spinner */
+        .spinner {
             display: inline-block;
             width: 20px;
             height: 20px;
-            border: 3px solid #f3f3f3;
-            border-top: 3px solid var(--primary-color);
+            border: 3px solid rgba(255, 255, 255, 0.3);
             border-radius: 50%;
-            animation: spin 1s linear infinite;
+            border-top-color: white;
+            animation: spin 1s ease-in-out infinite;
         }
 
         @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+            to { transform: rotate(360deg); }
         }
 
-        /* Deployment Banner */
-        .deployment-banner {
-            background: linear-gradient(45deg, var(--success-color), #059669);
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 2000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 30px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+            border: 1px solid var(--border);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 1.5rem;
+            cursor: pointer;
+            transition: color 0.3s ease;
+        }
+
+        .modal-close:hover {
+            color: var(--text-primary);
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .button-group {
+                flex-direction: column;
+            }
+
+            .btn {
+                min-width: 100%;
+            }
+
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        /* Pulse Animation */
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.5;
+            }
+        }
+
+        .pulse {
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+
+        /* Badge */
+        .badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .badge-success {
+            background: var(--success);
             color: white;
-            padding: 15px 20px;
-            margin: 20px 0;
-            border-radius: 8px;
-            text-align: center;
         }
 
-        .deployment-banner h4 {
-            margin-bottom: 5px;
+        .badge-warning {
+            background: var(--warning);
+            color: white;
         }
 
-        .deployment-banner p {
-            font-size: 0.9rem;
-            opacity: 0.9;
+        .badge-info {
+            background: var(--info);
+            color: white;
         }
     </style>
 </head>
 <body>
     <header>
-        <nav class="container">
-            <div class="logo" onclick="showSection('overview')">
-                🚀 XMRT DAO Hub
-                <span style="font-size: 0.6em; opacity: 0.8;">Vite Build</span>
+        <div class="header-content">
+            <div class="logo">🤖 XMRT Ecosystem 6.3</div>
+            <div class="system-info">
+                <span>Owner: <strong id="owner">Loading...</strong></span>
+                <span>Repo: <strong id="repo">Loading...</strong></span>
+                <span>Version: <strong id="version">Loading...</strong></span>
+                <span>Uptime: <strong id="uptime">Loading...</strong></span>
+                <span class="status-badge" id="status-badge">Operational</span>
             </div>
-            <button class="mobile-nav-toggle" onclick="toggleMobileNav()" aria-label="Toggle navigation">
-                ☰
-            </button>
-            <ul class="nav-links" id="navLinks">
-                <li><a onclick="showSection('overview'); closeMobileNav();">🏠 Overview</a></li>
-                <li><a onclick="showSection('chat'); closeMobileNav();">💬 Chat Demo</a></li>
-                <li><a onclick="showSection('agents'); closeMobileNav();">🤖 Agents</a></li>
-                <li><a onclick="showSection('mcp'); closeMobileNav();">🔗 MCP Tools</a></li>
-                <li><a onclick="showSection('utilities'); closeMobileNav();">🛠️ Utilities</a></li>
-                <li><a onclick="showSection('api'); closeMobileNav();">📡 API Docs</a></li>
-            </ul>
-        </nav>
+        </div>
     </header>
 
-    <div class="connection-status" id="connectionStatus">Vite Static Build</div>
+    <div class="container">
+        <!-- Action Section -->
+        <div class="card action-section">
+            <div class="card-header">
+                <h2 class="card-title">
+                    <span class="card-icon">⚡</span>
+                    Actions
+                </h2>
+            </div>
+            <div class="button-group">
+                <button class="btn btn-primary" id="run-cycle-btn" onclick="runInnovationCycle()">
+                    <span>🚀</span>
+                    Run Innovation Cycle
+                </button>
+                <button class="btn btn-secondary" onclick="showLastResult()">
+                    <span>📋</span>
+                    Last Result
+                </button>
+                <button class="btn btn-warning" onclick="refreshData()">
+                    <span>🔄</span>
+                    Refresh
+                </button>
+            </div>
+        </div>
 
-    <main class="container main-layout">
-        <!-- Overview Section (Default) -->
-        <section class="content-section active" id="overview-section">
+        <!-- Main Dashboard Grid -->
+        <div class="dashboard-grid">
+            <!-- Statistics Card -->
             <div class="card">
                 <div class="card-header">
-                    <h3>🚀 Welcome to XMRT DAO Hub</h3>
-                    <p style="margin: 5px 0 0 0; font-size: 0.9rem; opacity: 0.9;">Enhanced Multi-Agent System with Mobile-First Design</p>
+                    <h3 class="card-title">
+                        <span class="card-icon">📊</span>
+                        Statistics
+                    </h3>
                 </div>
-                <div class="card-content">
-                    <div class="deployment-banner">
-                        <h4>🎉 Dual Deployment Architecture</h4>
-                        <p><strong>Vercel:</strong> Static Vite Build (You're here!) | <strong>Render:</strong> Full Flask App with Real-time Features</p>
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <span class="stat-value" id="repos-count">0</span>
+                        <span class="stat-label">Repos</span>
                     </div>
-                    
-                    <h4 style="margin-bottom: 15px; color: var(--primary-color);">System Features</h4>
-                    <div class="status-grid">
-                        <div class="status-item">
-                            <div class="status-icon success">📱</div>
-                            <div class="status-info">
-                                <h4>Mobile-First Design</h4>
-                                <p>Responsive across all devices</p>
-                            </div>
-                        </div>
-                        <div class="status-item">
-                            <div class="status-icon info">⚡</div>
-                            <div class="status-info">
-                                <h4>Vite Build</h4>
-                                <p>Fast static deployment on Vercel</p>
-                            </div>
-                        </div>
-                        <div class="status-item">
-                            <div class="status-icon warning">🛠️</div>
-                            <div class="status-info">
-                                <h4>Functional Navigation</h4>
-                                <p>All tabs working perfectly</p>
-                            </div>
-                        </div>
-                        <div class="status-item">
-                            <div class="status-icon success">🔗</div>
-                            <div class="status-info">
-                                <h4>Dual Deployment</h4>
-                                <p>Static + Dynamic versions</p>
-                            </div>
-                        </div>
+                    <div class="stat-item">
+                        <span class="stat-value" id="ideas-count">0</span>
+                        <span class="stat-label">Ideas</span>
                     </div>
-                    <div class="action-buttons">
-                        <button class="action-btn" onclick="showSection('chat')">💬 View Chat Demo</button>
-                        <button class="action-btn secondary" onclick="window.open('https://your-render-app.onrender.com', '_blank')">🚀 Full Flask App</button>
+                    <div class="stat-item">
+                        <span class="stat-value" id="issues-count">0</span>
+                        <span class="stat-label">Issues</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-value" id="discussions-count">0</span>
+                        <span class="stat-label">Discussions</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-value" id="story-issues-count">0</span>
+                        <span class="stat-label">Story Issues</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-value" id="files-count">0</span>
+                        <span class="stat-label">Files</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-value" id="updates-count">0</span>
+                        <span class="stat-label">Updates</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-value" id="cycles-count">0</span>
+                        <span class="stat-label">Cycles</span>
                     </div>
                 </div>
             </div>
 
+            <!-- System Resources Card -->
             <div class="card">
                 <div class="card-header">
-                    <h3>🏗️ Architecture Overview</h3>
+                    <h3 class="card-title">
+                        <span class="card-icon">💻</span>
+                        System Resources
+                    </h3>
                 </div>
-                <div class="card-content">
-                    <div class="features-grid">
-                        <div class="feature-card">
-                            <div class="feature-header">
-                                <span>🌐</span>
-                                <div class="feature-name">Vercel Deployment</div>
-                            </div>
-                            <div class="feature-description">Static Vite build with mobile-first responsive design</div>
-                            <div class="feature-tags">
-                                <span class="feature-tag">Static</span>
-                                <span class="feature-tag">Fast CDN</span>
-                                <span class="feature-tag">Mobile-First</span>
-                            </div>
-                        </div>
-                        <div class="feature-card">
-                            <div class="feature-header">
-                                <span>🐍</span>
-                                <div class="feature-name">Render Deployment</div>
-                            </div>
-                            <div class="feature-description">Full Python Flask app with real-time features and database</div>
-                            <div class="feature-tags">
-                                <span class="feature-tag">Flask</span>
-                                <span class="feature-tag">WebSockets</span>
-                                <span class="feature-tag">Database</span>
-                            </div>
-                        </div>
+                <div class="resource-bar">
+                    <div class="resource-label">
+                        <span>CPU</span>
+                        <span id="cpu-value">0%</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill low" id="cpu-bar" style="width: 0%"></div>
+                    </div>
+                </div>
+                <div class="resource-bar">
+                    <div class="resource-label">
+                        <span>Memory</span>
+                        <span id="mem-value">0%</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill low" id="mem-bar" style="width: 0%"></div>
+                    </div>
+                </div>
+                <div class="resource-bar">
+                    <div class="resource-label">
+                        <span>Disk</span>
+                        <span id="disk-value">0%</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill low" id="disk-bar" style="width: 0%"></div>
                     </div>
                 </div>
             </div>
-        </section>
 
-        <!-- Chat Demo Section -->
-        <section class="content-section" id="chat-section">
+            <!-- Agents Card -->
+            <div class="card" style="grid-column: 1 / -1;">
+                <div class="card-header">
+                    <h3 class="card-title">
+                        <span class="card-icon">🤖</span>
+                        Active Agents
+                    </h3>
+                    <span class="badge badge-success" id="agent-count">0 Agents</span>
+                </div>
+                <div class="agent-grid" id="agents-container">
+                    <!-- Agents will be populated here -->
+                </div>
+            </div>
+
+            <!-- Recent Issues Card -->
             <div class="card">
                 <div class="card-header">
-                    <h3>💬 Multi-Agent Chat Demo</h3>
-                    <p style="margin: 5px 0 0 0; font-size: 0.9rem; opacity: 0.9;">Static demo of real-time chat interface</p>
+                    <h3 class="card-title">
+                        <span class="card-icon">📝</span>
+                        Recent Issues
+                    </h3>
                 </div>
-                <div class="card-content">
-                    <div class="demo-chat">
-                        <div class="demo-message">
-                            <div class="message-header">
-                                <span class="message-avatar">🏛️</span>
-                                <span class="message-name">DAO Governor</span>
-                                <span class="message-time">Just now</span>
-                            </div>
-                            <div class="message-content">
-                                Welcome to the XMRT DAO Hub! This is a static demo of our mobile-first responsive design. The full interactive version with real-time agents is available on Render.
-                            </div>
-                        </div>
-                        <div class="demo-message">
-                            <div class="message-header">
-                                <span class="message-avatar">💰</span>
-                                <span class="message-name">DeFi Specialist</span>
-                                <span class="message-time">2 min ago</span>
-                            </div>
-                            <div class="message-content">
-                                The mobile-first design ensures optimal experience across all devices. Try resizing your browser or viewing on mobile!
-                            </div>
-                        </div>
-                    </div>
-                    <div class="action-buttons">
-                        <button class="action-btn" onclick="alert('This is a static demo. Visit the Render deployment for full chat functionality!')">💬 Try Live Chat</button>
-                        <button class="action-btn secondary" onclick="showSection('agents')">🤖 Meet the Agents</button>
+                <ul class="recent-list" id="recent-issues">
+                    <li class="recent-item">
+                        <div class="recent-item-title">Loading...</div>
+                        <div class="recent-item-meta">Please wait</div>
+                    </li>
+                </ul>
+            </div>
+
+            <!-- Activity Log Card -->
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">
+                        <span class="card-icon">📜</span>
+                        Activity Log
+                    </h3>
+                </div>
+                <div class="activity-log" id="activity-log">
+                    <div class="log-entry">
+                        <div class="log-time">System starting...</div>
+                        <div class="log-message">Initializing dashboard</div>
                     </div>
                 </div>
             </div>
-        </section>
 
-        <!-- Agents Section -->
-        <section class="content-section" id="agents-section">
+            <!-- Recent Files Card -->
             <div class="card">
                 <div class="card-header">
-                    <h3>🤖 AI Agents Dashboard</h3>
-                    <p style="margin: 5px 0 0 0; font-size: 0.9rem; opacity: 0.9;">Meet our specialized AI agents</p>
+                    <h3 class="card-title">
+                        <span class="card-icon">📁</span>
+                        Recent Files
+                    </h3>
                 </div>
-                <div class="card-content">
-                    <div class="features-grid">
-                        <div class="feature-card">
-                            <div class="feature-header">
-                                <span>🏛️</span>
-                                <div class="feature-name">DAO Governor</div>
-                            </div>
-                            <div class="feature-description">Manages governance proposals, voting mechanisms, and community coordination</div>
-                            <div class="feature-tags">
-                                <span class="feature-tag">Governance</span>
-                                <span class="feature-tag">Voting</span>
-                                <span class="feature-tag">Leadership</span>
-                            </div>
-                        </div>
-                        <div class="feature-card">
-                            <div class="feature-header">
-                                <span>💰</span>
-                                <div class="feature-name">DeFi Specialist</div>
-                            </div>
-                            <div class="feature-description">Analyzes markets, manages liquidity, and optimizes yield strategies</div>
-                            <div class="feature-tags">
-                                <span class="feature-tag">DeFi</span>
-                                <span class="feature-tag">Yield</span>
-                                <span class="feature-tag">Analysis</span>
-                            </div>
-                        </div>
-                        <div class="feature-card">
-                            <div class="feature-header">
-                                <span>🛡️</span>
-                                <div class="feature-name">Security Guardian</div>
-                            </div>
-                            <div class="feature-description">Monitors smart contracts, detects threats, ensures protocol security</div>
-                            <div class="feature-tags">
-                                <span class="feature-tag">Security</span>
-                                <span class="feature-tag">Auditing</span>
-                                <span class="feature-tag">Protection</span>
-                            </div>
-                        </div>
-                        <div class="feature-card">
-                            <div class="feature-header">
-                                <span>👥</span>
-                                <div class="feature-name">Community Manager</div>
-                            </div>
-                            <div class="feature-description">Engages community members, manages social media, facilitates discussions</div>
-                            <div class="feature-tags">
-                                <span class="feature-tag">Community</span>
-                                <span class="feature-tag">Social</span>
-                                <span class="feature-tag">Engagement</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+                <ul class="recent-list" id="recent-files">
+                    <li class="recent-item">
+                        <div class="recent-item-title">Loading...</div>
+                        <div class="recent-item-meta">Please wait</div>
+                    </li>
+                </ul>
             </div>
-        </section>
+        </div>
+    </div>
 
-        <!-- MCP Tools Section -->
-        <section class="content-section" id="mcp-section">
-            <div class="card">
-                <div class="card-header">
-                    <h3>🔗 GitHub MCP Tools</h3>
-                    <p style="margin: 5px 0 0 0; font-size: 0.9rem; opacity: 0.9;">Model Context Protocol integration tools</p>
-                </div>
-                <div class="card-content">
-                    <div class="features-grid">
-                        <div class="feature-card">
-                            <div class="feature-header">
-                                <span>📁</span>
-                                <div class="feature-name">Repository Management</div>
-                            </div>
-                            <div class="feature-description">Create, update, and manage repository files and branches</div>
-                            <div class="feature-tags">
-                                <span class="feature-tag">Git</span>
-                                <span class="feature-tag">Files</span>
-                                <span class="feature-tag">Branches</span>
-                            </div>
-                        </div>
-                        <div class="feature-card">
-                            <div class="feature-header">
-                                <span>🔍</span>
-                                <div class="feature-name">Code Search</div>
-                            </div>
-                            <div class="feature-description">Search code across repositories, find functions and patterns</div>
-                            <div class="feature-tags">
-                                <span class="feature-tag">Search</span>
-                                <span class="feature-tag">Code</span>
-                                <span class="feature-tag">Analysis</span>
-                            </div>
-                        </div>
-                        <div class="feature-card">
-                            <div class="feature-header">
-                                <span>⚡</span>
-                                <div class="feature-name">Workflow Automation</div>
-                            </div>
-                            <div class="feature-description">Trigger and monitor GitHub Actions workflows</div>
-                            <div class="feature-tags">
-                                <span class="feature-tag">CI/CD</span>
-                                <span class="feature-tag">Actions</span>
-                                <span class="feature-tag">Automation</span>
-                            </div>
-                        </div>
-                        <div class="feature-card">
-                            <div class="feature-header">
-                                <span>🛡️</span>
-                                <div class="feature-name">Security Scanning</div>
-                            </div>
-                            <div class="feature-description">Monitor security alerts and vulnerability scans</div>
-                            <div class="feature-tags">
-                                <span class="feature-tag">Security</span>
-                                <span class="feature-tag">Vulnerabilities</span>
-                                <span class="feature-tag">Monitoring</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+    <!-- Modal for Last Result -->
+    <div class="modal" id="result-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Last Innovation Cycle Result</h3>
+                <button class="modal-close" onclick="closeModal()">&times;</button>
             </div>
-        </section>
-
-        <!-- Utilities Section -->
-        <section class="content-section" id="utilities-section">
-            <div class="card">
-                <div class="card-header">
-                    <h3>🛠️ XMRT Utilities</h3>
-                    <p style="margin: 5px 0 0 0; font-size: 0.9rem; opacity: 0.9;">Specialized development and DAO tools</p>
-                </div>
-                <div class="card-content">
-                    <div class="features-grid">
-                        <div class="feature-card">
-                            <div class="feature-header">
-                                <span>🏗️</span>
-                                <div class="feature-name">Smart Contract Tools</div>
-                            </div>
-                            <div class="feature-description">Deploy, interact with, and manage smart contracts</div>
-                            <div class="feature-tags">
-                                <span class="feature-tag">Solidity</span>
-                                <span class="feature-tag">Deployment</span>
-                                <span class="feature-tag">Testing</span>
-                            </div>
-                        </div>
-                        <div class="feature-card">
-                            <div class="feature-header">
-                                <span>📊</span>
-                                <div class="feature-name">DAO Analytics</div>
-                            </div>
-                            <div class="feature-description">Track proposals, votes, and treasury metrics</div>
-                            <div class="feature-tags">
-                                <span class="feature-tag">Analytics</span>
-                                <span class="feature-tag">Metrics</span>
-                                <span class="feature-tag">Dashboard</span>
-                            </div>
-                        </div>
-                        <div class="feature-card">
-                            <div class="feature-header">
-                                <span>🔗</span>
-                                <div class="feature-name">API Integration</div>
-                            </div>
-                            <div class="feature-description">Connect with external services and data sources</div>
-                            <div class="feature-tags">
-                                <span class="feature-tag">REST API</span>
-                                <span class="feature-tag">Webhooks</span>
-                                <span class="feature-tag">Integration</span>
-                            </div>
-                        </div>
-                        <div class="feature-card">
-                            <div class="feature-header">
-                                <span>🚀</span>
-                                <div class="feature-name">Deployment Tools</div>
-                            </div>
-                            <div class="feature-description">Automated deployment and infrastructure management</div>
-                            <div class="feature-tags">
-                                <span class="feature-tag">DevOps</span>
-                                <span class="feature-tag">CI/CD</span>
-                                <span class="feature-tag">Infrastructure</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+            <div id="result-content">
+                <p>No results yet. Run an innovation cycle first.</p>
             </div>
-        </section>
+        </div>
+    </div>
 
-        <!-- API Documentation Section -->
-        <section class="content-section" id="api-section">
-            <div class="card">
-                <div class="card-header">
-                    <h3>📡 API Documentation</h3>
-                    <p style="margin: 5px 0 0 0; font-size: 0.9rem; opacity: 0.9;">RESTful API endpoints and integration guide</p>
+    <script>
+        let lastResult = null;
+        let activityLog = [];
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            refreshData();
+            // Auto-refresh every 30 seconds
+            setInterval(refreshData, 30000);
+        });
+
+        function addLogEntry(message) {
+            const now = new Date();
+            const timeStr = now.toLocaleTimeString();
+            activityLog.unshift({ time: timeStr, message });
+            
+            // Keep only last 50 entries
+            if (activityLog.length > 50) {
+                activityLog = activityLog.slice(0, 50);
+            }
+            
+            updateActivityLog();
+        }
+
+        function updateActivityLog() {
+            const logContainer = document.getElementById('activity-log');
+            logContainer.innerHTML = activityLog.map(entry => `
+                <div class="log-entry">
+                    <div class="log-time">${entry.time}</div>
+                    <div class="log-message">${entry.message}</div>
                 </div>
-                <div class="card-content">
-                    <h4 style="margin-bottom: 15px; color: var(--primary-color);">Available Endpoints</h4>
-                    
-                    <div style="font-family: monospace; font-size: 0.9rem; background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
-                        <div style="margin-bottom: 10px;"><strong style="color: var(--success-color);">GET</strong> /api/status/comprehensive</div>
-                        <div style="margin-bottom: 10px;"><strong style="color: var(--success-color);">GET</strong> /api/mcp/tools</div>
-                        <div style="margin-bottom: 10px;"><strong style="color: var(--info-color);">POST</strong> /api/mcp/call</div>
-                        <div style="margin-bottom: 10px;"><strong style="color: var(--success-color);">GET</strong> /api/utilities</div>
-                        <div style="margin-bottom: 10px;"><strong style="color: var(--info-color);">POST</strong> /api/webhook/receive</div>
-                        <div style="margin-bottom: 10px;"><strong style="color: var(--info-color);">POST</strong> /api/ecosystem/sync</div>
-                        <div style="margin-bottom: 10px;"><strong style="color: var(--success-color);">GET</strong> /api/activity/feed</div>
-                        <div><strong style="color: var(--info-color);">POST</strong> /api/kickstart</div>
-                    </div>
+            `).join('');
+        }
 
-                    <div class="deployment-banner">
-                        <h4>📖 Full API Documentation</h4>
-                        <p>Complete API documentation and interactive testing available on the Render deployment</p>
-                    </div>
+        async function refreshData() {
+            try {
+                addLogEntry('Refreshing data...');
+                
+                // Fetch health data
+                const healthRes = await fetch('/health');
+                const health = await healthRes.json();
+                
+                // Update header info
+                document.getElementById('owner').textContent = health.owner || 'N/A';
+                document.getElementById('repo').textContent = health.repo || 'N/A';
+                document.getElementById('version').textContent = health.version || 'N/A';
+                document.getElementById('uptime').textContent = formatUptime(health.uptime || 0);
+                
+                // Update system resources
+                if (health.system) {
+                    updateResource('cpu', health.system.cpu);
+                    updateResource('mem', health.system.mem);
+                    updateResource('disk', health.system.disk);
+                }
+                
+                // Fetch agents
+                const agentsRes = await fetch('/agents');
+                const agentsData = await agentsRes.json();
+                updateAgents(agentsData.agents || {});
+                
+                // Try to fetch analytics
+                try {
+                    const analyticsRes = await fetch('/api/analytics');
+                    if (analyticsRes.ok) {
+                        const analytics = await analyticsRes.json();
+                        updateStatistics(analytics);
+                    }
+                } catch (e) {
+                    // Fallback to parsing from page if analytics endpoint doesn't exist
+                    console.log('Analytics endpoint not available, using defaults');
+                }
+                
+                addLogEntry('✅ Data refreshed successfully');
+            } catch (error) {
+                console.error('Error refreshing data:', error);
+                addLogEntry('❌ Error refreshing data: ' + error.message);
+            }
+        }
 
-                    <div class="action-buttons">
-                        <button class="action-btn" onclick="window.open('https://your-render-app.onrender.com/api/status/comprehensive', '_blank')">🧪 Test Live API</button>
-                        <button class="action-btn secondary" onclick="alert('API documentation available on the full Flask deployment')">📚 View Docs</button>
+        function updateResource(type, value) {
+            const valueEl = document.getElementById(`${type}-value`);
+            const barEl = document.getElementById(`${type}-bar`);
+            
+            valueEl.textContent = value.toFixed(1) + '%';
+            barEl.style.width = value + '%';
+            
+            // Update color based on value
+            barEl.className = 'progress-fill';
+            if (value < 50) {
+                barEl.classList.add('low');
+            } else if (value < 80) {
+                barEl.classList.add('medium');
+            } else {
+                barEl.classList.add('high');
+            }
+        }
+
+        function updateAgents(agents) {
+            const container = document.getElementById('agents-container');
+            const count = Object.keys(agents).length;
+            document.getElementById('agent-count').textContent = `${count} Agents`;
+            
+            container.innerHTML = Object.entries(agents).map(([id, agent]) => `
+                <div class="agent-card">
+                    <div class="agent-header">
+                        <div class="agent-name">${agent.name}</div>
+                        <div class="agent-weight">Weight: ${agent.weight}</div>
                     </div>
+                    <div class="agent-role">${agent.role}</div>
+                    <div class="agent-voice">"${agent.voice}"</div>
                 </div>
-            </div>
-        </section>
-    </main>
+            `).join('');
+        }
 
-    <script type="module" src="/src/main.js"></script>
-    <script src="/enhanced_frontend_integration.js"></script>
-    <script src="/socket.io/socket.io.js"></script>
+        function updateStatistics(data) {
+            document.getElementById('repos-count').textContent = data.repositories_discovered || 1;
+            document.getElementById('ideas-count').textContent = data.ideas_generated || 0;
+            document.getElementById('issues-count').textContent = data.issues_created || 0;
+            document.getElementById('discussions-count').textContent = data.discussions_created || 0;
+            document.getElementById('story-issues-count').textContent = data.story_issues_created || 0;
+            document.getElementById('files-count').textContent = data.files_created || 0;
+            document.getElementById('updates-count').textContent = data.files_updated || 0;
+            document.getElementById('cycles-count').textContent = data.feature_cycles_completed || 0;
+        }
+
+        async function runInnovationCycle() {
+            const btn = document.getElementById('run-cycle-btn');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner"></span> Running...';
+            
+            addLogEntry('🚀 Starting innovation cycle...');
+            
+            try {
+                const response = await fetch('/run-cycle', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                
+                const result = await response.json();
+                lastResult = result;
+                
+                addLogEntry('✅ Innovation cycle completed successfully');
+                addLogEntry(`📝 Created: ${result.summary || 'Check GitHub for details'}`);
+                
+                // Refresh data after cycle
+                setTimeout(refreshData, 2000);
+                
+                // Show result modal
+                showLastResult();
+            } catch (error) {
+                console.error('Error running cycle:', error);
+                addLogEntry('❌ Error running cycle: ' + error.message);
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<span>🚀</span> Run Innovation Cycle';
+            }
+        }
+
+        function showLastResult() {
+            const modal = document.getElementById('result-modal');
+            const content = document.getElementById('result-content');
+            
+            if (lastResult) {
+                content.innerHTML = `
+                    <div style="margin-bottom: 15px;">
+                        <strong>Status:</strong> ${lastResult.status || 'completed'}
+                    </div>
+                    <div style="margin-bottom: 15px;">
+                        <strong>Summary:</strong><br>
+                        ${lastResult.summary || 'No summary available'}
+                    </div>
+                    ${lastResult.issue_url ? `
+                        <div style="margin-bottom: 15px;">
+                            <strong>Issue:</strong><br>
+                            <a href="${lastResult.issue_url}" target="_blank" style="color: var(--info);">${lastResult.issue_url}</a>
+                        </div>
+                    ` : ''}
+                    ${lastResult.discussion_url ? `
+                        <div style="margin-bottom: 15px;">
+                            <strong>Discussion:</strong><br>
+                            <a href="${lastResult.discussion_url}" target="_blank" style="color: var(--info);">${lastResult.discussion_url}</a>
+                        </div>
+                    ` : ''}
+                    <div style="margin-top: 20px; padding: 15px; background: rgba(255,255,255,0.05); border-radius: 8px;">
+                        <pre style="white-space: pre-wrap; font-size: 0.9rem;">${JSON.stringify(lastResult, null, 2)}</pre>
+                    </div>
+                `;
+            } else {
+                content.innerHTML = '<p>No results yet. Run an innovation cycle first.</p>';
+            }
+            
+            modal.classList.add('active');
+        }
+
+        function closeModal() {
+            document.getElementById('result-modal').classList.remove('active');
+        }
+
+        function formatUptime(seconds) {
+            const hours = Math.floor(seconds / 3600);
+            const minutes = Math.floor((seconds % 3600) / 60);
+            const secs = Math.floor(seconds % 60);
+            
+            if (hours > 0) {
+                return `${hours}h ${minutes}m`;
+            } else if (minutes > 0) {
+                return `${minutes}m ${secs}s`;
+            } else {
+                return `${secs}s`;
+            }
+        }
+
+        // Close modal when clicking outside
+        document.getElementById('result-modal').addEventListener('click', (e) => {
+            if (e.target.id === 'result-modal') {
+                closeModal();
+            }
+        });
+    </script>
 </body>
 </html>
