@@ -1,9 +1,6 @@
 flask
 flask-cors
-web3
 requests
 python-dotenv
-gunicorn
 openai
-anthropic
 redis
