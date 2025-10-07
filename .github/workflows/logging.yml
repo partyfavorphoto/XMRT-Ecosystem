@@ -83,7 +83,7 @@ try:
     # Only check if RENDER_API_KEY is available
     render_key = os.environ.get('RENDER_API_KEY')
     if render_key:
-        dashboard_url = 'https://xmrt-ecosystem-1-20k6.onrender.com/health'
+        dashboard_url = 'https://xmrt-ecosystem-xx5w.onrender.com/health'
         response = requests.get(dashboard_url, timeout=5)
         if response.status_code == 200:
             health_data = response.json()
