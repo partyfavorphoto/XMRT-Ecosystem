@@ -11,7 +11,7 @@ python-socketio>=5.8.0
 eventlet>=0.33.0
 gevent>=22.10.0
 gevent-websocket>=0.10.1
-flask-cors>=4.0.0
+flask-cors>=6.0.0
 
 # AI and ML Dependencies
 openai>=1.0.0

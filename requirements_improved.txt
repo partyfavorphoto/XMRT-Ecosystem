@@ -3,7 +3,7 @@
 
 # Core Flask Framework
 Flask==3.0.0
-Flask-CORS==4.0.0
+Flask-CORS==6.0.0
 gunicorn==21.2.0
 
 # AI and ML Dependencies
